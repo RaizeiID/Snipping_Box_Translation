@@ -1,0 +1,6 @@
+{
+    "min_length_to_cache": 3,
+    "max_length_to_cache": 200,
+    "ignore_numbers_only": true,
+    "bypass_context_sensitive": true
+}

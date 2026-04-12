@@ -1,0 +1,6 @@
+{
+    "auto_capitalize": true,
+    "remove_double_spaces": true,
+    "fix_punctuation_spacing": true,
+    "prefer_indonesian_quotes": false
+}

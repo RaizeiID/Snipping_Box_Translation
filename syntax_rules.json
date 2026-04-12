@@ -1,0 +1,11 @@
+{
+    "replacements": {
+        "tidak bisa": "tak dapat",
+        "seorang diri": "sendirian",
+        "di dalam": "dalam"
+    },
+    "patterns": [
+        {"regex": "\\b(aku|saya) adalah\\b", "replace": "aku"},
+        {"regex": "\\b(kamu|kau) adalah\\b", "replace": "kau"}
+    ]
+}

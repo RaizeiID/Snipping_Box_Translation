@@ -1,0 +1,10 @@
+{
+  "start=|end=.": 59,
+  "start=|end=": 113,
+  "start=|end=!": 1,
+  "counts": {
+    "question": 13488,
+    "ellipsis_3": 1977,
+    "exclaim": 8314
+  }
+}

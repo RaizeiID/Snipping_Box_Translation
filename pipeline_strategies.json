@@ -1,0 +1,8 @@
+{
+    "fast_path_threshold_ms": 150,
+    "strategies": {
+        "FULL_QUALITY": ["All"],
+        "BALANCED": ["Skip_Tone", "Skip_Sociologist"],
+        "MAX_SPEED": ["Skip_Academy", "Skip_Context", "Raw_Translation_Only"]
+    }
+}

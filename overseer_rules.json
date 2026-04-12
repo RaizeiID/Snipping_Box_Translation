@@ -1,0 +1,5 @@
+{
+    "max_errors_before_restart": 3,
+    "auto_healing_enabled": true,
+    "critical_cores": ["Helsinki", "CaptureSpecialist"]
+}

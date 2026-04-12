@@ -1,0 +1,19 @@
+{
+    "modes": {
+        "NORMAL": {
+            "sleep_interval": 0.05,
+            "skip_frames": 0,
+            "disable_components": []
+        },
+        "WARNING": {
+            "sleep_interval": 0.2,
+            "skip_frames": 1,
+            "disable_components": ["VisionAnalyst", "Sociologist"]
+        },
+        "CRITICAL": {
+            "sleep_interval": 1.0,
+            "skip_frames": 3,
+            "disable_components": ["VisionAnalyst", "Sociologist", "ProfessorTone", "EntityDiscovery"]
+        }
+    }
+}

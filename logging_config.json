@@ -1,0 +1,6 @@
+{
+    "log_level": "ERROR",
+    "max_log_size_mb": 5,
+    "enable_console_output": true,
+    "critical_events": ["CRASH", "ENGINE_FAILURE", "MEMORY_LEAK"]
+}

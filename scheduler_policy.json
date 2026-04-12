@@ -1,0 +1,9 @@
+{
+    "priorities": {
+        "CRITICAL": 0,
+        "HIGH": 1,
+        "NORMAL": 2,
+        "LOW": 3
+    },
+    "timeout_ms": 5000
+}

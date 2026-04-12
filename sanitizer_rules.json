@@ -1,0 +1,19 @@
+{
+    "garbage_patterns": [
+        "46=3",
+        "isl \\d+",
+        "\\|",
+        "_",
+        "^\\W+",
+        "\\W+$"
+    ],
+    "quick_fixes": {
+        "l'm": "I'm",
+        "I'l": "I'll",
+        "dont": "don't",
+        "y ou": "you",
+        "t he": "the",
+        "can' t": "can't",
+        "ll": "ll"
+    }
+}

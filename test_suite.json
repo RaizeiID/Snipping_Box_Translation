@@ -1,0 +1,8 @@
+{
+    "sanity_check": [
+        {"input": "Start Game", "expected_keyword": "Mulai"},
+        {"input": "Options", "expected_keyword": "Pengaturan"},
+        {"input": "Quit", "expected_keyword": "Keluar"},
+        {"input": "Inventory", "expected_keyword": "Inventaris"}
+    ]
+}

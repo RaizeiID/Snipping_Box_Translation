@@ -1,0 +1,45 @@
+{
+    "version": "2.0",
+    "dm_patterns": [
+        {
+            "comment": "Membalik Kata Sifat + Benda (Red House -> House Red)",
+            "regex": "\\b(Rahasia|Besar|Kecil|Merah|Biru|Hijau|Hitam|Putih|Tinggi|Rendah|Cepat|Lambat|Kuat|Lemah|Baru|Lama|Rusak|Aktif)\\s+(Markas|Rumah|Pintu|Tombol|Mobil|Pesawat|Senjata|Unit|Target|Sistem|Koneksi|Data)\\b",
+            "replacement": "\\2 \\1"
+        },
+        {
+            "comment": "Membalik Kepemilikan (My Hand -> Hand My)",
+            "regex": "\\b(Saya|Aku|Kamu|Dia|Mereka|Kita|Kami|Anda)\\s+(Tangan|Kepala|Senjata|Rencana|Misi|Nyawa|Posisi|Perintah)\\b",
+            "replacement": "\\2 \\1"
+        },
+        {
+            "comment": "Membalik Penunjuk (This Weapon -> Weapon This)",
+            "regex": "(?<!^)\\b(Ini|Itu)\\s+(Orang|Barang|Tempat|Jalan|Musuh|Situasi)\\b",
+            "replacement": "\\2 \\1"
+        }
+    ],
+    "phrase_corrections": {
+        "Api di lubang": "Awas Ledakan!",
+        "Siap untuk pergi": "Siap berangkat",
+        "Apa yang salah?": "Ada apa?",
+        "Tahan apimu": "Tahan tembakan!",
+        "Salinan itu": "Diterima",
+        "Roger itu": "Siap dimengerti",
+        "Potong itu": "Hentikan",
+        "Saya baik": "Aku tidak apa-apa",
+        "Tidak jalan": "Tidak mungkin",
+        "Sialan itu": "Brengsek",
+        "Anak laki-laki": "Nak",
+        "Anak perempuan": "Nak",
+        "Sepotong kue": "Gampang sekali",
+        "Menembak angin": "Mengobrol",
+        "Kaki dingin": "Gugup",
+        "Mata ganti mata": "Impas"
+    },
+    "particle_fixes": [
+        [" kah", "kah"],
+        [" lah", "lah"],
+        [" pun", "pun"],
+        [" ku", "ku"],
+        [" mu", "mu"]
+    ]
+}

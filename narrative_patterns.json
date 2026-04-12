@@ -1,0 +1,10 @@
+{
+    "dialog_indicators": [
+        "\"", "“", "”", ":", 
+        "I ", "You ", "We ", "He ", "She "
+    ],
+    "monolog_indicators": [
+        "Year", "Location", "Time", "Chapter", "Episode",
+        "Meanwhile", "Later"
+    ]
+}

@@ -1,0 +1,7 @@
+{
+    "skip_detection": {
+        "loading_screen_keywords": ["Loading", "Connecting", "Please Wait", "Now Loading"],
+        "menu_keywords": ["Start Game", "Options", "Exit", "Credits", "Save", "Load"],
+        "min_text_density": 0.05
+    }
+}

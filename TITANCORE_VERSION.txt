@@ -1,0 +1,8 @@
+TitanCore_V2 Update Pack
+Version: 6.7-LAUNCHER
+Date: 2026-01-06
+
+What changed:
+- Added TITAN_LAUNCHER.py (interactive terminal menu to run Titan V1..V4, V3Lite, IDN, Option A/B/C).
+- Added Run_TITAN_LAUNCHER.cmd and Run_TITAN_LAUNCHER.ps1 shortcuts.
+- Added TITAN_MODELS_GUIDE.md with full explanations for each model and how to use launcher.

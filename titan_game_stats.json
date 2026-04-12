@@ -1,0 +1,44 @@
+{
+  "active_game": "GFL2_EXILIUM",
+  "hard_locked": true,
+  "hard_lock_source": "autolock_title(EXILIUM)",
+  "scores": {
+    "GFL2_EXILIUM": {
+      "score": 3680.5000000001046
+    }
+  },
+  "observed": {
+    "CD": 1,
+    "Commander": 8,
+    "Loading": 6,
+    "Collect": 4,
+    "Heroic": 1,
+    "Leva": 618,
+    "Robella": 409,
+    "Klukai": 3,
+    "Kalina": 57,
+    "Dandelion": 26,
+    "Lenna": 37,
+    "Mechty": 15,
+    "Il": 1,
+    "Jil": 1,
+    "IIIII": 1,
+    "Dier": 11,
+    "Gr": 5,
+    "Jyll": 1,
+    "IIII": 1,
+    "Persica": 36
+  },
+  "last_decision": {
+    "game": "GFL2_EXILIUM",
+    "confidence": 1.0,
+    "top_score": 999.0,
+    "second_score": 0.0,
+    "reason": "autolock_title(EXILIUM)"
+  },
+  "autolock": {
+    "enabled": true,
+    "source": "both",
+    "interval_ms": 900
+  }
+}

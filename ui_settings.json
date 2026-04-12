@@ -1,0 +1,15 @@
+{
+  "profile": "gfl2",
+  "compact": false,
+  "show_ms": true,
+  "show_mode": true,
+  "show_model": true,
+  "show_game": true,
+  "show_speaker": true,
+  "show_engine": true,
+  "show_interval": true,
+  "show_engine_corner": true,
+  "corner_radius": 16,
+  "font_scale": 1.0,
+  "theme": "gfl2"
+}

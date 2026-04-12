@@ -1,0 +1,28 @@
+{
+    "glitch_patterns": [
+        {
+            "comment": "Menghapus angka yang terjebak di dalam kata (contoh: 1berada -> berada)",
+            "regex": "(?<=[a-zA-Z])\\d+(?=[a-zA-Z])|(?<=[a-zA-Z])\\d+|\\d+(?=[a-zA-Z])",
+            "replacement": ""
+        },
+        {
+            "comment": "Menghapus simbol liar di awal kalimat (contoh: |saat -> saat)",
+            "regex": "^[\\|\\/\\\\_\\-\\.]+\\s*",
+            "replacement": ""
+        },
+        {
+            "comment": "Memperbaiki spasi ganda atau tanda baca aneh",
+            "regex": "\\s+([\\.,\\?!])",
+            "replacement": "\\1"
+        }
+    ],
+    "known_corrections": {
+        "yg": "yang",
+        "dgn": "dengan",
+        "tak": "tidak",
+        "krn": "karena",
+        "gpp": "tidak apa-apa",
+        "b4": "sebelum",
+        "4ever": "selamanya"
+    }
+}

@@ -1,0 +1,5 @@
+{
+    "max_chars_per_line": 60,
+    "max_lines": 3,
+    "truncation_indicator": "..."
+}

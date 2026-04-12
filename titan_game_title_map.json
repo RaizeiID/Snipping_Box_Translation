@@ -1,0 +1,14 @@
+[
+  {
+    "pattern": "gfl2|exilium",
+    "game": "GFL2_EXILIUM"
+  },
+  {
+    "pattern": "wuthering\\s*waves|wuwa",
+    "game": "WUWA"
+  },
+  {
+    "pattern": "arknights",
+    "game": "ARKNIGHTS"
+  }
+]

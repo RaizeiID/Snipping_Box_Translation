@@ -1,0 +1,7 @@
+{
+    "forbidden_output_words": ["fuck", "shit", "anjing", "bangsat"],
+    "mandatory_replacements": {
+        "teh": "the",
+        "u": "you"
+    }
+}

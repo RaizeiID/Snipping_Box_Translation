@@ -1,0 +1,4 @@
+{
+    "check_interval_seconds": 300,
+    "files_to_audit": ["npc_database.json", "vault_index.json", "user_config.json"]
+}

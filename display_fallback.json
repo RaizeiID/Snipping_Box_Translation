@@ -1,0 +1,5 @@
+{
+    "enable_console_print": true,
+    "enable_sound_alert": false,
+    "log_to_file": true
+}

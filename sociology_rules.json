@@ -1,0 +1,12 @@
+{
+    "pronouns": {
+        "formal": {"I": "Saya", "You": "Anda", "We": "Kami"},
+        "casual": {"I": "Aku", "You": "Kau", "We": "Kita"},
+        "aggressive": {"I": "Gua", "You": "Lu", "We": "Kita"}
+    },
+    "tone_triggers": {
+        "formal": ["Commander", "Sir", "Madam", "Report", "Mission", "Authorized"],
+        "aggressive": ["Damn", "Kill", "Die", "Stupid", "Enemy", "Attack", "Shut up"],
+        "soft": ["Please", "Sorry", "Love", "Wait", "Help", "Dear"]
+    }
+}

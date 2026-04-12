@@ -1,0 +1,5 @@
+{
+    "min_confidence_score": 0.4,
+    "garbage_indicators": ["", "???", "null", "[object]"],
+    "length_ratio_tolerance": 3.5
+}

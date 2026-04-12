@@ -1,0 +1,6 @@
+{
+    "characters": {
+        "Villain A": {"alignment": "Hostile", "trust_level": 0},
+        "Hero B": {"alignment": "Friendly", "trust_level": 100}
+    }
+}

@@ -1,0 +1,7 @@
+{
+    "max_length_ratio": 2.5,
+    "forbidden_words": ["null", "undefined", "[object Object]"],
+    "quality_standards": {
+        "min_confidence": 0.5
+    }
+}
