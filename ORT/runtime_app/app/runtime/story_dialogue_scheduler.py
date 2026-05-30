@@ -156,16 +156,24 @@ class StoryDialogueScheduler:
         else:
             similar_to_committed = 0.0
 
-        # v8.3.2: Auto and classic Interval should feel like story/VN flow.
-        # If the OCR text is new enough, commit it progressively instead of waiting for a long stable hold.
+        # v8.8.2: Auto/Interval still follow story text, but tiny OCR deltas are coalesced
+        # so the overlay does not flicker on every typewriter frame.
         if self.progressive_commit:
             since_commit_ms = int((now - self._last_commit_ts) * 1000) if self._last_commit_ts else 999999
             delta = abs(len(_norm_for_compare(text)) - len(_norm_for_compare(self._last_committed))) if self._last_committed else len(cmp)
             sim_commit = _similar(text, self._last_committed) if self._last_committed else 0.0
-            if len(cmp) >= 6 and (not self._last_committed or sim_commit < 0.985) and (delta >= self.progressive_min_delta or since_commit_ms >= max(self.progressive_min_ms, 220)) and since_commit_ms >= self.progressive_min_ms:
+            min_delta = self.progressive_min_delta
+            min_ms = self.progressive_min_ms
+            if self.profile == "auto_story" and os.environ.get("ORT_AUTO_SMOOTH_MODE", "1") == "1":
+                min_delta = max(min_delta, int(os.environ.get("ORT_AUTO_SMOOTH_MIN_CHAR_DELTA", "10")))
+                min_ms = max(min_ms, int(os.environ.get("ORT_AUTO_SMOOTH_MIN_MS", "220")))
+            if self.profile != "auto_story" and os.environ.get("ORT_INTERVAL_STABLE_MODE", "1") == "1":
+                min_delta = max(min_delta, int(os.environ.get("ORT_INTERVAL_MIN_CHAR_DELTA", "14")))
+                min_ms = max(min_ms, int(os.environ.get("ORT_INTERVAL_PROGRESSIVE_MIN_MS", "360")))
+            if len(cmp) >= 8 and (not self._last_committed or sim_commit < 0.982) and delta >= min_delta and since_commit_ms >= min_ms:
                 self._commit(text, now)
-                state = "AUTO_PROGRESS" if self.profile == "auto_story" else "INTERVAL_COMMIT"
-                return SchedulerDecision(True, text, "progressive_commit", state)
+                state = "AUTO_SMOOTH_PROGRESS" if self.profile == "auto_story" else "INTERVAL_STORY_AWARE_COMMIT"
+                return SchedulerDecision(True, text, "smooth_progressive_commit", state)
 
         if cmp == last:
             self._repeat_count += 1

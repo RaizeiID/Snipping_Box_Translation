@@ -282,12 +282,37 @@ def is_distinct_conflict(a: str, b: str) -> bool:
 
 
 def strip_matching_speaker_prefix(text: str, speaker: str, game: str = "GFL2_EXILIUM") -> tuple[str, bool]:
+    """Remove duplicated speaker prefixes from body OCR.
+
+    v8.8.2 handles uncertain/visual speaker forms such as:
+    - Phaetusa(?) Stop calling me...
+    - Phaetusa (?) Stop calling me...
+    - [Phaetusa(?)] Stop calling me...
+    while keeping the speaker label itself available for the overlay header.
+    """
     body = str(text or "").strip()
-    candidates = [speaker] + [alias for alias, canon in trusted_alias_map(game).items() if _key(canon) == _key(speaker)]
-    # aliases map keys are compact; only canonical exact stripping is automatic.
-    for candidate in [speaker]:
-        if candidate and re.match(rf"^{re.escape(candidate)}(?:\s+|[:：]\s*|$)", body, flags=re.I):
-            return re.sub(rf"^{re.escape(candidate)}(?:\s+|[:：]\s*|$)", "", body, count=1, flags=re.I).strip(), True
+    speaker = _clean(speaker)
+    if not body or not speaker:
+        return body, False
+    uncertainty = r"(?:\s*(?:\(\s*[?？]\s*\)|[?？]))?"
+    # Separator may be a colon/dash/space or just a closed uncertain marker.
+    prefix = (
+        r"^\s*[\[({<]?\s*" + re.escape(speaker) + uncertainty +
+        r"\s*[\])}>]?\s*(?:[:：\-–—]\s*|\s+|$)"
+    )
+    if re.match(prefix, body, flags=re.I):
+        stripped = re.sub(prefix, "", body, count=1, flags=re.I).strip()
+        return stripped, True
+    # Exact compact check for OCR aliases that were reviewed for the Name ROI.
+    canon_key = _key(speaker)
+    for alias_key, canon in trusted_alias_map(game).items():
+        if _key(canon) != canon_key or not alias_key:
+            continue
+        alias_pattern = r"^\s*" + re.escape(alias_key) + r"(?:\s+|[:：]\s*|$)"
+        compact = re.sub(r"[^A-Za-z0-9]", "", body).casefold()
+        if compact.startswith(alias_key):
+            # Do not destructively slice compact text; aliases are only a fallback signal.
+            break
     return body, False
 
 

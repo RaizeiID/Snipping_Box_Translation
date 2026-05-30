@@ -1,6 +1,18 @@
-# CHANGELOG — ORT Translation v8.8.1
 
-## v8.8.1 — Project Structure Refactor & GitHub-Ready Layout
+## v8.8.2 — Runtime Behavior Refactor
+
+- Added mode-specific runtime policy for Auto, Freeze, and Interval.
+- Added Auto Smooth coalescing to reduce overlay flicker from low-OCR progressive text.
+- Added Freeze OCR Override so Freeze can use high/100% OCR for screenshot-like accuracy.
+- Added Interval Stable/Story-aware policy for manual story reading and VA-assisted story timing.
+- Added Turn Transcript Accumulator / best-source-per-turn to avoid 20–90% partial dialog output.
+- Added No-Downgrade Source Rule so shorter/noisier OCR frames do not replace a better full sentence.
+- Added Speaker Prefix Sanitizer v3 for duplicated labels such as Phaetusa(?) in body text.
+- Preserved v8.8.2 GitHub-safe layout and local runtime grouping.
+
+# CHANGELOG — ORT Translation v8.8.2
+
+## v8.8.2 — Project Structure Refactor & GitHub-Ready Layout
 
 ### Added
 - Root launcher `START_HERE.bat` with simple menu.
@@ -15,8 +27,8 @@
 
 ### Changed
 - Runtime is now placed under `ORT/runtime_app/` and launched through compatibility launchers.
-- Display/version labels updated to v8.8.1 where relevant.
-- Historical logs/cache/backups are not included in the clean v8.8.1 package.
+- Display/version labels updated to v8.8.2 where relevant.
+- Historical logs/cache/backups are not included in the clean v8.8.2 package.
 
 ### Not changed intentionally
 - OCR behavior.
@@ -28,7 +40,7 @@
 - v8.8.2: Auto Smooth, Freeze Ultra OCR, Interval Stable/Story-aware, Turn Transcript Accumulator, Overlay Anti-Flicker, and mode-specific runtime policy.
 
 
-## v8.8.1 R2 — Local Runtime Grouping
+## v8.8.2 R2 — Local Runtime Grouping
 
 - Menambahkan `ORT/_LOCAL_RUNTIME_WEB_DO_NOT_UPLOAD/` sebagai satu lokasi untuk file/folder lokal besar yang mudah dikecualikan saat ZIP/GitHub.
 - Menambahkan `EXPORT_GITHUB_SOURCE.bat` dan `ORT/tools/packaging/export_github_source.py` untuk membuat ZIP source bersih.

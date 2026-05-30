@@ -829,3 +829,8 @@ Sebelum menjawab permintaan update:
 # 17. RINGKASAN SATU PARAGRAF UNTUK PEMULIHAN CEPAT
 
 ORT Translation adalah overlay OCR penerjemah dialog game real-time untuk Bahasa Indonesia dengan fokus terbaru GFL2. Setelah v8.7 mengembangkan profile GFL dan identity/cache safety, v8.7.5–v8.7.8 menemukan rangkaian masalah: OCR rendah dan fallback Argos, hallucination tafsir/agama dari source noisy, lalu stutter dan semantic drift umum karena hold/fallback/stale overlay. v8.7.9 direkonstruksi untuk mengubah desain menjadi Trusted Preview CT2-only yang cepat dan Stable Final yang aman, dengan Hard Strict CT2 Story, Turn-Safe Overlay, Scene Exit Guard, Semantic Fidelity Guard, serta cache namespace `v8_7_9_responsive_turn_safe_ct2`. Prinsip mutlak pengguna: akurasi tidak boleh membuat Auto Story/Lite tersendat; safety berat harus final-only; Argos story default OFF saat CT2 tersedia; setiap update diuji terhadap latency/queue/VRAM/overlay; bila patch makin kacau, lakukan refactoring terkontrol menuju v9.0 GitHub-ready.
+
+
+# Addendum 2026-05-30 — v8.8.2 Runtime Behavior Refactor
+
+v8.8.2 dimulai setelah v8.8.1 structural/GitHub cleanup. Fokusnya adalah Auto Smooth, Freeze OCR Override 100%, Interval Stable/Story-aware, Turn Transcript Accumulator, No-Downgrade Source Rule, Anti-Flicker Overlay Buffer, dan Speaker Prefix Sanitizer v3. Prinsip performa tetap berlaku: preview harus ringan, safety berat final-only, dan Lite tidak boleh tersendat.

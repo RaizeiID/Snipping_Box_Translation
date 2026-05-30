@@ -1,4 +1,4 @@
-# ORT Translation v8.8.1
+# ORT Translation v8.8.2
 
 **Release type:** Full project folder / structural refactor  
 **Focus:** folder cleanup, launcher UX, GitHub-ready layout, and compatibility bridge.  
@@ -33,7 +33,7 @@ ORT_Translation_v8_8_1/
 ├── VERSION.txt
 ├── .gitignore
 └── ORT/
-    ├── runtime_app/        # Runtime aktual v8.8.1, kompatibel dengan struktur lama
+    ├── runtime_app/        # Runtime aktual v8.8.2, kompatibel dengan struktur lama
     ├── docs/               # Dokumentasi, handoff, roadmap, migration map
     ├── user_data/          # Placeholder data aktif pengguna untuk struktur masa depan
     ├── logs/               # Placeholder log eksternal
@@ -44,9 +44,9 @@ ORT_Translation_v8_8_1/
 
 ## Kenapa masih ada `ORT/runtime_app/`?
 
-v8.8.1 adalah **structural refactor tahap aman**. File runtime lama tetap dipertahankan utuh di `ORT/runtime_app/` agar import/path lama tidak rusak. Root folder sudah bersih dan launcher baru mengarahkan pengguna ke runtime yang benar.
+v8.8.2 adalah **structural refactor tahap aman**. File runtime lama tetap dipertahankan utuh di `ORT/runtime_app/` agar import/path lama tidak rusak. Root folder sudah bersih dan launcher baru mengarahkan pengguna ke runtime yang benar.
 
-Refactor perilaku seperti Auto Smooth, Freeze OCR 100%, Interval Stable, Dialogue State Machine, dan Overlay Anti-Flicker ditargetkan untuk **v8.8.2** setelah struktur v8.8.1 stabil.
+Refactor perilaku seperti Auto Smooth, Freeze OCR 100%, Interval Stable, Dialogue State Machine, dan Overlay Anti-Flicker ditargetkan untuk **v8.8.2** setelah struktur v8.8.2 stabil.
 
 ## Catatan GitHub
 
@@ -58,11 +58,11 @@ Paket lokal ini masih dapat menyertakan runtime/config kecil agar tetap mudah di
 - Launcher pengguna dipusatkan di root.
 - Runtime lama dipindahkan ke folder terstruktur `ORT/runtime_app/`.
 - Dokumentasi/handoff proyek disalin ke `ORT/docs/handoff/`.
-- File generated lama seperti logs/cache/backups dibersihkan dari paket v8.8.1.
+- File generated lama seperti logs/cache/backups dibersihkan dari paket v8.8.2.
 - Struktur awal GitHub-ready disiapkan.
 
 
-## v8.8.1 R2 - Folder lokal besar dibuat satu tempat
+## v8.8.2 R2 - Folder lokal besar dibuat satu tempat
 
 Jika di laptop Anda ada folder/file besar seperti runtime Python, model, cache lokal, hasil log besar, backup, atau file web/runtime lokal yang tidak ingin ikut saat membuat ZIP/GitHub, kumpulkan semuanya di:
 
@@ -83,7 +83,7 @@ Catatan: `ORT/runtime_app/` tetap berisi runtime aplikasi yang diperlukan oleh l
 
 ## GitHub Safe Upload
 
-v8.8.1 R3 menyertakan perlindungan agar folder runtime/cache/log/model besar tidak ikut terupload ke GitHub.
+v8.8.2 R3 menyertakan perlindungan agar folder runtime/cache/log/model besar tidak ikut terupload ke GitHub.
 
 File penting:
 - `.gitignore`
@@ -102,3 +102,8 @@ EXPORT_GITHUB_SOURCE.bat
 
 Lalu upload ZIP `ORT_GITHUB_SOURCE_EXPORT.zip` ke GitHub atau gunakan Git dari root folder project.
 
+
+
+## v8.8.2 Runtime Behavior Refactor
+
+Update ini menambahkan Auto Smooth, Freeze OCR Override, Interval Stable/Story-aware, Turn Transcript Accumulator, No-Downgrade Source Rule, Anti-Flicker Overlay Buffer, dan Speaker Prefix Sanitizer v3.

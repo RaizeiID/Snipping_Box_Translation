@@ -107,7 +107,7 @@ def log(msg: str):
 # ==============================================================================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-VERSION = "ORT Translation v8.8.1 - TITANMAIN (Responsive Faithfulness & Turn-Safe Overlay)"
+VERSION = "ORT Translation v8.8.2 - TITANMAIN (Mode Policy & Complete Dialogue Stabilizer)"
 CACHE_FILE = os.path.join(BASE_DIR, "translation_memory.json")
 NPC_FILE = os.path.join(BASE_DIR, "npc_database.json")
 UNIQUE_FILE = os.path.join(BASE_DIR, "unique_terms.json")
@@ -191,6 +191,10 @@ except Exception:
     TurnSafeOverlayController = None
     def is_scene_exit_text(_text, speaker=""):
         return False
+try:
+    from app.runtime.dialogue_stability import DialogueTurnAccumulator
+except Exception:
+    DialogueTurnAccumulator = None
 ORT_LATEST_FRAME_WINS = os.environ.get("ORT_LATEST_FRAME_WINS", "0") == "1"
 ORT_ENTITY_SPAN_PIPELINE = os.environ.get("ORT_ENTITY_SPAN_PIPELINE", "0") == "1"
 ORT_SPEAKER_TRANSITION_GUARD = os.environ.get("ORT_SPEAKER_TRANSITION_GUARD", "1") != "0"
@@ -2339,6 +2343,7 @@ class TranslatorWorker(QThread):
             self.dialog_scheduler = None
         self._last_scheduler_log = 0.0
         self.turn_safe_overlay = TurnSafeOverlayController() if TurnSafeOverlayController is not None else None
+        self.dialog_accumulator = DialogueTurnAccumulator.from_env() if DialogueTurnAccumulator is not None else None
 
     def stop(self):
         self.running = False
@@ -2512,6 +2517,11 @@ class TranslatorWorker(QThread):
                         append_event("SCENE_EXIT_OVERLAY_CLEARED", {"text": raw_text[:240], "reason": turn_decision.reason}, source_module="TITANMAIN")
                         self.last_dialog = ""
                         self.last_speaker = ""
+                        if self.dialog_accumulator is not None:
+                            try:
+                                self.dialog_accumulator.reset()
+                            except Exception:
+                                pass
                         self.new_payload.emit("", "")
                         continue
                     if turn_decision.clear_overlay:
@@ -2519,7 +2529,37 @@ class TranslatorWorker(QThread):
                         append_event("STALE_OVERLAY_CLEARED_ON_NEW_TURN", {"dialog_turn_id": turn_decision.turn_id, "speaker": speaker or "", "source": dialog[:240]}, source_module="TITANMAIN")
                         self.last_dialog = ""
                         self.last_speaker = ""
+                        if self.dialog_accumulator is not None:
+                            try:
+                                self.dialog_accumulator.reset()
+                            except Exception:
+                                pass
                         self.new_payload.emit("", "")
+                except Exception:
+                    pass
+
+            if self.dialog_accumulator is not None and dialog:
+                try:
+                    stability = self.dialog_accumulator.update(speaker, dialog, mode=mode_name, turn_id=str(ocr_meta.get("dialog_turn_id", "")))
+                    ocr_meta["dialog_stability_state"] = stability.state
+                    ocr_meta["dialog_stability_reason"] = stability.reason
+                    ocr_meta["dialog_best_source"] = stability.text
+                    if not stability.process:
+                        try:
+                            from translation_event_logger import append_event
+                            append_event("DIALOG_STABILITY_HOLD", {"state": stability.state, "reason": stability.reason, "speaker": speaker or "", "source": dialog[:240], "best_source": stability.text[:240], "mode": mode_name}, source_module="TITANMAIN")
+                        except Exception:
+                            pass
+                        if ORT_RESPONSIVE_STORY_MODE:
+                            self.debug.emit(f"[SMOOTH v8.8.2] keep_last | state={stability.state} | reason={stability.reason}")
+                        continue
+                    if stability.text and stability.text != dialog:
+                        try:
+                            from translation_event_logger import append_event
+                            append_event("DIALOG_BEST_SOURCE_SELECTED", {"speaker": speaker or "", "source": dialog[:240], "best_source": stability.text[:300], "reason": stability.reason, "state": stability.state}, source_module="TITANMAIN")
+                        except Exception:
+                            pass
+                        dialog = stability.text
                 except Exception:
                     pass
 
@@ -2575,7 +2615,7 @@ class TranslatorWorker(QThread):
             self.debug.emit(f"[PIPE] cache={cache_label} | {dt}ms | engine={engine_label} | requested_mode={requested_mode} | capture_mode={mode_name} | scheduler={scheduler_profile} | responsive={1 if ORT_RESPONSIVE_STORY_MODE else 0} | queue={int(ocr_meta.get('queue_wait_ms', 0.0))}ms | entity={meta_now.get('entity_match_ms', '-')}ms | backend={meta_now.get('backend_translate_ms', '-')}ms | idn={meta_now.get('idn_post_ms', '-')}ms | kind={kind}")
             try:
                 from translation_event_logger import append_translation_event
-                append_translation_event("TRANSLATION_RESULT", source=dialog, translation=out, speaker=speaker, engine=engine_label, latency_ms=dt, cache=cache_label, extra={"mode": mode_name, "requested_mode": requested_mode, "scheduler": scheduler_profile, "kind": kind, "game": ORT_GAME_OVERRIDE, "speaker_source": "gfl2_roi_metadata" if roi_speaker else "text_parser", "responsive_story": bool(ORT_RESPONSIVE_STORY_MODE), "entity_match_ms": meta_now.get("entity_match_ms", 0.0), "backend_translate_ms": meta_now.get("backend_translate_ms", 0.0), "idn_post_ms": meta_now.get("idn_post_ms", 0.0), "name_roi_ms": roi_meta.get("name_roi_ms", 0.0), "ocr_body_ms": ocr_meta.get("body_ocr_ms", 0.0), "ocr_numeric_retry_ms": ocr_meta.get("numeric_retry_ms", 0.0), "ocr_readability_rescue_ms": ocr_meta.get("readability_rescue_ms", 0.0), "runtime_ocr_percent": ocr_meta.get("runtime_ocr_percent", ORT_RUNTIME_OCR_RESOLUTION_PERCENT), "readability_score": ocr_meta.get("readability_score", 0.0), "ocr_thin_glyph_ms": roi_meta.get("thin_glyph_ms", 0.0), "queue_wait_ms": ocr_meta.get("queue_wait_ms", 0.0)}, source_module="TITANMAIN")
+                append_translation_event("TRANSLATION_RESULT", source=dialog, translation=out, speaker=speaker, engine=engine_label, latency_ms=dt, cache=cache_label, extra={"mode": mode_name, "requested_mode": requested_mode, "scheduler": scheduler_profile, "kind": kind, "game": ORT_GAME_OVERRIDE, "speaker_source": "gfl2_roi_metadata" if roi_speaker else "text_parser", "responsive_story": bool(ORT_RESPONSIVE_STORY_MODE), "entity_match_ms": meta_now.get("entity_match_ms", 0.0), "backend_translate_ms": meta_now.get("backend_translate_ms", 0.0), "idn_post_ms": meta_now.get("idn_post_ms", 0.0), "name_roi_ms": roi_meta.get("name_roi_ms", 0.0), "ocr_body_ms": ocr_meta.get("body_ocr_ms", 0.0), "ocr_numeric_retry_ms": ocr_meta.get("numeric_retry_ms", 0.0), "ocr_readability_rescue_ms": ocr_meta.get("readability_rescue_ms", 0.0), "runtime_ocr_percent": ocr_meta.get("runtime_ocr_percent", ORT_RUNTIME_OCR_RESOLUTION_PERCENT), "readability_score": ocr_meta.get("readability_score", 0.0), "ocr_thin_glyph_ms": roi_meta.get("thin_glyph_ms", 0.0), "queue_wait_ms": ocr_meta.get("queue_wait_ms", 0.0), "dialog_stability_state": ocr_meta.get("dialog_stability_state", ""), "dialog_stability_reason": ocr_meta.get("dialog_stability_reason", "")}, source_module="TITANMAIN")
                 overlay_event = "TRUSTED_PREVIEW_OVERLAY" if meta_now.get("trusted_preview") else "FINAL_OVERLAY"
                 append_event(overlay_event, {"speaker": speaker or "", "body": dialog, "translation": out, "speaker_source": "gfl2_roi_metadata" if roi_speaker else "text_parser", "game": ORT_GAME_OVERRIDE, "faithfulness_allowed": bool(meta_now.get("faithfulness_allowed", True)), "faithfulness_reason": meta_now.get("faithfulness_reason", "safe"), "semantic_flags": meta_now.get("semantic_flags", []), "semantic_fidelity_reason": meta_now.get("semantic_fidelity_reason", "safe"), "coverage_score": meta_now.get("coverage_score", 1.0), "fallback_backend_reason": meta_now.get("fallback_backend_reason", ""), "cache_allowed_after_gate": not bool(meta_now.get("cache_blocked")), "trusted_preview": bool(meta_now.get("trusted_preview")), "dialog_turn_id": ocr_meta.get("dialog_turn_id", "")}, source_module="TITANMAIN")
             except Exception:
@@ -3756,7 +3796,7 @@ def boot_system():
     print("=" * 57)
 
     log(f"[BOOT] CPU threads target = {CPU_THREADS}")
-    log(f"[BOOT] v8.8.1 profile | game={ORT_GAME_OVERRIDE} | model={ORT_MODEL_KEY or '-'} | group={ORT_MODEL_GROUP} | policy={ORT_PERFORMANCE_POLICY} | core_profile={ORT_CORE_PROFILE} | engine_policy={ORT_ENGINE_POLICY} | heavy_safe={ORT_HEAVY_GAME_SAFE}")
+    log(f"[BOOT] v8.8.2 profile | game={ORT_GAME_OVERRIDE} | model={ORT_MODEL_KEY or '-'} | group={ORT_MODEL_GROUP} | policy={ORT_PERFORMANCE_POLICY} | core_profile={ORT_CORE_PROFILE} | engine_policy={ORT_ENGINE_POLICY} | heavy_safe={ORT_HEAVY_GAME_SAFE}")
     log(f"[BOOT] OCR resolution={ORT_OCR_RESOLUTION_PERCENT}% | scan_sleep_gpu={ORT_SCAN_SLEEP_GPU_MS}ms | scan_sleep_cpu={ORT_SCAN_SLEEP_CPU_MS}ms | queue_max={OCR_TO_TRANSLATE_MAX}")
     log(f"[BOOT] v8.7 story scheduler={os.environ.get('ORT_DIALOG_SCHEDULER_PROFILE','interval_auto')} | fast_profile={os.environ.get('ORT_FAST_PROFILE','standard')} | image_hash_gate={os.environ.get('ORT_IMAGE_HASH_GATE','1')} | fuzzy_cache={os.environ.get('ORT_FUZZY_CACHE_KEY','1')} | max_wait={os.environ.get('ORT_DIALOG_MAX_WAIT_MS','auto')}ms | voice_hold={os.environ.get('ORT_DIALOG_VOICE_HOLD_MS','-')}ms")
     if ORT_GFL_LAYOUT:
