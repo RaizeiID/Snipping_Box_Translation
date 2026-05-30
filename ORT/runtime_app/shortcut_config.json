@@ -1,0 +1,19 @@
+{
+  "esc_exit_enabled": true,
+  "bindings": {
+    "pause_resume": "f1",
+    "reset_area": "f2",
+    "capture_mode": "f3",
+    "visual_style": "f4",
+    "box_position": "f5",
+    "font_down": "f6",
+    "font_up": "f7",
+    "box_width": "f8",
+    "ocr_engine": "f9",
+    "snapshot_ultra": "f10",
+    "interval_mode": "f11",
+    "cas_toggle": "shift+f1",
+    "launch_legacy_menu": "shift+f9",
+    "toggle_live_mode": "f12"
+  }
+}

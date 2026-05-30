@@ -1,0 +1,32 @@
+ORT Translation v8.7.8 — Implementation Status
+Tanggal: 28 Mei 2026
+
+IMPLEMENTED
+- Faithfulness Gate v2: diacritic/apostrophe-normalized semantic injection detection.
+- Qur Corruption Quarantine: repair aman untuk konteks teramati dan hold untuk bentuk ambigu.
+- Strict CT2 Story: menekan Argos fallback pada source progressive/noisy saat CT2 tersedia.
+- IDN-over-CT2 enablement: model IDN/Normal memakai CT2 literal bila model tersedia.
+- Final-only Safe Commit untuk model akurasi.
+- QA unsafe fallback fix: hasil backend yang sudah ditolak QA tidak dipakai kembali.
+- Cache namespace: v8_7_8_faithfulness_v2_strict_ct2_safe.
+- Telemetry gate/fallback/coverage/cache/training diperluas.
+- Candidate Miner review-only dan Test Ledger/debug bundle v8.7.8.
+- Exact-only additions: Kalina, Farkas; approved role exact-only: Client.
+- New special terms: Satellite City, ODE-01 Municipal Center.
+- Commander exclusions global: Vilyz, ARVITA ID, ATVITA ID.
+
+RETAINED
+- Backend-safe EntitySpan dan internal-marker guard.
+- CT2/SPM Repair/Rebind dan job fallback diagnostic.
+- 69 official GFL2 exact-speaker serta exact additions v8.7.7.
+- Dual Helen/Helena, compound name support, ROI-only alias policy.
+- Adaptive OCR Readability Guard, Two-Pass OCR, stale-overlay guard.
+- Pengolahan Data multi-game dan Simple/Normal view.
+
+REQUIRES LIVE VALIDATION
+- Scene hallucination lama: al-Qur 'ân / ayat / zakat / neraka / Qur-corruption.
+- IDN-over-CT2 boot/applied engine pada Normal/IDN.
+- Strict CT2 Story menghilangkan legacy/mixed Argos pada progressive source.
+- Final-only safe commit tidak terasa terlalu lambat pada POV.
+- Nama/term v8.7.8 benar tampil tanpa false speaker baru.
+- Mode Responsif diuji setelah baseline aman.

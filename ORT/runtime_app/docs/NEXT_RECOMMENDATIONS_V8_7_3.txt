@@ -1,0 +1,12 @@
+ORT Translation v8.7.3 — Next Test Recommendations
+===================================================
+1. Install the patch on a copy of v8.7.2 named e.g. `ORT_Translation_v8_7_3_TEST`; preserve the original folder.
+2. Open Pengolahan Data & Identitas. Confirm `Tampilan Sederhana` is checked by default, add a temporary compound name, uncheck mode, then click the orange entry and test migration/delete.
+3. In GFL2, test scenes for KSVK, Helen, Helena, Alya Kujou, Melanie, Balthilde and Phaetusa; export debug bundle after the run.
+4. Confirm no final output includes `Helena Helen`, `Phaedusa`, or `Balthalde` for scenes where source is correct.
+5. Test `Level II`, `I am`, `I refuse`, `I've`, and `I'll`; inspect final overlay and new IDN evaluation file.
+6. Use the migration tool in dry-run mode first. Apply NPC/cache cleanup only after reviewing its proposed changes.
+7. Test WUWA and GFL data-page switching and reference protection; GFL Paradeus/Sangvis sections are intended to be managed as story-character metadata, not enemy auto-speakers.
+8. Do not rank IDN V1–V5 or claim hybrid quality gains unless applied backend and matching scene output exports support the conclusion.
+
+- Validate the orange unsorted-name -> category migration workflow directly in WebUI after installing on the test folder, including `Alya Kujou` as a compound entity.

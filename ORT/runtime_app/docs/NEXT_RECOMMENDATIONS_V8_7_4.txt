@@ -1,0 +1,8 @@
+ORT Translation v8.7.4 — Next Recommendations / Test Plan
+======================================================
+1. Install patch into a clone of the v8.7.3 folder, not directly over the only working folder.
+2. Run dry-run cache/identity cleanup, then rotate contaminated cache only in the test clone.
+3. Test GFL2 IDN V1–V5 in Baseline Correctness first, then repeat a short no-voice story scene in Responsive Story.
+4. Export one v8.7.4 Debug Bundle; verify final overlay/evaluation contains no internal tokens and compare per-stage latency.
+5. Verify named speakers/entities: KSVK, Helen, Helena, Alya Kujou, Melanie, Balthilde, Phaetusa, Colphne, and Level II/I contractions.
+6. Do not rank IDN quality until applied backend, entity safety, and final output export are confirmed clean.

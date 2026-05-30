@@ -1,0 +1,28 @@
+{
+  "themes": {
+    "gfl2": {
+      "box_background": "rgba(18,26,29,.84)",
+      "box_border": "#22c55e",
+      "accent_color": "#86efac",
+      "title_color": "#f8fafc",
+      "body_color": "#e5f7e9"
+    },
+    "wuwa": {
+      "box_background": "rgba(23,20,36,.84)",
+      "box_border": "#a78bfa",
+      "accent_color": "#c4b5fd",
+      "title_color": "#f8fafc",
+      "body_color": "#ede9fe"
+    },
+    "neutral": {
+      "box_background": "rgba(17,24,39,.84)",
+      "box_border": "#38bdf8",
+      "accent_color": "#7dd3fc",
+      "title_color": "#f8fafc",
+      "body_color": "#e2e8f0"
+    }
+  },
+  "font_family": "Segoe UI",
+  "corner_radius": 16,
+  "shadow": "0 14px 40px rgba(0,0,0,.35)"
+}

@@ -1,0 +1,222 @@
+ORT Translation v8.7.8 — Faithfulness v2, Strict CT2 Story & IDN-over-CT2
+Date: 28 Mei 2026
+Type: Changed-files patch over tested v8.7.7 runtime.
+- Blocks semantic injection variants missed in v8.7.7, including diacritic Qur/tafsir forms.
+- Quarantines OCR bare-Qur corruption and suppresses unsafe Argos fallback while CT2 is available.
+- Makes IDN/Normal CT2-first where available and tightens final commit for accuracy profiles.
+- Adds complete safety telemetry, candidate mining review flow, identities/terms, and v9.0 full-ZIP refactor plan.
+
+ORT Translation v8.7.7 — Faithfulness, Stable Commit & CT2 Rebind
+Date: 27 Mei 2026
+Type: Changed-files patch over tested v8.7.6 runtime.
+- Universal Semantic Hallucination Gate and semantic cache rotation.
+- Dialogue Completeness / Stable Commit and IDN quality lock.
+- Permanent CT2/SPM path rebind with UI repair and fallback reason telemetry.
+- CT2-live exact-only names/special terms with Commander-only exclusions.
+
+ORT Translation v8.7.6 — Adaptive OCR Readability, Exact Fallback Gate & Test Ledger
+Date: 27 Mei 2026
+Type: Changed-files patch over tested v8.7.5 runtime.
+- Retains v8.7.5 EntitySpan/exact-speaker correctness.
+- Adds adaptive OCR rescue and honest manual override/runtime reporting.
+- Gates GFL2 fallback labels to exact official/approved speaker matches.
+- Adds observed-name/alias review metadata, cache/identity tools, replay benchmark, and cumulative test ledger.
+- CT2/SPM backend repair remains pending and is explicitly reported when fallback Argos is active.
+
+ORT Translation v8.7.2 — Stable Final Cache v2, GFL2 Speaker ROI & IDN Evaluation
+Date: 2026-05-25
+Type: Changed-files patch over v8.7.1 patched project.
+- Corrects cache-store blocking caused by negative numeric-gap diagnostics.
+- Adds final-only cache/memo telemetry and replay HIT validation path.
+- Adds GFL2 Name ROI/temporal speaker hold and conservative initial-I recovery.
+- Adds contextual text repair, IDN evaluation JSONL export, warmup and OCR reason telemetry.
+- Adds NPC cleanup/migration v2 and preserves Auto/vault-isolation behavior.
+
+ORT Translation v8.7.1 — Auto Defaults, GFL2 Name Integrity & Diagnostic Truth Patch
+Date: 2026-05-25
+Type: Changed-files patch over v8.7 full project.
+- Default mode seluruh model menjadi Auto; Interval/Freeze tetap manual.
+- Seed runtime/glossary GFL2 DP-12 dan KSVK serta normalisasi aman.
+- GFL2 speaker gate/quarantine dan NPC cleanup migration DP/Dp -> DP-12.
+- Backend applied status, clean legacy-vault isolation, dan progressive cache guard.
+
+v8.7 | 2026-05-25 | GFL Dedicated Dialogue Profile & OCR Contamination Guard | Base v8.6 | Full project release | Compile/Smoke PASS | GFL layout/mask/cache/speaker/diagnostic implementation.
+
+v8.6 | 2026-05-21 | IDN Quality Layer & IDN Model Optimization | Base v8.5.2 | Compile PASS | Shared IDN layer, terminology consistency, v8_6 naturalized cache versioning.
+
+## v8.5.1 — Numeric ROI OCR & VRAM Guard Hotfix (2026-05-20)
+- Added ROI-first numeric dual-pass OCR for wide GFL2 dialog boxes.
+- Added semantic numeric candidate validation to reject UI/progress noise such as 821/8261/6102/7.18:31.20-style fragments.
+- Mark remaining unreadable tactical numbers as known OCR numeric limitation instead of injecting wrong numbers.
+- Changed VRAM guard to staged OCR downscale first; CPU fallback is disabled by default and requires explicit opt-in/sustained pressure.
+- Added safer GFL2 normal-model OCR/queue cap to reduce VRAM spikes on Normal V3/V5.
+- After this patch, remaining OCR number misses are considered minor limitations; next focus moves to Lite/Lite IDN optimization.
+
+[v8.4.4] Lite Final Profile Identity & v8.5 Handoff
+Type: final v8.4 changed-files patch
+Summary: explicit Lite/Lite IDN OCR ladder, level-aware GPU guard, stale Lite preset migration, and v8.5 handoff docs.
+Files changed: model_registry.py, model_strategy.py, launcher_backend.py, webui.py, TITANMAIN.py, runtime_bridge.py, app/runtime/lite_gpu_guard.py, app/runtime/model_user_presets.py, docs/version files.
+
+ORT Translation Version History
+===============================
+
+v8.4.1 - WebUI Startup Fix
+- Fixed webui.py Gradio button binding for NPC cleanup that caused startup TypeError.
+- Updated launcher labels to v8.4.1.
+- No Fast/Lite model behavior changes.
+
+v8.2 - Story/Dialog Performance & Fast Engine Activation
+- Added Story Dialogue Scheduler for Freeze/Interval/Auto semantics.
+- Added Image Hash Gate before EasyOCR to skip unchanged story frames.
+- Added Fuzzy Cache Key to reduce cache misses from small OCR typos.
+- Added clearer Fast CT2 active/fallback status and WebUI warnings.
+- Updated GFL2 recommendation toward Fast V2 + Interval + 60% OCR.
+- Strengthened Speaker Candidate Gate against narrative-starter false NPC names.
+- Analyze Last Session now counts scheduler holds, hash skips, and Argos fallback events.
+- Limitation: Fast remains Argos fallback until CT2 dependencies/model files are installed.
+
+v8.1 - WebUI Stability & Runtime Integration Hotfix
+- Fix Exit ASGI/SystemExit problem.
+- Fix Reset Live Log internal buffer.
+- Activate v8 Diagnostic & Maintenance buttons.
+- Add Clean NPC Database maintenance button.
+- Fix Manual/Recommended overwrite behavior.
+- Add functional Basic/Recommended/Expert visibility logic.
+- Add runtime requested vs effective status cards.
+- Integrate OCR Noise Normalizer into TITANMAIN normalize_ocr_text().
+- Integrate StableTextCommitter into STABLE OCR queue.
+- Improve Analyze Last Session with OCR noise/speaker hold signals.
+- Cache hardware detection.
+- Make Clean_ORT_Translation.bat safe.
+
+v8.0 - Major Maturity / Foundation Build
+- Added app/ modular foundation.
+- Added Profile Resolver, Safe Mode Guard, Conflict Detector.
+- Added GPU/Torch CUDA Diagnostic.
+- Added Reset Settings, Reset Live Log, Analyze Last Session.
+- Added OCR Noise Normalizer, Speaker Candidate Gate, SQLite cache prototype.
+- Added Mode Pengaturan: Rekomendasi Sistem vs Normal / Manual.
+- Added docs/version tracking files.
+
+v8.3 - Runtime Repair & Fast CT2 Setup Patch
+Base: v8.2.1
+Type: patch/hotfix
+Summary: locked Torch runtime, Fast CT2 setup diagnostics, story voice-hold tuning, OCR region warning.
+Known limitations: no CT2 model file included; Fast remains fallback until valid CT2 model folder is provided.
+
+v8.3.1 - Mode Mapping & Interval Restore Hotfix
+------------------------------------------------
+Type: Hotfix
+Base: v8.3
+Date: 2026-05-20
+
+Changed:
+- Fixed Auto mode mapping so WebUI-selected Auto is preserved in child runtime boot environment.
+- Restored safer Interval minimum/default behavior to 90ms in the normal WebUI path.
+- Updated scheduler logs to v8.3.1.
+
+Known remaining work:
+- OCR typo/name alias normalization.
+- NPC merge/cleanup UI.
+- Speaker Candidate Gate strict learning.
+- Story voice-hold tuning.
+
+
+## v8.3.2 - Auto/Interval Classic Story Flow Hotfix
+- Auto mode restored to visual-novel style progressive translation behavior.
+- Interval mode restored to classic automated-Freeze quick commit behavior.
+- Fast CT2 activation path unchanged.
+- Known remaining work: OCR typo/name alias normalization, NPC merge UI, OCR preprocessing profiles, Diagnose & Repair Center v8.4.
+
+
+## v8.3.3 - Fast Model Identity & Preset Memory Patch
+Date: 2026-05-20
+Type: Optimization Patch / Fast profile tuning / WebUI UX
+Base: v8.3.2
+
+Summary:
+- Fast V1, Fast V2, and Fast IDN now have clearer runtime identities while preserving Freeze/Interval/Auto as global mode semantics.
+- Fast V1 is speed-first: lower latency, more aggressive progressive commits, lighter post-processing.
+- Fast V2 is balanced: moderate stability, stronger cleanup/fuzzy cache, and better story reliability.
+- Fast IDN uses the Fast V2-like pipeline plus an offline Indonesian naturalizer/post-edit layer for cleaner Indonesian phrasing.
+- Added model-level custom default memory in WebUI: users can save the current mode/engine/interval/OCR as the default for the selected model.
+- Switching away from a model and returning to it now restores the saved custom default when available.
+- Added Reset Default Model button to return a model to its built-in defaults.
+- Improved OCR typo/cache normalization and stricter speaker candidate filtering for common GFL2 OCR noise.
+
+Changed/Added Files:
+- webui.py
+- launcher_backend.py
+- TITANMAIN.py
+- translation_engine.py
+- runtime_bridge.py
+- model_registry.py
+- model_strategy.py
+- app/runtime/model_user_presets.py
+- app/translation/indonesian_naturalizer.py
+- app/ocr/ocr_noise_normalizer.py
+- app/translation/fuzzy_cache_normalizer.py
+- app/translation/speaker_candidate_gate.py
+- ORTCORE_VERSION.txt
+- TITANCORE_VERSION.txt
+- docs/CHANGELOG.md
+- docs/VERSION_HISTORY.txt
+- docs/IMPLEMENTATION_STATUS.txt
+- docs/NEXT_RECOMMENDATIONS.txt
+- docs/KNOWN_ISSUES.txt
+- docs/V8_3_3_COMPILE_REPORT.txt
+- PATCH_APPLY_NOTES_V8_3_3.txt
+
+Validation:
+- Python compile sweep: 198 files checked, 0 syntax errors.
+
+Known limitations:
+- Fast IDN naturalization is lightweight/offline rule-based, not a full LLM rewrite.
+- OCR region quality still matters; overly wide crops can still create noise.
+- NPC merge/review UI is still planned for v8.4.
+
+
+## v8.3.4 - Fast Final Lock & Auto Preset UX Patch
+Date: 2026-05-20
+Type: final v8.3 tuning / WebUI UX / Fast Lock
+Base: v8.3.3
+
+Summary:
+- Removed manual Save Default button; model settings now auto-save when user changes Mode/Engine/Interval/OCR.
+- Added orange "• Modification" badge below the selected model when custom settings exist.
+- Reset Default is now red/oval and appears only for modified models.
+- Added Fast Model Lock documentation for v8.4 so Lite IDN/OCR/Diagnose work does not accidentally alter Fast behavior.
+- Added Fast lightweight post-process guard to reduce rare first-use latency spikes in Fast profiles.
+
+Validation:
+- Python compile sweep: 198 files checked, 0 syntax errors.
+
+
+[v8.4.2] Lite IDN Efficiency Tuning Patch
+- Reduced Lite/Lite IDN latency defaults and OCR caps.
+- Added Lite-specific core profiles and wide-dialog OCR noise filtering.
+- Fast v8.3.4 behavior remains locked.
+
+[v8.4.3] Fast OCR Retune & Lite IDN Efficiency Polish
+- Fast V1/V2/Fast IDN OCR defaults changed to 40/45/50%.
+- Fast latency defaults changed to 45/60/75ms.
+- Lite IDN GPU Efficient caps tightened; Fast CT2 path preserved.
+
+v8.4.5 — Number-Safe OCR & Lite IDN Final Polish
+Base: v8.4.4
+Type: final v8.4 changed-files polish
+Summary: Adds number-safe OCR guard, numeric UI-noise rejection, measurement preservation, and final Lite IDN recommendations before v8.5.
+
+
+v8.5 — Numeric Dual-Pass OCR & Lite Optimization Foundation
+
+- Added numeric dual-pass OCR trigger for GFL2 tactical number contexts.
+- Added cache protection for missing-number lines.
+- Preserved v8.4.5 Lite/Fast OCR identity while opening v8.5 Lite optimization work.
+- Next focus: ROI numeric OCR, naturalized cache, VRAM telemetry, per-game Lite tuning.
+
+v8.5.2 | 2026-05-20 | Lite/Lite IDN Maturity & Stability Patch | Base v8.5.1 | Compile PASS | Numeric OCR residual treated as known minor limitation.
+
+v8.7.3 | 2026-05-26 | Trusted Identity, Multi-Game Data UI & Named Entity Protection | Base v8.7.2 | Changed-files integrated patch; test-clone install recommended | Compile/regression/package-apply validation required.
+v8.7.4 | 2026-05-26 | EntitySpan Safety, Responsive Story & v8.7.3 Fatal Bug Recovery | Base v8.7.3 | Integrated changed-files patch; install on cloned test folder | Compile/regression/package-apply validation required.
+v8.7.5 | 2026-05-26 | Verified Character Speaker Recovery, Full Backend-Safe EntitySpan & Stale Overlay Guard | Base runtime v8.7.4 tested with logs + POV video | Integrated changed-files patch; apply to cloned test folder first | Compile/regression/migration/cache dry-run validation required.

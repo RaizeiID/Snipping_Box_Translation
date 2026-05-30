@@ -1,0 +1,32 @@
+ORTCORE DEVELOPMENT LEDGER & WORKFLOW POLICY — v8.7.6
+Tanggal: 27 Mei 2026
+
+Keputusan rilis:
+- v8.7.6 adalah changed-files patch di atas v8.7.5; pemasangan pertama wajib ke clone TEST.
+- v8.7.5 dipertahankan sebagai fallback sebelum validasi live.
+
+Perubahan source utama:
+- app/ocr/readability_guard.py: adaptive quality scoring/retry selection.
+- TITANMAIN.py: OCR rescue, Name ROI floor, exact-only GFL2 fallback gate, telemetry.
+- model_strategy.py + app/runtime/lite_gpu_guard.py: manual OCR override tidak lagi diturunkan diam-diam; story warning/rescue env; cache namespace baru.
+- launcher_backend.py/webui.py: status OCR/backend yang lebih jujur, observed alias panel, CT2 fallback warning.
+- cache_store.py/translation_engine.py/v7_system_profile.py: namespace v8_7_6_adaptive_ocr_exact_safe.
+- configs/gfl2_observed_candidates_v8_7_6.json: audit-driven observed/alias review metadata.
+- tools/v8_7_6_*: migration, rotation, regression, replay benchmark, test ledger, debug export.
+
+Acceptance gates:
+[ ] Compile seluruh source berubah PASS.
+[ ] Regression warisan v8.7.1–v8.7.5 PASS atau alasan perubahan test terdokumentasi.
+[ ] Regression v8.7.6 PASS.
+[ ] Dry-run/apply migration dan cache rotation PASS pada copy TEST.
+[ ] Lite override manual 55/65% benar-benar menjadi applied OCR bila resource aman.
+[ ] OCR_READABILITY_RESCUE tercatat pada scene low-OCR yang rusak.
+[ ] No false label DP/Name/TC/Hybrid pada scene retest.
+[ ] No ORT_* internal marker pada overlay/cache/export.
+[ ] Baseline vs Responsive dibandingkan pada scene identik.
+[ ] Replay benchmark dilakukan bila pengguna ingin menyimpulkan regresi lintas versi.
+
+Ledger evidence v8.7.5 retained:
+- OCR <50% rusak pada video terbaru; >=50% lebih layak.
+- Historis v8.4.4 Lite IDN V2 45% cukup terbaca dengan CT2 aktif.
+- v8.7.5 exact-speaker dan EntitySpan berhasil tetapi fallback parser masih false-label.

@@ -1,0 +1,18 @@
+ORT Translation v8.1 - Patch Notes
+==================================
+
+Ini adalah patch lanjutan setelah full package v8.0.
+Paket ini hanya berisi file yang berubah.
+
+Yang diperbaiki:
+- Exit WebUI aman, tanpa SystemExit traceback besar di terminal.
+- Reset Live Log membersihkan internal buffer.
+- Runtime & Tools buttons aktif.
+- Manual mode tidak lagi tertimpa rekomendasi otomatis.
+- Basic/Recommended/Expert mulai bekerja sebagai mode tampilan.
+- Status card requested vs effective ditambahkan.
+- OCR Noise Normalizer dan Stable Text Commit mulai masuk pipeline TITANMAIN.
+- Clean_ORT_Translation.bat dibuat aman.
+
+Cara pasang:
+Copy semua isi patch ke folder project ORT v8.0 lalu overwrite.

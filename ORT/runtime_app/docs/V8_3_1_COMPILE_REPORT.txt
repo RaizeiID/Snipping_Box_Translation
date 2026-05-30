@@ -1,0 +1,20 @@
+ORT Translation v8.3.1 Compile Report
+=====================================
+
+Date: 2026-05-20
+Patch: v8.3.1 Mode Mapping & Interval Restore Hotfix
+Base: v8.3
+
+Checked files:
+- launcher_backend.py
+- webui.py
+- TITANMAIN.py
+- app/runtime/story_dialogue_scheduler.py
+
+Result:
+- Python syntax compile: PASS
+- Syntax errors: 0
+
+Notes:
+- This hotfix is focused on WebUI mode propagation and Interval timing restore.
+- No Fast CT2 model files are included.

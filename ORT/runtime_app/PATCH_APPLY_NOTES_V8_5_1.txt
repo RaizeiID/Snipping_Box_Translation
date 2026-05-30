@@ -1,0 +1,20 @@
+ORT Translation v8.5.1 — Numeric ROI OCR & VRAM Guard Hotfix
+================================================================
+Base version: v8.5
+Patch type: changed-files hotfix
+Date: 2026-05-20
+
+What this patch fixes:
+1. Numeric dual-pass OCR now uses ROI-first scanning for wide GFL2 dialog regions.
+2. Numeric candidates are validated semantically before merging into OCR text.
+3. Known bad candidates such as 821, 8261, 8461, 6102, 7.18/31.20-style UI/progress fragments are rejected.
+4. If no safe digit is found, the line is marked as known OCR numeric limitation instead of injecting a wrong value.
+5. Runtime VRAM guard now downscales OCR first and avoids immediate CPU OCR fallback by default.
+6. CPU fallback is now opt-in via ORT_ALLOW_FORCE_CPU=1 and requires sustained pressure.
+7. Normal models on GFL2 receive safer OCR/queue caps to reduce 0.8–1.1GB OCR spikes.
+
+Known limitation:
+If the number is visually too small, blurred, hidden by motion, or not present in a readable OCR frame, ORT will not guess it. After this patch, remaining number misses should be treated as a minor OCR limitation so development can focus on Lite/Lite IDN optimization.
+
+How to apply:
+Copy all files in this changed-files folder into your ORT v8.5 project root and overwrite existing files.

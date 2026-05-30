@@ -1,0 +1,19 @@
+READ FIRST AFTER MEMORY RESET — ORT Translation v8.7.6
+Tanggal: 27 Mei 2026
+
+Baca terlebih dahulu:
+1. docs/ORTCORE_MASTER_PROJECT_MEMORY_HANDOFF_V8_7_6.txt
+2. docs/ORTCORE_DEVELOPMENT_LEDGER_AND_WORKFLOW_V8_7_6.txt
+3. docs/KNOWN_ISSUES_V8_7_6.txt
+4. docs/NEXT_RECOMMENDATIONS_V8_7_6.txt
+5. docs/roadmap_v8_7_6/ORT_V8_7_6_SOURCE_AUDIT_V8_7_5_DOWNGRADE_CHARACTER_OCCURRENCE_AND_LEDGER_2026-05-27.md
+
+Inti: v8.7.6 mempertahankan exact official speaker dan EntitySpan v8.7.5, menambahkan Adaptive OCR Readability Rescue untuk preset rendah, menghormati OCR override manual, memblok false-speaker parser GFL2, menambah observed/alias review ledger, cache namespace baru, serta replay benchmark.
+
+Jangan:
+- kembali mempercayai NPC legacy secara bebas;
+- menonaktifkan Two-Pass Name ROI untuk pemakaian normal;
+- auto-map Helene ke Helen/Helena atau DKRIN menjadi speaker;
+- menyatakan regresi antaversi sebelum replay frame identik.
+
+Instal ke folder TEST dari v8.7.5, jalankan tools/v8_7_6_cache_rotation.py dan tools/v8_7_6_identity_migration.py dry-run lalu apply, kemudian uji live dan ekspor debug bundle.

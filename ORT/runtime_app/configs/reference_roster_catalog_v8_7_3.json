@@ -1,0 +1,3788 @@
+{
+  "schema_version": "v8_7_3_reference_roster_v1",
+  "generated_at": "2026-05-26",
+  "games": {
+    "GFL2_EXILIUM": {
+      "display_name": "GFL2: Exilium",
+      "source_metadata": {
+        "source_name": "IOP Wiki GFL2 Doll Index + project validated story additions",
+        "source_checked_at": "2026-05-26",
+        "coverage_note": "Doll index plus project-observed named speakers; story characters may be extended with verified sources."
+      },
+      "entries": [
+        {
+          "display_name": "Alva",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Andoris",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Balthilde",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Basti",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Belka",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Centaureissi",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Cheeta",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Cheyanne",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Colphne",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Commander",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "DP-12",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Daiyan",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Dandelion",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Descender Zero",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Dushevnaya",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Faye",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Florence",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Groza",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Harpsy",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Helen",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Helena",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Jiangyu",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "KSVK",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Klukai",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Krolik",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Ksenia",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Lainie",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Lenna",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Lentine",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Leva",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Lewis",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Lind",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Littara",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Liushih",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Loreley",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Lotta",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Makiatto",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Mayling",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Mechty",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Melanie",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Mityl",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Mosin-Nagant",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Nagant",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Nemesis",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Nemesis Gnosis",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Nikketa",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "OTs-14",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Papasha",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Peri",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Peritya",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Phaetusa",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Qiongjiu",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Qiuhua",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Robella",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Sabrina",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Sakura",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Sextans",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Sharkry",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Soppo",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Springfield",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Suomi",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Tololo",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Ullrid",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Vector",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Vepley",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Voymastina",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Welrod",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Yoohee",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Zhaohui",
+          "entity_type": "doll",
+          "faction": "",
+          "spoiler_level": "none"
+        }
+      ]
+    },
+    "WUWA": {
+      "display_name": "Wuthering Waves",
+      "source_metadata": {
+        "source_name": "Current playable Resonator roster reference checked for Version 3.2 coverage",
+        "source_checked_at": "2026-05-26",
+        "coverage_note": "Versioned playable roster; update on future game patches."
+      },
+      "entries": [
+        {
+          "display_name": "Calcharo",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Encore",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Jianxin",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Jiyan",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Lingyang",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Rover",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Verina",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Yinlin",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Jinhsi",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Changli",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Zhezhi",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Xiangli Yao",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Shorekeeper",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Camellya",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Carlotta",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Roccia",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Phoebe",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Cantarella",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Zani",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Ciaccona",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Cartethyia",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Lupa",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Phrolova",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Augusta",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Iuno",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Galbrena",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Qiuyuan",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Chisa",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Lynae",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Mornye",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Aemeath",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Luuk Herssen",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Sigrika",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Aalto",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Baizhi",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Chixia",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Danjin",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Mortefi",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Sanhua",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Taoqi",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Yangyang",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Yuanwu",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Youhu",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Lumi",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Buling",
+          "entity_type": "playable_resonator",
+          "faction": "",
+          "spoiler_level": "none"
+        }
+      ]
+    },
+    "GFL": {
+      "display_name": "Girls' Frontline",
+      "source_metadata": {
+        "source_name": "IOP Wiki T-Doll Index and List of Characters/faction references",
+        "source_checked_at": "2026-05-26",
+        "coverage_note": "Normal and extra T-Doll names transcribed from the verified T-Doll Index snapshot, plus selected story/faction catalog metadata; story spoilers remain gated in UI."
+      },
+      "entries": [
+        {
+          "display_name": "43M",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "6P62",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "93R",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "9A-91",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "A-545",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "A-91",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "AA-12",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "AAT-52",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "ACR",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "ADS",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "AEK-999",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Agent",
+          "entity_type": "story_character",
+          "faction": "Sangvis Ferri",
+          "spoiler_level": "advanced_story"
+        },
+        {
+          "display_name": "Agent 416",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Agent Vector",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Ai",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Ak 5",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "AK-12",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "AK-15",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "AK-47",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "AK-5",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "AK-74M",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "AK-74U",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "AK-Alfa",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Alchemist",
+          "entity_type": "story_character",
+          "faction": "Sangvis Ferri",
+          "spoiler_level": "advanced_story"
+        },
+        {
+          "display_name": "Alma",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Ameli",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "AN-94",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "AN-94Mod",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Ange",
+          "entity_type": "important_character",
+          "faction": "Griffin & Allies",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Angelica",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Angelina",
+          "entity_type": "important_character",
+          "faction": "Griffin & Allies",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "APC556",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "APC9K",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "APS",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "AR-18",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "AR-57",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "AR70",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Architect",
+          "entity_type": "story_character",
+          "faction": "Sangvis Ferri",
+          "spoiler_level": "advanced_story"
+        },
+        {
+          "display_name": "ART556",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "ARX-160",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "AS-Val",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "ASh-12.7",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Astra Revolver",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "AUG",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "AUG-Para",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Ballista",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "BAR",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Beak",
+          "entity_type": "story_character",
+          "faction": "Sangvis Ferri",
+          "spoiler_level": "advanced_story"
+        },
+        {
+          "display_name": "Beowulf",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Beretta Model 38",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Black Nyto",
+          "entity_type": "story_character",
+          "faction": "Paradeus",
+          "spoiler_level": "advanced_story"
+        },
+        {
+          "display_name": "BM59",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Boys AT Rifle",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Bren",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Bren Ten",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Bronya",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "C-93",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "C-MS",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "C14",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "C93",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "C96",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "CAR",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Carcano M1891",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Carcano M91/38",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "CAWS",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "CBJ-MS",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "CF05",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Chauchat",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Chiappa Triple Crown",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Claes",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Clear",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "CM901",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "CMR-30",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Colt M1851N",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Colt Revolver",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Colt Walker",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Commander",
+          "entity_type": "important_character",
+          "faction": "Griffin & Allies",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Contender",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "CR-21",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Cx4-Storm",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "CZ 100",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "CZ-75",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "CZ-805",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "CZ2000",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "CZ52",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "CZ75",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Dana",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Dandelion",
+          "entity_type": "important_character",
+          "faction": "Griffin & Allies",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "De Lisle",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Defender",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Derringer",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Desert Eagle",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Destroyer",
+          "entity_type": "story_character",
+          "faction": "Sangvis Ferri",
+          "spoiler_level": "advanced_story"
+        },
+        {
+          "display_name": "Dorothy",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "DP-12",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "DP-28",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Dreamer",
+          "entity_type": "story_character",
+          "faction": "Sangvis Ferri",
+          "spoiler_level": "advanced_story"
+        },
+        {
+          "display_name": "DSR-50",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "EF88",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Elisa",
+          "entity_type": "story_character",
+          "faction": "Sangvis Ferri",
+          "spoiler_level": "advanced_story"
+        },
+        {
+          "display_name": "Elphelt",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "EM-2",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Erma",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Evita",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "EVO3",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Executioner",
+          "entity_type": "story_character",
+          "faction": "Sangvis Ferri",
+          "spoiler_level": "advanced_story"
+        },
+        {
+          "display_name": "F1",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "F2000",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Fail",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "FAL",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Falcon",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "FAMAS",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "FARA 83",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Fedorov",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "FF-FNC",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "FG42",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Five-seveN",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "FM24",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "FMG-9",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "FN-49",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "FNP-9",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "FO-12",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "FP-6",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "FX-05",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "G11",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "G28",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "G3",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "G36",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "G36C",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "G41",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "G43",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Gager",
+          "entity_type": "story_character",
+          "faction": "Sangvis Ferri",
+          "spoiler_level": "advanced_story"
+        },
+        {
+          "display_name": "Galil",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "General Liu",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Gepard-M1",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Glock 17",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "GM6 Lynx",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Gray",
+          "entity_type": "story_character",
+          "faction": "Paradeus",
+          "spoiler_level": "advanced_story"
+        },
+        {
+          "display_name": "Grizzly",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Grizzly MkV",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "GSh-18",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Hanyang Type 88",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Hanyang-88",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Hecate",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Hecate II",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Helian",
+          "entity_type": "important_character",
+          "faction": "Griffin & Allies",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Henrietta",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Hi-Point C9",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "HK21",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "HK23",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "HK33",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "HK416",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "HK416-Mod",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "HK433",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "HK45",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "HK512",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Honey Badger",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Howa Type 64",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Howa Type 89",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "HP-35",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Hs.50",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "HS2000",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "HSM10",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "HTI",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Hunter",
+          "entity_type": "story_character",
+          "faction": "Sangvis Ferri",
+          "spoiler_level": "advanced_story"
+        },
+        {
+          "display_name": "IA2",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "IDW",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "INSAS",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Intruder",
+          "entity_type": "story_character",
+          "faction": "Sangvis Ferri",
+          "spoiler_level": "advanced_story"
+        },
+        {
+          "display_name": "IWS-2000",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "J",
+          "entity_type": "story_character",
+          "faction": "Paradeus",
+          "spoiler_level": "advanced_story"
+        },
+        {
+          "display_name": "Jashin-chan",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Jatimatic",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Jericho",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Jill",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "JS 9",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "JS05",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "JS9",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Judge",
+          "entity_type": "story_character",
+          "faction": "Sangvis Ferri",
+          "spoiler_level": "advanced_story"
+        },
+        {
+          "display_name": "Junko",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "K11",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "K2",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "K3",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "K31",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "K5",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "KAC-PDW",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Kalina",
+          "entity_type": "important_character",
+          "faction": "Griffin & Allies",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Kar98k",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "KH2002",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Kiana",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "KLIN",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Kolibri",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Kord",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Kryuger",
+          "entity_type": "important_character",
+          "faction": "Griffin & Allies",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "KS-23",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "KSG",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "KSVK",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "L85A1",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "LAMG",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Lee-Enfield",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Lewis",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Liberator",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Lily",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "LR-300",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "LS26",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "LTLX 7000",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Lunasia",
+          "entity_type": "important_character",
+          "faction": "Griffin & Allies",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Lusa",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "LWMMG",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Lycoris",
+          "entity_type": "story_character",
+          "faction": "Sangvis Ferri",
+          "spoiler_level": "advanced_story"
+        },
+        {
+          "display_name": "M&P9",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "M1 Garand",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "M1014",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "M110",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "M12",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "M14",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "M16A1",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "M1887",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "M1895",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "M1895 CB",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "M1897",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "M1911",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "M1918",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "M1919A4",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "M1928",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "M1A1",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "M200",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "M21",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "M240L",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "M249-SA",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "M26-MASS",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "M2HB",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "M3",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "M327",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "M37",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "M4 SOPMOD II",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "m45",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "M4A1",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "M500",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "M590",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "M6 ASW",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "M60",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "M82",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "M82A1",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "M870",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "M887",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "M9",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "M950A",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "M99",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "MAC-10",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "MAG-7",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Magal",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Makarov",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Martha",
+          "entity_type": "story_character",
+          "faction": "Paradeus",
+          "spoiler_level": "advanced_story"
+        },
+        {
+          "display_name": "Martini-Henry",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "MAS-38",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "MAT-49",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Maxim 9",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "MDR",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Medusa",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "MG15",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "MG3",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "MG338",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "MG34",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "MG36",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "MG4",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "MG42",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "MG5",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Micro Uzi",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Micro-Uzi",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Mini-14",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Minos",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Mk 12",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Mk.18",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Mk12",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Mk23",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "MK3A1",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Mk46",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Mk48",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Model L",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Mondragon",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Morridow",
+          "entity_type": "story_character",
+          "faction": "Paradeus",
+          "spoiler_level": "advanced_story"
+        },
+        {
+          "display_name": "Mosin-Nagant",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Motoko Kusanagi",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "MP-443",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "MP-446",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "MP-448",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "MP40",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "MP41",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "MP5",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "MP7",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "MPK",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "MPL",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "MSBS",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "MT-9",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Murata Himeko",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Mx4 Storm",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Nagant Revolver",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Narciss",
+          "entity_type": "story_character",
+          "faction": "Paradeus",
+          "spoiler_level": "advanced_story"
+        },
+        {
+          "display_name": "Negev",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Noel",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "NS2000",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "NTW-20",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Nyto",
+          "entity_type": "story_character",
+          "faction": "Paradeus",
+          "spoiler_level": "advanced_story"
+        },
+        {
+          "display_name": "NZ75",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "OBR",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "OTs-12",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "OTs-14",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "OTs-39",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "OTs-44",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Ouroboros",
+          "entity_type": "story_character",
+          "faction": "Sangvis Ferri",
+          "spoiler_level": "advanced_story"
+        },
+        {
+          "display_name": "Owen",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "P08",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "P10C",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "P2000",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "P22",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "P226",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "P290",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "P30",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "P38",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "P50",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "P7",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "P90",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "P99",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "PA-15",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Pekora",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Persica",
+          "entity_type": "important_character",
+          "faction": "Griffin & Allies",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "PK",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "PKP",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "PM-06",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "PM-9",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "PM1910",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "PP-19",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "PP-19-01",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "PP-2000",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "PP-90",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "PPD-40",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "PPK",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "PPQ",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "PPS-43",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "PPSh-41",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "PSG-1",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "PSM",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "PTRD",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Purin Esaki",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Px4 Storm",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Python",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "PzB 39",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "QBU-191",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "QBU-88",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "QBZ-191",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "QJY-88",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "QSB-91",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "R5",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "R93",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Raiden Mei",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Rex Alpha",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Rex Zero 1",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "RFB",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Rhino",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Ribeyrolles",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Rico",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "RMB-93",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "RO635",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "RPD",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "RPK-16",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "RPK-203",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "RT-20",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "S.A.T.8",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "SAF",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Saiga 308",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Saiga-12",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Saki",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Sakura",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "SAR-21",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "SAT8",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Savage 99",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "SCAR-H",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "SCAR-L",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Scarecrow",
+          "entity_type": "story_character",
+          "faction": "Sangvis Ferri",
+          "spoiler_level": "advanced_story"
+        },
+        {
+          "display_name": "SCR",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "SCW",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Seele",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Sei",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Serdyukov",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Shipka",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "SIG CROSS",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "SIG M400",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "SIG MCX",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "SIG-510",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "SIG-556",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Simonov",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Six12",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Skorpion",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "SL8",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "SM-1",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "SP9",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "SPAS-12",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "SPAS-15",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Spectre M4",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Spectre-M4",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Spitfire",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "SPP-1",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "SPR A3G",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Springfield",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "SR-2",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "SR-3MP",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "SRS",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "SSG 3000",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "SSG 69",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "SSG M1",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "ST AR-15",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Stechkin",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Stella",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Sten-MkII",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Sterling",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Stevens M520",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Stevens M620",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Steyr Scout",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Steyr-ACR",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "StG-940",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "StG44",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "SUB-2000",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Suomi",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Super-SASS",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Super-Shorty",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Supernova",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Suzuka Mizukane",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "SV-98",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "SVCh",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "SVD",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "SVD-Ex",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "SVT-38",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "T-5000",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "T-CMS",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "T65",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "T77",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "T91",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Tabuk",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "TAC-50",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Tae",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "TAR-21",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "TEC-9",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "TF-Q",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Theresa",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Thompson",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Thunder",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "TKB-408",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "TMP",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Tokarev",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "TPS",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Triela",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "TS12",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Type 03",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Type 4",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Type 56",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Type 59",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Type 62",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Type 63",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Type 81 Carbine",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Type 82",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Type 92",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Type 97 Shotgun",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Type-100",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Type-56-1",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Type-64",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Type-79",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Type-80",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Type-88",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Type-95",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Type-97",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "UKM-2000",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "UMP40",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "UMP45",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "UMP9",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Unica 6",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "USAS-12",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "USP-Compact",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "UTS-15",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "V-PM5",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Vector",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Vepr",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "VHS",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Vigneron M2",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "VP1915",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "VP70",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "VP9",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "VRB",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "VSK-94",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "WA2000",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Webley",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Welrod MkII",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "White Nyto",
+          "entity_type": "story_character",
+          "faction": "Paradeus",
+          "spoiler_level": "advanced_story"
+        },
+        {
+          "display_name": "William",
+          "entity_type": "important_character",
+          "faction": "Griffin & Allies",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "William",
+          "entity_type": "story_character",
+          "faction": "Paradeus",
+          "spoiler_level": "advanced_story"
+        },
+        {
+          "display_name": "WKp",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "wz.29",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "wz.63",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "X95",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "XCR",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "XM3",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "XM556",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "XM8",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Yugiri",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Yurine",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Z-62",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Zas M21",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "Zas M76",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "ZB-26",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        },
+        {
+          "display_name": "ZiP .22",
+          "entity_type": "tdoll",
+          "faction": "",
+          "spoiler_level": "none"
+        }
+      ]
+    },
+    "CUSTOM": {
+      "display_name": "Custom Game",
+      "source_metadata": {
+        "source_name": "User managed",
+        "source_checked_at": "2026-05-26"
+      },
+      "entries": []
+    }
+  }
+}

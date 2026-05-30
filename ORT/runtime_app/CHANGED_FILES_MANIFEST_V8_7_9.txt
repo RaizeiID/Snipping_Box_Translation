@@ -1,0 +1,41 @@
+ORT Translation v8.7.9 Changed-Files Patch — Rebuilt 2026-05-29
+Base: uploaded ORT_Translation_v8_7_8(1).zip
+Focus: Responsive Faithfulness & Turn-Safe Overlay
+
+FILES INCLUDED:
+- ORTCORE_VERSION.txt
+- APPLY_NOTES_V8_7_9.txt
+- CHANGED_FILES_MANIFEST_V8_7_9.txt
+- TITANMAIN.py
+- translation_engine.py
+- model_strategy.py
+- launcher_backend.py
+- webui.py
+- app/runtime/turn_safe_overlay.py
+- app/translation/semantic_fidelity_guard.py
+- configs/speaker_registry_v2.defaults.json
+- configs/gfl2_observed_candidates_v8_7_9.json
+- tools/v8_7_9_identity_migration.py
+- tools/v8_7_9_cache_rotation.py
+- tools/v8_7_9_candidate_miner.py
+- tools/v8_7_9_test_ledger.py
+- tools/v8_7_9_replay_benchmark.py
+- tools/v8_7_9_regression_test.py
+- tools/v8_7_4_regression_test.py
+- tools/v8_7_5_regression_test.py
+- tools/v8_7_6_regression_test.py
+- tools/v8_7_7_regression_test.py
+- tools/v8_7_8_regression_test.py
+- docs/ORT_V8_7_9_CHANGELOG_AND_APPLY_NOTES_2026-05-29.md
+- docs/ORT_V8_7_9_PROJECT_MEMORY_HANDOFF_2026-05-29.md
+- docs/ORT_V8_7_9_RECONSTRUCTION_VALIDATION_REPORT_2026-05-29.md
+- docs/ORT_V9_0_GITHUB_READY_RESTRUCTURE_PLAN_2026-05-29.md
+
+EXCLUDED ACTIVE DATA:
+- speaker_registry_v2.json
+- data_processing_store.json / data_processing_settings.json
+- webui_prefs.json / configs/app_state.json
+- cache/ logs/ status/ backups/ reports/ debug_bundles/
+- docs/ORT_MASTER_PROJECT_MEMORY_HANDOFF_CURRENT.md
+
+Documentation refresh R2: adds mandatory master continuity handoff; runtime code is unchanged from the rebuilt v8.7.9 patch.

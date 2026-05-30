@@ -1,0 +1,52 @@
+ORT Translation — Master Project Memory Handoff v8.7.7
+=====================================================
+Tanggal: 27 Mei 2026
+Tipe rilis: changed-files patch di atas runtime v8.7.6 yang diuji pengguna.
+
+TUJUAN RILIS
+v8.7.7 dibangun untuk menutup masalah yang ditemukan secara nyata pada v8.7.6: hallucination semantik terjemahan yang tampil/cache, output progresif tidak lengkap, ketergantungan manual path CT2/SPM, dan kualitas IDN yang turun akibat throttle sesaat. Rilis ini mempertahankan perbaikan EntitySpan, official exact-speaker, false speaker gate, Adaptive OCR Rescue, dan UI multi-game dari versi sebelumnya.
+
+BUKTI DASAR PENGEMBANGAN
+- v8.7.6 menghilangkan marker internal ORT yang sebelumnya bocor dan menutup false speaker generik.
+- Video/log v8.7.6 membuktikan hasil Argos yang tidak setia: `and chose the latter` menjadi paragraf tentang para nabi; dialog Green Zone/Odesa menghasilkan teks Nabi Luth/Syuaib/Mekah; OCR `Qur reality` menghasilkan `Quran`.
+- Cache v8.7.6 menyimpan hasil semantik salah tersebut, sehingga rotasi cache wajib.
+- Pengguna memulihkan CT2: model+SPM valid, environment diselaraskan; dua live log berikutnya menunjukkan `ct2_fast` digunakan di jalur live dengan tail latency lebih baik dan tanpa fallback Argos umum.
+
+IMPLEMENTASI INTI v8.7.7
+1. Universal Semantic Faithfulness Gate (`app/translation/faithfulness_gate.py`).
+   - Berjalan untuk seluruh model, sebelum output dapat tersimpan atau tampil.
+   - Memblok injection istilah tanpa dukungan source: nabi, Quran/Alquran, Mekah, Luth, Syuaib, malaikat, kafir, mukmin, Al-masyâriq/al-maghârib.
+   - Memblok extreme expansion dari source pendek dan kasus OCR `Qur` -> Quran.
+   - Output pendek/progressive yang mencurigakan ditahan; output stabil panjang memakai fallback aman berupa source dengan status hasil tidak terpercaya.
+2. Dialogue Completeness / Stable Commit Gate (`dialogue_completeness_gate.py`).
+   - Menahan prefix konektor/fragmen pendek sebelum menjadi overlay final.
+   - Mencatat `PREVIEW_HELD_INCOMPLETE` dan `OMISSION_SUSPECTED`.
+3. CT2/SPM Path Rebind.
+   - Launcher mengikat `TITAN_CT2_EN_ID_DIR`, `TITAN_SPM_EN_ID_DIR`, `ORT_FAST_CT2_MODEL_DIR`, `ORT_LITE_CT2_MODEL_DIR` ke folder valid yang sama.
+   - TranslationEngine dan quick test memberi `spm_dir_en_id=model_dir` eksplisit.
+   - UI memiliki tombol Repair / Rebind; diagnostic menampilkan model_dir_used, spm_dir_used, path_conflict.
+   - Per-job fallback tercatat sebagai `CT2_JOB_FALLBACK`.
+4. IDN Accuracy Quality Lock.
+   - Downscale kualitas karena warning sementara memerlukan warning beruntun; event `IDN_QUALITY_LOCK_HELD` dicatat.
+5. Cache namespace baru dan rotasi semantik.
+   - Namespace: `v8_7_7_faithful_complete_ct2_safe`.
+   - Tool rotasi mencari output semantic contamination serta marker historis.
+6. Nama/term CT2 live.
+   - Exact-only additions melalui migrasi: Berryfield, Cocoon, Carmen, Another Unfamiliar Worker.
+   - Alias review ROI-only: Berryfleld/Berrfield/Berrfleld -> Berryfield, Carmon -> Carmen, Duyhevnaya -> Dushevnaya dan alias lain yang telah tercatat.
+   - Terms GFL2: URNC, Conglomerate, Green Zone, Yellow Zone, Odesa, ELID/ELIDs, ODE-01, Griffin/Griffin & Kryuger, Blusphere.
+   - Vilyz, ARVITA ID, dan ATVITA ID TIDAK masuk global roster/NPC; hanya Commander Name per profile bila pengguna mengaktifkan.
+
+BATASAN YANG MASIH PERLU UJI LIVE
+- Semantic gate harus diuji ulang pada scene yang sebelumnya menghasilkan hallucination.
+- Stable commit dapat menahan output lebih lama pada dialog pendek; bandingkan keterbacaan versus delay.
+- CT2 rebind permanen perlu dibuktikan melalui boot/live log di clone v8.7.7 tanpa set environment manual.
+- Mode Responsif tetap perlu uji ON/OFF setelah correctness ini stabil.
+
+ALUR UJI WAJIB SETELAH INSTALASI
+1. Clone folder v8.7.6 menjadi folder TEST v8.7.7.
+2. Ekstrak changed-files patch.
+3. Jalankan dry-run lalu apply `tools/v8_7_7_cache_rotation.py` dan `tools/v8_7_7_identity_migration.py` hanya pada folder TEST.
+4. Tekan Repair / Rebind CT2 Model & SPM Path dan uji Lite/Fast; log harus menunjukkan CT2.
+5. Uji Baseline Correctness pada scene hallucination dan karakter baru.
+6. Ekspor debug bundle dan test ledger; baru uji Mode Responsif.

@@ -1,0 +1,18 @@
+ORT Translation v8.7.4 — Implementation Status
+================================================
+Status rilis: Candidate validated changed-files patch over user-tested v8.7.3.
+
+IMPLEMENTED IN v8.7.4
+- EntitySpan pipeline after backend restoration: IDN/QA rewrites TextSpan only; protected display names remain immutable.
+- Backend-only entity token restoration with tolerant full-ID matching and residual-token guard/fallback before overlay/cache/export.
+- Cache namespace `v8_7_4_entity_span_responsive`, corrected strategy override, version-specific naturalized cache file, and dry-run/apply rotation tool.
+- Responsive Story mode: latest-frame-wins, queue coalescing, light progressive preview, stable-final priority.
+- Diagnostic A/B UI profiles: Baseline Correctness, Responsive Story, Diagnostic No-Name-ROI (test only).
+- Matcher caching/precompilation and stage-timing telemetry.
+- v8.7.3 identity/data features retained: registry tiers, Helen/Helena dual canonical, compound multi-word names, multi-game Identity UI, simple-mode orange migration, roster catalogs and GFL faction categories.
+
+STILL REQUIRES LIVE GAME VALIDATION
+- No `ORT_ENTITY_*` appears in final overlay during long IDN V1–V5 gameplay.
+- Latency improvement in story without voice, standard versus Responsive Story.
+- KSVK/Helen/Helena/Alya Kujou speaker labels remain correct in game capture.
+- Output integrity for Phaetusa/Balthilde/Level II/I am/I've/I'll on real scenes.

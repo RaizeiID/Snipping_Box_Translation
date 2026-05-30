@@ -1,0 +1,46 @@
+ORT Translation v8.7.1 — Changed Files Manifest
+=================================================
+Fokus: default Auto, GFL2 DP-12/KSVK, diagnostic truth, cache/learning integrity.
+
+Source/runtime changed:
+- TITANMAIN.py
+- launcher_backend.py
+- model_registry.py
+- model_strategy.py
+- v7_system_profile.py
+- webui.py
+- runtime_bridge.py
+- translation_engine.py
+- cache_store.py
+- benchmark_session_report.py
+- data_processing_backend.py
+- app/runtime/app_state.py
+- app/runtime/model_user_presets.py
+- app/strategies/profile_resolver.py
+- app/translation/name_alias_normalizer.py
+- app/translation/speaker_candidate_gate.py
+- app/learning/learning_quarantine.py
+- app/ocr/ocr_noise_normalizer.py
+- tools/npc_database_cleanup.py
+
+Data-preservation policy:
+- `npc_database.json`, `data_processing_store.json`, `webui_prefs.json`, and `configs/app_state.json` are intentionally not overwritten by this patch.
+- GFL2 seeds are merged through source logic; untouched first-run GFL v8.7 preferences are migrated to Auto safely.
+
+Version/docs/launchers changed:
+- ORTCORE_VERSION.txt
+- TITANCORE_VERSION.txt
+- README.md
+- Start_ORT_Translation.bat
+- RUNTIME.bat
+- docs/CHANGELOG.md
+- docs/IMPLEMENTATION_STATUS.txt
+- docs/KNOWN_ISSUES.txt
+- docs/NEXT_RECOMMENDATIONS.txt
+- docs/VERSION_HISTORY.txt
+
+New files:
+- PATCH_APPLY_NOTES_V8_7_1.txt
+- CHANGED_FILES_MANIFEST_V8_7_1.txt
+- tools/v8_7_1_regression_test.py
+- docs/V8_7_1_COMPILE_TEST_REPORT.txt

@@ -1,0 +1,8 @@
+{
+    "default": "{text}",
+    "context_injection": "[Context: {tags}] {text}",
+    "mode_instructions": {
+        "RPG": "Terjemahkan istilah fantasi: {text}",
+        "SciFi": "Terjemahkan istilah teknis: {text}"
+    }
+}

@@ -1,0 +1,5 @@
+{
+    "repetition_threshold": 5,
+    "suspicious_chars_ratio": 0.8,
+    "min_text_length": 4
+}

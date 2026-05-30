@@ -1,0 +1,17 @@
+{
+    "default": {
+        "speaker_color": "#FFD700",
+        "text_color": "#FFFFFF",
+        "font_family": "Calibri, Segoe UI, sans-serif"
+    },
+    "alert": {
+        "speaker_color": "#FF0000",
+        "text_color": "#FFAAAA",
+        "font_family": "Impact, sans-serif"
+    },
+    "whisper": {
+        "speaker_color": "#AAAAAA",
+        "text_color": "#CCCCCC",
+        "font_family": "Courier New"
+    }
+}

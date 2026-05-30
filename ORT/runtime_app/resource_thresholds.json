@@ -1,0 +1,6 @@
+{
+    "cpu_warning_percent": 80.0,
+    "cpu_critical_percent": 95.0,
+    "ram_warning_percent": 85.0,
+    "check_interval_seconds": 2.0
+}

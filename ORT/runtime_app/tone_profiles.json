@@ -1,0 +1,20 @@
+{
+    "Angry": {
+        "suffix": "!",
+        "replacements": {
+            "Aku": "Gua",
+            "Kamu": "Lu",
+            "Maaf": "Sial",
+            "Tolong": "Cepat"
+        }
+    },
+    "Formal": {
+        "suffix": ".",
+        "replacements": {
+            "Gua": "Saya",
+            "Lu": "Anda",
+            "Nggak": "Tidak",
+            "Biarin": "Biarkan"
+        }
+    }
+}

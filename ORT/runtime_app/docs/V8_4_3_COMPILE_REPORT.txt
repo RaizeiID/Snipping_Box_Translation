@@ -1,0 +1,16 @@
+ORT Translation v8.4.3 Compile Report
+=====================================
+Changed Python files checked:
+- model_registry.py
+- model_strategy.py
+- launcher_backend.py
+- webui.py
+- TITANMAIN.py
+- runtime_bridge.py
+- core_profile_manager.py
+- app/runtime/lite_gpu_guard.py
+- app/runtime/model_user_presets.py
+- app/ocr/ocr_noise_normalizer.py
+
+Result: PASS
+Syntax errors: 0

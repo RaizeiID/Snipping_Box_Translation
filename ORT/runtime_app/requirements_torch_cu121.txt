@@ -1,0 +1,6 @@
+# ORT Translation v8.3 - locked NVIDIA CUDA 12.1 Torch stack
+# Use for RTX 30/40 laptop/desktop GPUs when NVIDIA driver is available.
+--index-url https://download.pytorch.org/whl/cu121
+torch==2.5.1
+torchvision==0.20.1
+torchaudio==2.5.1

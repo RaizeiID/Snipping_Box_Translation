@@ -1,0 +1,17 @@
+ORT Translation v8.2.1 - Story Dialogue Scheduler Hotfix
+
+Masalah yang diperbaiki:
+1. Interval mode v8.2 bisa terus berada di TYPING:text_changed_wait_stable sehingga terjemahan tidak pernah muncul di box.
+2. Dialog yang sedang mengetik/growing selalu mereset stable timer.
+3. Fast GFL2 interval 45ms tertahan oleh floor 90ms di TITANMAIN.
+
+Perubahan utama:
+- StoryDialogueScheduler sekarang memiliki bounded max-wait commit.
+- Teks yang sedang tumbuh diperlakukan sebagai kandidat dialog yang sama, bukan reset kandidat baru terus-menerus.
+- Interval/Fast dapat commit setelah punctuation atau setelah max wait meski OCR masih sedikit berubah.
+- Log scheduler berubah menjadi [SCHED v8.2.1].
+- Launcher menurunkan stable wait untuk Fast GFL2 dan mengizinkan TITAN_AUTO_SNAPSHOT_MIN_MS=45.
+
+Catatan GPU/OCR:
+Jika log masih menampilkan AUTO_GPU -> CPU (no GPU detected), itu berarti runtime Python/torch di _runtime tidak melihat CUDA.
+Ini bukan bug scheduler. Perlu Install/Repair GPU/Torch CUDA agar torch.cuda.is_available() menjadi True.

@@ -1,0 +1,9 @@
+ORT Translation v8.7.3 — Known Issues / Validation Risks
+=========================================================
+- Name ROI geometry may still require per-resolution calibration in live GFL2 UI; this patch improves trust/routing but no screenshot fixture from every target name was bundled.
+- Current UI retains legacy Advanced sections for backward compatibility; new registry workflow is the safe preferred path.
+- Legacy user NPC/database entries remain on disk unless user runs cleanup/apply; they are no longer intended as trusted ROI speakers.
+- Cache v8.7.3 begins a new namespace; initial sessions may show few HIT values until replay occurs.
+- True backend remains Argos Offline when CT2/online assist is not applied; IDN quality comparison still requires evaluation output.
+- Numeric/thin-glyph ambiguities remain difficult; token guard avoids committing certain suspicious forms but cannot invent unreadable information.
+- GFL story faction catalogs can reveal spoilers; full roster activation should be deliberate.

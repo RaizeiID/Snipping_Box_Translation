@@ -1,0 +1,57 @@
+ORT Translation v8.7.5 — Integrated Changed-Files Manifest
+===========================================================
+Base: user-tested v8.7.4 runtime folder.
+Release type: changed-files only; install first into a cloned TEST folder.
+Runtime focus: verified GFL2 exact-speaker recovery, full backend-safe EntitySpan, residual/cache safety, stale overlay protection.
+
+FILES INCLUDED:
+- CHANGED_FILES_MANIFEST_V8_7_5.txt
+- ORTCORE_VERSION.txt
+- PATCH_APPLY_NOTES_V8_7_5.txt
+- READ_FIRST_AFTER_MEMORY_RESET_V8_7_5.txt
+- TITANCORE_VERSION.txt
+- TITANMAIN.py
+- app/diagnostics/idn_evaluation_export.py
+- app/identity/entity_span.py
+- app/identity/speaker_registry.py
+- app/ocr/gfl2_speaker_roi.py
+- app/translation/naturalized_cache.py
+- benchmark_session_report.py
+- cache_store.py
+- configs/speaker_registry_v2.defaults.json
+- data_processing_backend.py
+- docs/CHANGELOG.md
+- docs/IMPLEMENTATION_STATUS.txt
+- docs/IMPLEMENTATION_STATUS_V8_7_5.txt
+- docs/KNOWN_ISSUES.txt
+- docs/KNOWN_ISSUES_V8_7_5.txt
+- docs/NEXT_RECOMMENDATIONS.txt
+- docs/NEXT_RECOMMENDATIONS_V8_7_5.txt
+- docs/ORTCORE_DEVELOPMENT_LEDGER_AND_WORKFLOW_V8_7_5.txt
+- docs/ORTCORE_MASTER_PROJECT_MEMORY_HANDOFF_V8_7_5.txt
+- docs/V8_7_5_COMPILE_TEST_REPORT.txt
+- docs/V8_7_5_RUNTIME_AND_UI_GUIDE.md
+- docs/VERSION_HISTORY.txt
+- docs/roadmap_v8_7_5/ORT_V8_7_4_GAMEPLAY_AUDIT_SPEAKER_LABEL_AND_ENTITYSPAN_FOLLOWUP_2026-05-26.md
+- docs/roadmap_v8_7_5/ORT_V8_7_4_VISUAL_POV_AUDIT_ADDENDUM_2026-05-26.md
+- docs/roadmap_v8_7_5/ORT_V8_7_5_IMPLEMENTATION_DECISION_VERIFIED_SPEAKER_ENTITY_SAFE_2026-05-26.md
+- launcher_backend.py
+- model_strategy.py
+- tools/export_debug_bundle_v8_7_5.py
+- tools/v8_7_2_regression_test.py
+- tools/v8_7_4_regression_test.py
+- tools/v8_7_5_cache_rotation.py
+- tools/v8_7_5_identity_migration.py
+- tools/v8_7_5_regression_test.py
+- translation_engine.py
+- v7_system_profile.py
+- webui.py
+
+EXCLUDED USER/VOLATILE DATA:
+- npc_database.json, data_processing_store.json, data_processing_settings.json, webui_prefs.json, configs/app_state.json, speaker_registry_v2.json
+- cache/, logs/, status/, backups/, debug_bundles/, __pycache__/
+
+INSTALL SAFETY:
+- Apply to a clone of v8.7.4 first.
+- Run `tools/v8_7_5_cache_rotation.py` and `tools/v8_7_5_identity_migration.py` dry-runs before `--apply`.
+- Keep the original v8.7.4 folder as rollback/test evidence.

@@ -1,0 +1,108 @@
+ORTCORE / ORT TRANSLATION — DEVELOPMENT LEDGER & WORKFLOW POLICY
+===================================================================
+Version dokumen : v8.7.2
+Tanggal         : 26 Mei 2026
+Pemilik proyek  : Diska Kurnia
+Fungsi          : Catatan resmi aturan pengembangan, audit, testing, dan
+                  keputusan kumulatif yang wajib dibawa ke update berikutnya.
+
+A. ATURAN KERJA YANG DIKUNCI
+-----------------------------
+1. Setiap paket update/patch yang diberikan akan diuji oleh pengguna melalui
+   game aktual dan log runtime.
+2. Fokus pengujian saat ini adalah keluarga model IDN, tetapi pengguna dapat
+   menguji Fast, Lite, Normal, GFL, GFL2, atau model/profile lain kapan saja.
+3. Setiap log, screenshot, opini pengamatan, pertanyaan teknis, penjelasan
+   penyebab, rekomendasi, serta solusi yang disepakati setelah suatu rilis
+   merupakan INPUT KUMULATIF untuk roadmap versi berikutnya.
+4. Pada saat pengguna berkata "segera lakukan update", implementasi tidak boleh
+   hanya memakai saran pada pesan terakhir. Implementasi harus memeriksa:
+   - roadmap tersimpan dari hasil tes sebelumnya;
+   - keputusan tambahan dari diskusi lanjutan;
+   - known issues yang belum selesai;
+   - fitur yang sudah stabil dan tidak boleh diregresikan;
+   - batasan yang masih perlu validasi nyata.
+5. Bila tes di luar fokus utama menemukan masalah yang cukup penting, masalah
+   tersebut boleh dimasukkan ke patch berikutnya walaupun bukan model IDN,
+   selama dijelaskan alasan, ruang lingkup, dan risiko regresinya.
+6. Untuk update minor setelah full build, format default adalah CHANGED-FILES
+   PATCH ZIP. Full project ZIP hanya dibuat bila pengguna meminta folder baru,
+   update besar, atau refactor luas.
+7. File data/prefs pengguna tidak boleh ditimpa dalam patch kecil tanpa
+   penjelasan dan alasan kuat. Migration/cleanup harus tersedia dengan dry-run
+   jika menyentuh database belajar/NPC/glossary.
+
+B. DOKUMENTASI WAJIB PADA SETIAP RILIS BERIKUTNYA
+--------------------------------------------------
+Setiap patch/update wajib membawa, bila relevan:
+- ORTCORE_VERSION.txt dan TITANCORE_VERSION.txt
+- docs/CHANGELOG.md
+- docs/VERSION_HISTORY.txt
+- docs/IMPLEMENTATION_STATUS.txt
+- docs/KNOWN_ISSUES.txt
+- docs/NEXT_RECOMMENDATIONS.txt
+- CHANGED_FILES_MANIFEST_<VERSI>.txt
+- PATCH_APPLY_NOTES_<VERSI>.txt
+- docs/<VERSI>_COMPILE_TEST_REPORT.txt
+- master project memory/handoff TXT versi terbaru
+- read-first TXT untuk pemulihan konteks setelah memory reset
+
+C. STATUS JEJAK RILIS TERBARU YANG TELAH DIVERIFIKASI
+-------------------------------------------------------
+v8.7 — Full Project / GFL Dedicated Dialogue Profile
+- Menambahkan profile GFL terpisah dari GFL2.
+- Footer mask GFsystem, Name/Body ROI khusus GFL, credit/non-dialog guard,
+  quarantine speaker, seeded glossary, dan normalized cache mitigation.
+- Menyediakan master handoff awal setelah memory reset.
+
+v8.7.1 — Changed-files patch
+- Menetapkan default seluruh model ke Auto; Interval/Freeze tetap manual.
+- Menambahkan canonical GFL2 DP-12 dan KSVK.
+- Mengisolasi legacy MemoryVault secara default.
+- Menghentikan false speaker promotion pada log uji v8.7.1.
+- Memperjelas requested/applied mode/backend diagnostics.
+- Catatan: patch membawa changelog/version docs, tetapi belum membawa master
+  handoff baru yang lengkap setelah seluruh keputusan v8.7.1/v8.7.2.
+
+v8.7.2 — Changed-files patch
+- Stable Final Cache v2 dan current-dialog memo.
+- Koreksi defect cache: negative numeric-gap diagnostic seperti
+  `no_numeric_context` tidak lagi memblokir store dialog normal.
+- GFL2 Speaker ROI / temporal speaker hold untuk label nama seperti KSVK/DP-12.
+- Text/name repair kontekstual untuk pola OCR yang terbukti di log.
+- Thin-glyph/start-of-line recovery hook terbatas; belum boleh dianggap terbukti
+  pada kasus I Am/I Refuse tanpa uji screenshot/game aktual.
+- IDN Evaluation Export untuk source normal/backend output/final IDN output.
+- IDN warmup, OCR-resolution reason telemetry, NPC cleanup/migration v2.
+- Validasi paket: compile/smoke/regression/package-apply PASS.
+- SHA-256 patch ZIP v8.7.2:
+  972bc151f0f1335d5e95676e1e63f58baa67cabe65b87ffb00d5f554389081a0
+
+D. PROSEDUR SETELAH SETIAP HASIL TES BARU
+-----------------------------------------
+1. Identifikasi versi, game/profile, model, requested/applied mode, backend
+   terjemahan applied, OCR requested/applied, dan crop.
+2. Hitung PIPE, cache STORE/HIT/SKIP/MISS, speaker learned/quarantine, latency
+   warmup versus live, OCR correction/noise, serta fallback engine.
+3. Untuk IDN, gunakan IDN Evaluation Export agar akurasi dinilai dari output
+   Indonesia aktual, bukan hanya OCR dan latency.
+4. Bedakan:
+   - perbaikan yang terbukti berhasil;
+   - perbaikan yang sebagian berhasil;
+   - masalah baru;
+   - keterbatasan known/minor;
+   - fitur yang belum tervalidasi.
+5. Catat hasil analisis ke master handoff dan NEXT_RECOMMENDATIONS sebelum
+   update kode berikutnya.
+6. Saat membuat patch, tampilkan hubungan antara log/temuan dan file/code yang
+   diubah sehingga pengguna tahu patch memakai rancangan kumulatif.
+
+E. BATASAN KEJUJURAN
+--------------------
+- Dokumen handoff/ledger adalah memo proyek eksplisit, bukan sinkronisasi
+  otomatis dengan seluruh memory internal ChatGPT.
+- Dokumen hanya mutakhir apabila sengaja diperbarui pada setiap analisis/rilis.
+- Source code dan log terbaru selalu menjadi sumber kebenaran utama apabila
+  berbeda dengan memo lama.
+- Fitur yang telah dikodekan belum dianggap berhasil di game aktual sebelum
+  log/screenshot pengujian membuktikannya.

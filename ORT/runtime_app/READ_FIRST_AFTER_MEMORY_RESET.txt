@@ -1,0 +1,12 @@
+READ FIRST AFTER MEMORY RESET — ORT Translation v8.7.7
+=====================================================
+Proyek ini adalah translator OCR live berbasis game profile. Versi terbaru dalam paket ini: v8.7.7 changed-files patch di atas v8.7.6.
+
+Prioritas saat membaca ulang:
+1. Baca `docs/ORTCORE_MASTER_PROJECT_MEMORY_HANDOFF_V8_7_7.txt`.
+2. Baca `docs/ORTCORE_DEVELOPMENT_LEDGER_AND_WORKFLOW_V8_7_7.txt`.
+3. Baca dokumen dalam `docs/roadmap_v8_7_7/` untuk bukti log/video/CT2.
+4. Jangan menambahkan Vilyz, ARVITA ID, atau ATVITA ID sebagai NPC/karakter global; itu Commander name lintas akun.
+5. Jangan memasukkan kata hallucination agama sebagai lore term; gunakan hanya sebagai indikator faithfulness gate.
+
+Fitur baru v8.7.7: Universal Semantic Faithfulness Gate, Dialogue Completeness Gate, semantic cache rotation, CT2/SPM rebind, CT2 job fallback reason, IDN quality lock, nama/term CT2-live exact-only, debug bundle dan ledger baru.

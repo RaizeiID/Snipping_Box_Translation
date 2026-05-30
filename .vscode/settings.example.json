@@ -1,0 +1,19 @@
+{
+  "files.exclude": {
+    "**/__pycache__": true,
+    "ORT/_LOCAL_RUNTIME_WEB_DO_NOT_UPLOAD": true,
+    "ORT/runtime_app/ORT_Runtime": true,
+    "ORT/runtime_app/cache": true,
+    "ORT/runtime_app/logs": true,
+    "ORT/runtime_app/backups": true,
+    "ORT/runtime_app/debug_bundles": true
+  },
+  "search.exclude": {
+    "ORT/_LOCAL_RUNTIME_WEB_DO_NOT_UPLOAD": true,
+    "ORT/runtime_app/ORT_Runtime": true,
+    "ORT/runtime_app/cache": true,
+    "ORT/runtime_app/logs": true,
+    "ORT/runtime_app/backups": true,
+    "ORT/runtime_app/debug_bundles": true
+  }
+}

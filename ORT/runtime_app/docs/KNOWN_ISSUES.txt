@@ -1,0 +1,7 @@
+ORT Translation v8.7.5 — Known Issues / Validation Gates
+=========================================================
+- Full backend-safe EntitySpan mencegah token nama masuk backend, tetapi kalimat yang mengandung banyak nama perlu diuji kualitas naturalisasinya karena TextSpan diterjemahkan terpisah.
+- Nama dengan OCR rusak kuat (`Zhohul`, `rid`) tidak diaktifkan sebagai fuzzy auto-alias demi mencegah false speaker; tambahkan alias speaker-slot hanya setelah bukti scene cukup.
+- Mode Responsif belum memiliki bukti A/B dari pengguna pada scene yang sama setelah correctness v8.7.5 diperbaiki.
+- Fast/Lite CT2 masih dapat fallback ke Argos bila file SPM/model tidak tersedia; ini memengaruhi speed, bukan perbaikan speaker exact-only.
+- Verified exact-speaker pertama difokuskan pada GFL2 karena itulah profile yang telah diuji dengan video/log; policy untuk GFL/WUWA perlu diuji terukur sebelum diperluas.

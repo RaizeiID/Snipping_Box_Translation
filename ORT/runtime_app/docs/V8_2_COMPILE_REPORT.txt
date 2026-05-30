@@ -1,0 +1,16 @@
+ORT Translation v8.2 Compile Report
+==================================
+Python syntax compile sweep: PASS
+Files checked: 196 Python files
+Errors: 0
+
+Scope:
+- Existing v8.1 Python files
+- New v8.2 modules:
+  - app/ocr/image_hash_gate.py
+  - app/runtime/story_dialogue_scheduler.py
+  - app/translation/fuzzy_cache_normalizer.py
+
+Notes:
+- Compile check validates Python syntax only.
+- Runtime behavior still needs field testing in GFL2 Story Balanced, GFL2 Story Only/Fast, and Wuthering Waves Safe Game.

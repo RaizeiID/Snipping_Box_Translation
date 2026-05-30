@@ -1,0 +1,16 @@
+ORT Translation v8.4.1 Compile Report
+====================================
+
+Scope:
+- Hotfix changed Python files only.
+
+Checked:
+- webui.py
+
+Result:
+- PASS
+- 0 syntax errors
+
+Note:
+- Full v8.4 package compile sweep was already done before release.
+- This hotfix changes only the Gradio event binding in webui.py and launcher labels.

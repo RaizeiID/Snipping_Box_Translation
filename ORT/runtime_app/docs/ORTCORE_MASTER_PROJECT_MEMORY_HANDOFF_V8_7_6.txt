@@ -1,0 +1,69 @@
+ORTCORE MASTER PROJECT MEMORY HANDOFF — v8.7.6
+Tanggal: 27 Mei 2026
+Status: Patch implementasi calon rilis; dipasang pertama pada clone runtime v8.7.5.
+
+RINGKASAN KONTEKS
+ORT Translation adalah proyek OCR-overlay translation multi-game (GFL2_EXILIUM, GFL, WUWA, CUSTOM) milik Diska. Workflow rilis setelah v8.7 adalah changed-files ZIP terintegrasi; jangan menimpa satu-satunya folder aktif tanpa clone TEST dan backup/migration dry-run.
+
+WARISAN BENAR YANG WAJIB DIPERTAHANKAN
+- Two-Pass OCR: body OCR terpisah dari Name ROI; jangan mematikan Name ROI pada pemakaian normal.
+- Trusted Speaker Registry, Compound Speaker Entity/longest-match-first, pemisahan Helen vs Helena.
+- v8.7.5 full backend-safe EntitySpan dan residual marker guard: marker ORT_* tidak boleh tampil/tersimpan.
+- Reference roster catalog tiga game; GFL2 69 official exact-speaker; GFL/WUWA belum seluruh katalog diaktifkan live tanpa validasi.
+- Multi-game Pengolahan Data & Identitas, checkbox Tampilan Sederhana, chip orange/migrasi.
+- Mode Responsif tetap opsi terpisah untuk uji story cepat.
+
+ALASAN v8.7.6
+Audit folder/log/video v8.7.5 menunjukkan:
+1) EntitySpan/cache namespace v8.7.5 sudah bersih dari marker internal pada artefak yang diaudit.
+2) Exact official speaker GFL2 berjalan untuk Colphne, Groza, Krolik, Nikketa, Peri, Nemesis, Mayling, Sabrina, Voymastina, Ullrid.
+3) OCR 40–45% sangat rusak pada scene terbaru, tetapi source v8.7.5 tidak menurunkan body OCR dari v8.7.2. Bukti historis v8.4.4 menunjukkan Lite IDN V2 OCR 45% pernah layak saat CT2 aktif; perlu replay frame identik untuk klaim regresi antaversi.
+4) Desain lama masih mengunci Lite/Lite IDN override maksimum pada preset 40/45/50/55/60, sementara CT2 terbaru fallback Argos.
+5) FINAL_OVERLAY v8.7.5 masih menghasilkan false-speaker melalui text-parser fallback: DP, Name, TC, Hybrid, Scavenger Ugh, dll.
+
+IMPLEMENTASI v8.7.6
+P0 OCR/Profile
+- Modul baru app/ocr/readability_guard.py: menilai raw OCR secara konservatif dan meminta satu retry resolusi lebih tinggi hanya bila teks GFL2 rusak/low-profile.
+- Minimum rekomendasi story GFL2 ditetapkan 50%; preset V1/V2 tetap ada sebagai ultra-efficient/diagnostic dengan rescue adaptif.
+- model_strategy.py tidak lagi diam-diam menurunkan user override Lite/Lite IDN yang lebih tinggi.
+- app/runtime/lite_gpu_guard.py menghormati manual override saat resource tidak dalam kondisi safety fallback; tetap boleh membatasi pada low-VRAM nyata.
+- Name ROI quality floor dipertahankan minimal 50% untuk GFL2 speaker correctness.
+- Log/telemetry baru: OCR_READABILITY_RESCUE, requested/applied/runtime OCR/rescue floor.
+
+P0 Speaker Correctness
+- GFL2 fallback parsing exact-only: bila ROI metadata tidak tersedia, hanya official exact/approved speaker yang boleh menjadi label; generic colon/hyphen tidak boleh membuat DP/Name/TC/Hybrid.
+- Event baru: GFL2_FALLBACK_SPEAKER_REJECTED dan FALSE_SPEAKER_BLOCKED.
+- Tier verified_character_speaker_exact v8.7.5 dipertahankan.
+
+P0 Data/Memo/Benchmark
+- configs/gfl2_observed_candidates_v8_7_6.json berisi official observed/priority dan kandidat alias ROI-only dari audit; tidak mengaktifkan alias secara otomatis.
+- tools/v8_7_6_identity_migration.py menyelaraskan UI/registry persisten dengan official exact catalog dan metadata observed menggunakan backup+apply.
+- tools/v8_7_6_replay_benchmark.py membandingkan export dari frame/video identik dengan ground-truth.
+- tools/v8_7_6_test_ledger.py membuat ledger sesi terstruktur.
+- tools/v8_7_6_cache_rotation.py memisahkan cache v8.7.5 dari namespace baru v8_7_6_adaptive_ocr_exact_safe.
+- tools/export_debug_bundle_v8_7_6.py membawa OCR rescue, false-speaker event, status OCR dan ledger.
+
+KANDIDAT DATA
+- Official observed/priority, bukan entry duplikat: Colphne, Groza, Krolik, Nikketa, Peri, Nemesis, Mayling, Sabrina, Voymastina, Ullrid; retest Zhaohui, Vector, Harpsy.
+- Alias ROI-only untuk review: Perl→Peri, Lentle/Lentlne→Lentine, DP 12/0P-12→DP-12, Suoml→Suomi, Nemesls→Nemesis, Sprlngfield→Springfield, Krolk→Krolik, Groze/9r0za→Groza, RSVK/KSK→KSVK. Jangan aktif otomatis tanpa verifikasi frame.
+- Pending manual review: Cllent, Kenny, David, Mrs Grace, Cocoon, Heli, Unfamiliar Worker, Scavenger, Another Unfamllllar, Hybrld-Type Boajum, Igla.
+- DKRIN dan Helene tidak boleh auto-map.
+
+KNOWN LIMITATIONS / VALIDASI LIVE
+- CT2/SPM Fast/Lite belum diperbaiki otomatis dalam patch ini; apabila file model masih hilang, backend tetap Argos dan UI/log memberi warning. Setup CT2 tetap P1 berikutnya.
+- Adaptive rescue perlu diuji pada scene yang sama untuk menilai peningkatan keterbacaan vs tambahan latency.
+- Mode Responsif belum tervalidasi pada log pengguna sebelumnya; uji setelah baseline correctness.
+- GFL/WUWA full exact-live catalog masih perlu aktivasi bertahap setelah GFL2 stabil.
+
+PROSEDUR TEST
+1. Clone folder v8.7.5 menjadi ORT_Translation_v8_7_6_TEST.
+2. Extract changed-files ZIP.
+3. Jalankan dry-run cache rotation dan identity migration; review, lalu --apply pada TEST.
+4. Uji Baseline Correctness: Lite IDN V2 45% dengan rescue, Lite/Lite IDN V3 50%, Lite IDN V4 55%, serta model manual override.
+5. Pastikan label resmi benar dan false labels DP/Name/TC/Hybrid tidak muncul.
+6. Uji Mode Responsif pada scene sama.
+7. Ekspor debug bundle dan test ledger.
+8. Untuk membuktikan downgrade antaversi, gunakan replay benchmark dengan frame identik v8.7.2/v8.7.5/v8.7.6.
+
+ATURAN MEMO
+Setiap update/analisis berikutnya wajib mencatat: file log/video, runtime version, model, game/scene, OCR preset/requested/applied/runtime-rescue, backend actual, hasil speaker/false speaker/stale marker, latency, verdict, source changes, test result, dan roadmap berikutnya.

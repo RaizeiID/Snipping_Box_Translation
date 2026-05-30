@@ -1,0 +1,5 @@
+{
+    "block_html_tags": true,
+    "max_output_length": 500,
+    "censored_words": []
+}

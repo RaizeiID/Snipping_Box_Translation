@@ -1,0 +1,8 @@
+ORT Translation v8.7.4 — Known Issues / Validation Gates
+===================================================
+- v8.7.3 is considered a fatal-bug source version because 1,109 final IDN evaluation rows were previously contaminated by internal entity placeholders; v8.7.4 blocks this path but still needs live confirmation.
+- Existing v8.7.2/v8.7.3 cache files may contain placeholder/naming contamination; use `tools/v8_7_4_cache_rotation.py` dry-run then apply in the test folder.
+- Applied backend remained Argos Offline in the last v8.7.3 IDN test; V4 hybrid/online assist is not yet proven active.
+- Auto Story progressive translation remains inherently active; Responsive Story reduces stale work but must be evaluated for preview quality versus responsiveness.
+- Two-Pass OCR remains active intentionally; Diagnostic No-Name-ROI may be faster but can lose speaker identity and is not a normal-play preset.
+- Critical-token recovery for Level II/I/I'm/I've/I'll still requires live scene validation.

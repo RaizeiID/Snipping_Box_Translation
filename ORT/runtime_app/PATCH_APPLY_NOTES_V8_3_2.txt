@@ -1,0 +1,29 @@
+ORT Translation v8.3.2 - Auto/Interval Classic Story Flow Hotfix
+
+Base version: v8.3.1
+Type: Hotfix / OCR scheduler behavior
+
+Summary:
+- Fast CT2 path remains unchanged and should stay ACTIVE when models\ct2_opus_mt_en_id is valid.
+- Fixes Auto mode feeling delayed/too conservative after Fast CT2 updates.
+- Auto now uses progressive story commit behavior so text is translated gradually like visual novel/story text.
+- Interval returns to classic automated-Freeze behavior with quick commits for new snapshots.
+- Auto disables stable text commit and relaxes image hash gating to follow text growth more closely.
+- Interval keeps the safe 90ms floor but no longer waits for long stable holds before committing meaningful text.
+
+Changed files:
+- launcher_backend.py
+- webui.py
+- TITANMAIN.py
+- app/runtime/story_dialogue_scheduler.py
+- docs/CHANGELOG.md
+- docs/VERSION_HISTORY.txt
+- docs/IMPLEMENTATION_STATUS.txt
+- docs/NEXT_RECOMMENDATIONS.txt
+- docs/KNOWN_ISSUES.txt
+- ORTCORE_VERSION.txt
+- TITANCORE_VERSION.txt
+
+Known limitations:
+- OCR typo/noise such as Lentlne/Lentine, I/l confusion, and Chinese-like noise characters still need v8.4 OCR Normalizer v2 + NPC alias/merge UI.
+- Auto progressive can translate partial text more often by design, because the user requested story text to be followed gradually.

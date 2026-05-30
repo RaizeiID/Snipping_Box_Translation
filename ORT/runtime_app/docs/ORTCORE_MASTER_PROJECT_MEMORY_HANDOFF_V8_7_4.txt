@@ -1,0 +1,42 @@
+ORTCORE / ORT TRANSLATION — MASTER PROJECT MEMORY HANDOFF v8.7.4
+==================================================================
+Tanggal: 26 Mei 2026
+Tujuan: memo kedua untuk melanjutkan proyek setelah memory ChatGPT dibersihkan. Baca bersama ZIP proyek/log terbaru; source dan log terbaru tetap sumber kebenaran utama.
+
+A. IDENTITAS PROYEK
+ORT Translation adalah penerjemah dialog game real-time berbasis OCR/overlay untuk Bahasa Indonesia, dengan profile GFL2, GFL, WUWA dan CUSTOM; model Normal/Lite/Fast/IDN; cache, diagnostic, speaker identity, dan WebUI. Hardware utama pengguna: Acer Predator Helios Neo PHN16-71, i7-13700HX, RTX 4050 Laptop 6 GB, RAM 64 GB.
+
+B. WORKFLOW WAJIB
+Pengguna menguji tiap patch lalu mengirim log/temuan. Seluruh analisis, saran, keputusan, dan keterbatasan menjadi roadmap kumulatif. Rilis minor dikirim sebagai changed-files ZIP terintegrasi dan dipasang lebih dahulu pada clone folder uji. Dokumentasi/memo ini wajib diperbarui di setiap rilis.
+
+C. RIWAYAT PENTING
+v8.7: full-project GFL dedicated profile, footer/noise guard, dialogue layout, docs baseline.
+v8.7.1: Auto default, DP-12/KSVK, legacy vault isolated, correctness diagnostics.
+v8.7.2: stable-final cache, GFL2 Name ROI, IDN evaluation export, OCR repair; masih gagal label identitas tertentu.
+v8.7.3: Trusted Speaker Registry, multi-game identity UI, simple-mode orange migration, roster catalog, compound names, dual Helen/Helena, initial Named Entity Protection. Pengujian membuktikan bug fatal: string placeholder `ORT_ENTITY_*` bocor ke output dan cache; cache version override lama tetap `v8_7_2`; latency terasa berat saat dialog progresif.
+v8.7.4: mengganti jalur fatal dengan EntitySpan pipeline dan optimasi responsivitas.
+
+D. FITUR v8.7.4
+- Backend-only name protection segera direstore; setelah itu output diproses sebagai TextSpan/EntitySpan. EntitySpan immutable sehingga nama tidak masuk rewrite IDN/QA.
+- Residual token guard memblok output/cache yang masih mengandung marker internal dan fallback ke hasil aman.
+- Cache namespace baru `v8_7_4_entity_span_responsive`; tool rotation membackup cache v8.7.2/v8.7.3 tercemar.
+- Mode Responsif/Story Cepat: latest-frame-wins, coalescing, light preview/full final; default OFF untuk validasi pertama.
+- Diagnostic A/B: Baseline, Responsive Story, No-Name-ROI (uji saja, warning).
+- Matcher entity precompiled/cached in memory per game/perubahan registry.
+- Telemetry stage: body/name ROI/numeric/thin glyph/entity/backend/IDN/queue.
+
+E. IDENTITAS DAN DATA YANG TETAP DIKUNCI
+- Helen dan Helena adalah dua karakter GFL2 valid berbeda; tidak boleh cross-map.
+- Nama penting: DP-12, KSVK, Helen, Helena, Melanie/elanie alias-reviewed, Balthilde, Phaetusa, Alya Kujou sebagai Commander, Colphne, Dushevnaya, Suomi, Lentine, Dandelion, Descender Zero.
+- Multi-word identity atomik: Alya Kujou, URNC Leader, Army Guard, Descender Zero, M4 SOPMOD II.
+- NPC/title role hanya live-label setelah manual approval; legacy false names tidak trusted.
+- Two-Pass OCR tetap dipertahankan: Body paragraph + Name ROI kecil; numeric/thin-glyph kondisional; bukan OCR perhuruf global.
+
+F. UI/DATA MULTI-GAME YANG DIPERTAHANKAN
+Pengolahan Data & Identitas mendukung GFL2/GFL/WUWA/CUSTOM, selector terlihat, `Tampilan Sederhana` default ON, mode Normal/Detail per game, simple-origin chip orange yang dapat dimigrasikan, terms/blacklist terpisah, GFL kategori Paradeus/Sangvis dan spoiler awareness, reference catalog terpisah dari active speaker registry.
+
+G. VALIDASI SETELAH v8.7.4
+Uji Baseline dahulu lalu Responsive pada scene tanpa voice. Wajib kirim Debug Bundle v8.7.4 untuk memastikan tidak ada ORT_ENTITY, cache namespace benar, KSVK/Helen/Helena/Alya/Phaetusa/Balthilde benar, token Level II/I benar, dan per-stage latency membaik.
+
+H. ROADMAP BESAR MASA DEPAN
+v9 tetap diarahkan pada Audio Translate/Audio Assist (WASAPI loopback, VAD/ASR, pemisahan vocal/noise/BGM, jalur fast/quality), hanya setelah OCR/cache/backend/entity/diagnostic stabil.

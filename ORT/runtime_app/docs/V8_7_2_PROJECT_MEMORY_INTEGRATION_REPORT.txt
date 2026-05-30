@@ -1,0 +1,17 @@
+ORT Translation v8.7.2 — Project Memory Integration Report
+===========================================================
+Status: PASS
+
+This integrated changed-files package was built from the previously validated
+v8.7.2 runtime patch and now embeds the project continuity/memory documents
+within the ORT project structure itself.
+
+Bundled continuity files:
+- docs/ORTCORE_MASTER_PROJECT_MEMORY_HANDOFF_V8_7_2_AFTER_IDN_OPTIMIZATION.txt
+- docs/ORTCORE_DEVELOPMENT_LEDGER_AND_WORKFLOW_V8_7_2.txt
+- READ_FIRST_AFTER_MEMORY_RESET_V8_7_2.txt
+
+Packaging policy locked for future updates:
+Every ORT runtime update/full-project release must update and bundle the
+current master handoff, development ledger, release documentation, manifest,
+patch/apply notes, and compile/test report in the same ZIP package.

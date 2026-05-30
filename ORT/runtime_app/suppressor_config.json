@@ -1,0 +1,5 @@
+{
+    "similarity_threshold": 0.95,
+    "cooldown_seconds": 2.0,
+    "history_size": 1
+}

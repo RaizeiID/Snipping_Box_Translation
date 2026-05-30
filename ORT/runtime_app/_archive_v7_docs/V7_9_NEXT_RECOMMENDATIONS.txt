@@ -1,0 +1,16 @@
+Saran berikutnya menuju v8.0
+=============================
+
+1. Uji nyata GFL2 dan Wuthering Waves dengan durasi minimal 20-30 menit.
+2. Jalankan benchmark_session_report.py setelah sesi dan bandingkan:
+   - GFL2 + Normal V2
+   - GFL2 + IDN V5
+   - WUWA + Lite IDN V2
+   - WUWA + Fast V1
+3. Jika avg OCR > 500 ms, turunkan OCR Resolution dan gunakan Safe Game.
+4. Jika avg translation > 700 ms, cek Fast Engine/CT2 dan cache hit rate.
+5. Untuk v8.0, prioritas terbesar:
+   - pecah TITANMAIN.py bertahap menjadi ocr_pipeline.py, translation_worker.py, overlay_controller.py;
+   - buat first-run setup wizard;
+   - buat profile testing wizard;
+   - pertimbangkan SQLite cache jika scoped JSON mulai besar.

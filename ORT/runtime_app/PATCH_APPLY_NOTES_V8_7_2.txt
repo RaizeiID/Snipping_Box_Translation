@@ -1,0 +1,38 @@
+ORT Translation v8.7.2 — PATCH APPLY NOTES
+============================================
+Type: CHANGED-FILES PATCH ONLY
+Base required: ORT Translation v8.7 folder with v8.7.1 patch already applied.
+
+HOW TO APPLY
+1. Backup your current ORT Translation v8.7.1 folder.
+2. Extract ORT_Translation_v8_7_2_CHANGED_FILES_PATCH.zip into the project root.
+3. Replace files when prompted.
+4. Do not delete your personal logs or NPC/glossary data before review.
+
+DATA SAFETY
+- This patch intentionally does not include/overwrite `npc_database.json`, `data_processing_store.json`, `webui_prefs.json`, or `configs/app_state.json`.
+- Run `python tools/npc_database_cleanup.py --dry-run` first to review legacy false speakers.
+- Apply cleanup without `--dry-run` only after reviewing the proposed migration/removals.
+
+FIRST TEST CHECKLIST
+- Select GFL2 and any IDN model; default should remain Auto.
+- Observe `legacy_vault=isolated`.
+- Test a DP-12/KSVK scene and capture `GFL2_SPEAKER_ROI` events.
+- Replay a completed line and inspect `CACHE_STORE_STABLE_FINAL` / `CACHE_HIT_STABLE_FINAL`.
+- Inspect `logs/idn_evaluation_v8_7_2.jsonl` for source/backend/final IDN comparison.
+
+VALIDATION LIMITS
+Synthetic regression and compile validation are included in the package report. Real game validation remains required for screen geometry, initial-I recovery and translation quality comparison.
+
+DOCUMENTATION CONTINUITY INTEGRATED PACKAGE
+-------------------------------------------
+This ZIP already includes the current project-memory files inside the ORT
+folder structure:
+- docs/ORTCORE_MASTER_PROJECT_MEMORY_HANDOFF_V8_7_2_AFTER_IDN_OPTIMIZATION.txt
+- docs/ORTCORE_DEVELOPMENT_LEDGER_AND_WORKFLOW_V8_7_2.txt
+- READ_FIRST_AFTER_MEMORY_RESET_V8_7_2.txt
+
+Do not install a separate documentation addendum after applying this package.
+For future releases, these continuity documents must be updated and bundled
+inside the same ORT patch/full-project ZIP.
+

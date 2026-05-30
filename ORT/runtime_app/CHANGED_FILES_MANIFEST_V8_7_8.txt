@@ -1,0 +1,62 @@
+ORT Translation v8.7.8 Changed Files Manifest
+Tanggal: 28 Mei 2026
+Baseline: ORT Translation v8.7.7 tested runtime
+Patch type: changed-files overlay; install on a cloned TEST folder
+
+Total changed/new files: 41
+
+Files:
+- APPLY_NOTES_V8_7_8.txt
+- CHANGED_FILES_MANIFEST_V8_7_8.txt
+- READ_FIRST_AFTER_MEMORY_RESET_V8_7_8.txt
+- TITANMAIN.py
+- app/diagnostics/idn_evaluation_export.py
+- app/identity/speaker_registry.py
+- app/translation/dialogue_completeness_gate.py
+- app/translation/faithfulness_gate.py
+- benchmark_session_report.py
+- cache_store.py
+- configs/gfl2_observed_candidates_v8_7_8.json
+- configs/speaker_registry_v2.defaults.json
+- docs/CHANGELOG.md
+- docs/IMPLEMENTATION_STATUS_V8_7_8.txt
+- docs/KNOWN_ISSUES_V8_7_8.txt
+- docs/NEXT_RECOMMENDATIONS_V8_7_8.txt
+- docs/ORTCORE_DEVELOPMENT_LEDGER_AND_WORKFLOW_V8_7_8.txt
+- docs/ORTCORE_MASTER_PROJECT_MEMORY_HANDOFF_V8_7_8.txt
+- docs/V8_7_8_COMPILE_TEST_REPORT.txt
+- docs/V9_0_FULL_PROJECT_RESTRUCTURE_PLAN.txt
+- docs/VERSION_HISTORY.txt
+- docs/roadmap_v8_7_8/ORT_V8_7_8_IMPLEMENTATION_DECISION_FAITHFULNESS_V2_STRICT_CT2_IDN_OVER_CT2_2026-05-28.md
+- docs/roadmap_v8_7_8/ORT_V8_7_8_ROADMAP_AUDIT_V8_7_7_LOG_VIDEO_SEMANTIC_CT2_2026-05-28.md
+- launcher_backend.py
+- model_strategy.py
+- runtime_bridge.py
+- tools/export_debug_bundle_v8_7_8.py
+- tools/v8_7_2_regression_test.py
+- tools/v8_7_4_regression_test.py
+- tools/v8_7_5_regression_test.py
+- tools/v8_7_6_regression_test.py
+- tools/v8_7_7_regression_test.py
+- tools/v8_7_8_cache_rotation.py
+- tools/v8_7_8_candidate_miner.py
+- tools/v8_7_8_identity_migration.py
+- tools/v8_7_8_regression_test.py
+- tools/v8_7_8_replay_benchmark.py
+- tools/v8_7_8_test_ledger.py
+- translation_engine.py
+- v7_system_profile.py
+- webui.py
+
+Excluded active user/runtime data:
+- speaker_registry_v2.json
+- data_processing_store.json
+- data_processing_settings.json
+- webui_prefs.json
+- configs/app_state.json
+- cache/
+- logs/
+- status/
+- backups/
+- reports/
+- debug_bundles/

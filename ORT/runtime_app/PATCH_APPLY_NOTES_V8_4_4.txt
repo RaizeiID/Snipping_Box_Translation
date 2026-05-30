@@ -1,0 +1,23 @@
+ORT Translation v8.4.4 — Lite Final Profile Identity & v8.5 Handoff
+
+Base: v8.4.3
+Type: final v8.4 changed-files patch
+
+Summary:
+- Finalizes Lite/Lite IDN V1–V5 identity before v8.5.
+- Applies explicit OCR ladder requested by user: V1=40%, V2=45%, V3=50%, V4=55%, V5=60%.
+- Preserves current v8.4.3 Lite latencies while making quality/resource differences clearer.
+- Keeps Fast retune from v8.4.3 unchanged: Fast V1=40%, Fast V2=45%, Fast IDN=50%.
+- Adds level-aware Lite GPU Guard caps so V5 can use OCR 60% when VRAM is healthy, while tight/heavy VRAM still downscales safely.
+- Adds stale Lite preset migration guard so old autosaved v8.4.2/v8.4.3 defaults do not hide new built-in Lite defaults.
+
+Recommended defaults after patch:
+- Lite IDN V1: ultra efficient / OCR 40% / current latency.
+- Lite IDN V2: recommended heavy-game balanced / OCR 45% / current latency.
+- Lite IDN V3: balanced quality / OCR 50%.
+- Lite IDN V4: quality safe / OCR 55%.
+- Lite IDN V5: quality/clean output / OCR 60%, not default for heavy games.
+
+Apply:
+Copy the contents of this changed-files folder into your ORT v8.4 project and overwrite.
+If WebUI still shows old Lite OCR values, press Reset Default for that Lite/Lite IDN model because it has a genuine user Modification.

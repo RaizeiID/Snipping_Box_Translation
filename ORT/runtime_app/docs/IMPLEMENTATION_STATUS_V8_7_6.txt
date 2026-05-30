@@ -1,0 +1,50 @@
+ORT Translation v8.7.6 — Implementation Status
+================================================
+Tanggal: 27 Mei 2026
+Base: runtime v8.7.5 yang diunggah pengguna (`ORT_Translation_v8_7_5.zip`)
+Format rilis: changed-files ZIP patch terintegrasi dengan project memory.
+
+IMPLEMENTED
+- Adaptive OCR Readability Guard untuk Fast/Lite GFL2:
+  - profil awal 40/45% dipertahankan sebagai opsi diagnostic/efficient;
+  - ketika raw OCR dinilai rusak, hanya satu retry berkondisi dilakukan pada resolusi lebih tinggi (floor story 50%, hingga konfigurasi aman maksimum 65%);
+  - Name ROI mempertahankan quality floor 50% agar label speaker tidak ikut terdegradasi.
+- Manual OCR override dan pelaporan runtime yang lebih jujur:
+  - override di atas preset tidak lagi diturunkan diam-diam bila kebijakan resource mengizinkan;
+  - status menyimpan requested, preset, final applied OCR, rescue floor, adaptive flag, dan CT2 fallback.
+- False-speaker fallback gate untuk GFL2:
+  - fallback dari body hanya boleh memberi speaker jika cocok exact dengan official/approved speaker;
+  - parser generic hyphen/colon tidak lagi mempromosikan label seperti `DP`, `Name`, `TC`, `Hybrid`.
+- Reference/registry continuity:
+  - mempertahankan 69 official GFL2 exact-speaker + Commander;
+  - konfigurasi observed/priority dan alias review-only baru;
+  - migrasi resmi menyelaraskan `legacy_untrusted` tanpa silent overwrite.
+- Cache namespace baru `v8_7_6_adaptive_ocr_exact_safe` beserta rotation tool.
+- UI Pengolahan Data menampilkan panel Observed Story / Alias Review v8.7.6.
+- Tools tambahan:
+  - identity migration;
+  - cache rotation;
+  - debug bundle export;
+  - replay OCR/overlay benchmark;
+  - test ledger;
+  - regression v8.7.6.
+- Report session menambahkan counter adaptive rescue, false-speaker blocked, dan fallback rejection.
+- Dokumentasi/memo kumulatif diperbarui.
+
+PRESERVED FROM v8.7.5
+- Full backend-safe EntitySpan dan residual marker guard.
+- verified official exact-speaker GFL2.
+- dual Helen/Helena, compound name, stale-overlay guard.
+- Two-Pass OCR dan Mode Responsif.
+- UI multi-game, Simple View checkbox, chip migration, roster catalog.
+
+NOT SILENTLY MODIFIED
+- Data registry aktif pengguna, store/settings, cache, logs, status, backups tidak dimasukkan untuk overwrite oleh ZIP.
+- Alias kandidat tidak diaktifkan otomatis.
+- CT2/SPM dependency tidak dipasang otomatis; status fallback diberi peringatan.
+
+VALIDATION STATUS
+- Compile sweep dan regression v8.7.1–v8.7.6 dijalankan pada source kerja: PASS.
+- Identity/cache migration dry-run: PASS.
+- Replay benchmark tool smoke test: PASS.
+- Validasi instalasi penuh pada salinan baseline dan apply tool pada folder TEST dicatat pada test report final.

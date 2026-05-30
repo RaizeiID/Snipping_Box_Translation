@@ -1,0 +1,48 @@
+ORT Translation v8.4.5 — Number-Safe OCR & Lite IDN Final Polish
+Base: v8.4.4
+Type: final v8.4 changed-files patch before v8.5 Lite optimization
+Date: 2026-05-20
+
+Summary:
+- Adds Number-Safe OCR Guard for GFL2/Lite IDN/Fast IDN numeric dialog issues.
+- Preserves useful numbers/measurements before and after translation.
+- Rejects UI numeric garbage such as 11+1115141, 30,L, TIIII, LLI-like fragments before cache/translation/learning where possible.
+- Stops older OCR digit cleanup from blindly deleting meaningful standalone numbers.
+- Keeps v8.4.4 Lite/Lite IDN OCR ladder and Fast retune unchanged.
+- Marks this as the final v8.4 polish handoff before v8.5 Lite/Lite IDN optimization.
+
+Files changed/added:
+- app/ocr/number_guard.py (new)
+- app/ocr/ocr_noise_normalizer.py
+- TITANMAIN.py
+- translation_engine.py
+- launcher_backend.py
+- webui.py
+- runtime_bridge.py
+- model_registry.py
+- model_strategy.py
+- app/runtime/lite_gpu_guard.py
+- app/runtime/model_user_presets.py
+- docs/CHANGELOG.md
+- docs/VERSION_HISTORY.txt
+- docs/IMPLEMENTATION_STATUS.txt
+- docs/NEXT_RECOMMENDATIONS.txt
+- docs/KNOWN_ISSUES.txt
+- docs/LITE_IDN_FINAL_RECOMMENDATIONS_V8_4_5.md
+- docs/V8_4_5_COMPILE_REPORT.txt
+- ORTCORE_VERSION.txt
+
+Apply:
+1. Close ORT/WebUI.
+2. Copy these changed files into the v8.4 project root.
+3. Choose Replace/Overwrite.
+4. Start ORT again.
+
+Recommended final v8.4 test:
+- Lite IDN V2, Auto, Hybrid, OCR 45% for heavy-game efficient default.
+- Lite IDN V3, Auto, Hybrid, OCR 50% when numeric/dialog accuracy is more important.
+- Fast IDN, Auto, Hybrid, OCR 50% when responsiveness is more important than Lite resource saving.
+
+Known limitations:
+- Number guard can preserve/correct numbers that OCR partially reads, but cannot recover numbers completely missing from OCR frames.
+- True numeric dual-pass OCR and per-region digit OCR are recommended for v8.5.

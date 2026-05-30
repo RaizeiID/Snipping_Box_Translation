@@ -1,0 +1,5 @@
+ORT Translation v8.5.2 compile report
+====================================
+Python compile sweep: PASS
+Checked directory: /mnt/data/v852_work
+Generated: 2026-05-20

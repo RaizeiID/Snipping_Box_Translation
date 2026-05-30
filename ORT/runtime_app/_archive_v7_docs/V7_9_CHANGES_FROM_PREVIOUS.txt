@@ -1,0 +1,29 @@
+ORT Translation v7.9 - Changes from v7.8
+===========================================
+
+1. Telemetry lintas proses
+   - Tambah session_event_paths.py.
+   - translation_event_logger.py sekarang bisa menulis langsung ke ORT_SESSION_JSONL_PATH.
+   - launcher_backend.py mengirim ORT_SESSION_ID, ORT_SESSION_FULL_LOG_PATH, dan ORT_SESSION_JSONL_PATH ke TITANMAIN.py.
+
+2. Legacy log control
+   - Tambah legacy_log_control.py.
+   - training_log.jsonl root OFF secara default dengan ORT_WRITE_LEGACY_TRAINING_LOG=0.
+   - TRAINING_SAMPLE sekarang masuk structured session event.
+
+3. OCR/translation metrics
+   - OCR_CAPTURED membawa ocr_ms, capture_ms, preprocess_ms, total_ms, text_length.
+   - Event source_module ditambahkan untuk membedakan TITANMAIN vs translation_engine.
+   - event_id ditambahkan untuk dedupe benchmark.
+
+4. Benchmark session
+   - benchmark_session_report.py diperkuat dengan dedupe, p95, cache hit rate, runtime pressure, source module summary, dan rekomendasi otomatis.
+
+5. UI redesign
+   - Dashboard lebih bersih default.
+   - Rekomendasi sistem, Diagnostic Dashboard, Runtime, Hardware, GPU Doctor, Core Bridge, Fast/Online status, dan Online Assist config memakai panel Perluas/Accordion.
+   - CSS diperbarui untuk tampilan lebih modern dan mudah dibaca.
+
+6. Package hygiene
+   - cache/log/status runtime tidak disertakan kecuali placeholder.
+   - status/README_STATUS.md ditambahkan.

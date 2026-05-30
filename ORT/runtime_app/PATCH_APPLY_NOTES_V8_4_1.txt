@@ -1,0 +1,22 @@
+# ORT Translation v8.4.1 Hotfix — WebUI Startup Fix
+
+Base: v8.4 full project
+Type: changed-files hotfix
+
+## Fixes
+- Fixed WebUI startup crash:
+  `TypeError: EventListener._setup.<locals>.event_trigger() got multiple values for argument 'outputs'`
+- Corrected the Gradio event binding for `npc_cleanup_btn`.
+- Updated `Start_ORT_Translation.bat` launcher labels from v8.3 to v8.4.1 to avoid confusion after the v8.4 full package.
+
+## Changed files
+- webui.py
+- Start_ORT_Translation.bat
+- PATCH_APPLY_NOTES_V8_4_1.txt
+- docs/CHANGELOG_V8_4_1.md
+- docs/V8_4_1_COMPILE_REPORT.txt
+
+## Notes
+- This hotfix does not change Fast model behavior.
+- This hotfix does not change Lite IDN GPU Efficient logic.
+- Apply this patch over the v8.4 full project folder.

@@ -1,0 +1,23 @@
+ORT Translation v8.4 - Full Folder Package
+=========================================
+Update type: major foundation update after v8.3.4 Fast lock
+Base version: ORT Translation v8.3 Final / v8.3.4
+Date: 2026-05-20
+
+Summary
+-------
+v8.4 opens the Lite IDN optimization track. Fast V1, Fast V2, Fast IDN, Fast CT2, and the restored Auto/Interval behavior from v8.3.4 are treated as locked. This update focuses on Lite/Lite IDN GPU Efficient behavior, IDN Quality Layer foundation, learning quarantine, Diagnose & Repair Center, and release hygiene.
+
+How to use
+----------
+1. Extract the ZIP as a new folder, for example ORT_Translation_v8_4.
+2. Keep your runtime/model folders if needed, especially models/ct2_opus_mt_en_id if you already created CT2.
+3. Run Start_ORT_Translation.bat.
+4. For heavy games, try ORTCore Lite IDN V2 with Engine Hybrid, Mode Interval/Auto, OCR 50-55%.
+5. Open Runtime & Tools > Diagnose & Repair Center if the app feels slow or broken.
+
+Important
+---------
+- This package does not include large model files.
+- Lite/Lite IDN may use the existing CT2 en-id model folder if available.
+- Fast behavior is locked; v8.4 should not tune Fast unless a specific bug appears.

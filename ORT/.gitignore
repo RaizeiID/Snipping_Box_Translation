@@ -1,0 +1,85 @@
+# ORT folder-level GitHub Safe Ignore
+# Version: v8.8.1 R3
+#
+# Tujuan:
+# - Tetap aman jika VSCode/Git dibuka langsung dari folder ORT/
+# - Mencegah folder besar/lokal ikut commit.
+
+_LOCAL_RUNTIME_WEB_DO_NOT_UPLOAD/
+
+# Embedded/local runtime and environments
+runtime_app/ORT_Runtime/
+runtime_app/.venv/
+runtime_app/venv/
+runtime_app/env/
+runtime_app/models/
+runtime_app/model/
+runtime_app/engines/models/
+runtime_app/_runtime/
+runtime_app/runtime/python/
+runtime_app/runtime/models/
+
+# Runtime generated data
+runtime_app/cache/
+runtime_app/logs/
+runtime_app/backups/
+runtime_app/debug_bundles/
+runtime_app/status/
+runtime_app/reports/
+runtime_app/temp/
+runtime_app/tmp/
+
+# Project generated data
+cache/
+logs/
+backups/
+debug_bundles/
+status/
+reports/
+temp/
+tmp/
+
+# User active data / preferences
+user_data/preferences/
+user_data/identity/
+user_data/commander_profiles/
+user_data/review_queue/
+runtime_app/speaker_registry_v2.json
+runtime_app/webui_prefs.json
+runtime_app/configs/app_state.json
+runtime_app/data_processing_store*.json
+runtime_app/data_processing_settings*.json
+
+# Python generated files
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+*.old
+*.orig
+*.swp
+*.swo
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.example.json
+
+# Archives generated locally
+*.zip
+*.7z
+*.rar
+*.tar
+*.tar.gz
+
+!docs/**/*.md

@@ -1,0 +1,69 @@
+ORT Translation v7.8 - Perubahan dari versi sebelumnya
+======================================================
+
+Tujuan update:
+- Membuat folder baru yang lebih bersih.
+- Menjalankan rekomendasi v7.7 yang belum diterapkan penuh.
+- Membersihkan nama internal lama dari jalur aktif.
+- Membuat telemetry/log/benchmark lebih berguna untuk analisis berikutnya.
+
+Perubahan utama:
+1. Start_ORT_Translation.bat
+   - Label dinaikkan ke v7.8.
+   - Install dependency memakai requirements.txt.
+   - Tidak lagi memakai requirements_v6_2.txt.
+   - Ada pilihan install optional dependency Fast dan Online.
+
+2. WebUI / Runtime & Tools
+   - core summary memakai fungsi generik core_summary_text.
+   - Tambah panel Online Assist Config untuk V4 hybrid:
+     provider, endpoint, API key, timeout, enable/disable, save config, test.
+   - Tambah tombol Dependency Check.
+   - Tambah tombol Test Fast Engine.
+
+3. Launcher backend
+   - Online Assist config disuntikkan ke environment child runtime.
+   - Safe Game/Fast tetap mematikan online assist secara default.
+   - Fungsi lama v71_core_summary_text diganti menjadi core_summary_text.
+
+4. Telemetry session
+   - Ditambahkan translation_event_logger.py.
+   - TITANMAIN.py menulis event OCR_CAPTURED, TRANSLATION_REQUEST, TRANSLATION_RESULT.
+   - translation_engine.py menulis CACHE_HIT, TRANSLATION_REQUEST, TRANSLATION_RESULT.
+   - JSONL log sekarang lebih siap dianalisis oleh AI Recap dan benchmark.
+
+5. Benchmark
+   - Ditambahkan benchmark_session_report.py.
+   - Benchmark ini membaca logs/session_*_events.jsonl dan menghitung event, cache hit rate, OCR ms, translate ms, online/fast usage.
+
+6. Dependency checker
+   - Ditambahkan runtime_dependency_checker.py.
+   - Membuat status/dependency_check.json.
+
+7. File legacy
+   - Root tidak lagi berisi v71_runtime_bridge.py, v72_runtime_bridge.py, v73_runtime_bridge.py, v75_runtime_bridge.py.
+   - Wrapper lama dipindah ke _archive_v7_compat.
+   - Dokumen/manifes versi lama dipindah ke _archive_v7_docs.
+
+8. Package hygiene
+   - __pycache__, cache runtime, log runtime, status JSON lama, runtime_paths lokal, dan prefs lokal tidak disertakan.
+   - Dibuat runtime_paths.json fresh placeholder.
+
+File penting yang berubah/ditambah:
+- Start_ORT_Translation.bat
+- RUNTIME.bat
+- webui.py
+- launcher_backend.py
+- TITANMAIN.py
+- translation_engine.py
+- session_log_manager.py
+- online_assist_config.py
+- fast_model_manager.py
+- status_manager.py
+- translation_event_logger.py
+- runtime_dependency_checker.py
+- benchmark_session_report.py
+- _tools/audit_py_usage.py
+- README_V7_8_COMPLETE.md
+- V7_8_CHANGES_FROM_PREVIOUS.txt
+- V7_8_NEXT_RECOMMENDATIONS.txt

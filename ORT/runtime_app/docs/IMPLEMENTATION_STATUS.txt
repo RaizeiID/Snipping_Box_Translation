@@ -1,0 +1,23 @@
+ORT Translation v8.7.5 — Implementation Status
+================================================
+Tanggal: 26 Mei 2026
+
+IMPLEMENTED
+- `verified_character_speaker_exact` runtime policy untuk GFL2: katalog 69 karakter dapat dilabel exact-only dari Name ROI/exact prefix tanpa fuzzy umum atau learning dari narasi.
+- Migration fix untuk schema katalog `entries[].display_name`; tool dapat memindahkan nama resmi yang dahulu jatuh ke `legacy_untrusted`.
+- Full backend-safe EntitySpan: `TextSpan` saja yang masuk backend dan IDN/QA; `EntitySpan` canonical disusun kembali tanpa token `ORT_BKEND`.
+- Residual-marker guard generik untuk `ENTITY/BKEND/BKED/BEND` dan pola `_ _ ORT`; final overlay/cache/export memiliki lapisan blok tambahan.
+- Cache namespace `v8_7_5_verified_exact_entity_safe` serta tool rotasi v8.7.4/lebih lama.
+- Speaker transition epoch + `OVERLAY_STALE_SPEAKER_DROPPED` agar output dialog lama tidak tampil sesudah speaker baru terdeteksi.
+- Event `GFL2_NAME_ROI_REJECTED` untuk membedakan OCR gagal dari registry mismatch.
+- Mode Responsif v8.7.4 tetap dipertahankan; Two-Pass OCR tetap aktif normal.
+
+RETAINED FROM PREVIOUS RELEASES
+- Trusted Speaker Registry, Compound Speaker Entity, Dual Helen/Helena Guard.
+- Pengolahan Data & Identitas multi-game; checkbox Tampilan Sederhana; chip orange/migrasi nama.
+- Reference catalog GFL2/GFL/WUWA dan kategori GFL Paradeus/Sangvis.
+
+NOT AUTOMATICALLY FIXED
+- OCR rusak seperti `Zhohul`/`rid` tidak dipaksa menjadi karakter resmi melalui fuzzy luas; perlu scene/test dan alias review yang aman.
+- CT2 Fast/Lite tetap membutuhkan asset SPM yang valid; patch tidak menyertakan model pihak ketiga.
+- Kualitas bahasa pada kalimat dengan banyak entity harus divalidasi live karena full backend-safe span dapat memecah segmen terjemahan demi menjaga nama.

@@ -1,0 +1,27 @@
+ORT Translation v8.7.3 — Patch Apply Notes
+==========================================
+Patch type: integrated changed-files only patch over v8.7.2.
+
+INSTALLATION SAFETY:
+1. Keep your working v8.7.2 folder unchanged as backup.
+2. Copy it to a new test folder, e.g. `ORT_Translation_v8_7_3_TEST`.
+3. Extract this ZIP into the root of the TEST folder and overwrite source/docs files.
+4. Start the WebUI once; v8.7.3 creates the trusted identity registry from safe defaults plus reviewable legacy migration.
+5. Before applying cleanup, run:
+   python tools/v8_7_3_identity_migration.py --base-dir .
+   python tools/npc_database_cleanup.py --dry-run
+6. Test GFL2/WUWA/GFL and only then decide whether to promote the test folder.
+
+NOT OVERWRITTEN BY THIS PATCH:
+- npc_database.json
+- data_processing_store.json
+- data_processing_settings.json
+- webui_prefs.json
+- configs/app_state.json
+- existing logs and cache files
+
+NEW BEHAVIOUR:
+- Pengolahan Data & Identitas includes visible game selector and checkbox `Tampilan Sederhana` (default ON for new settings).
+- Names added in Simple mode appear orange/migratable in Normal mode; sorted names appear green and cannot be migrated as unsorted entries.
+- Helen and Helena are both valid distinct speakers.
+- New cache namespaces avoid automatic reuse of contaminated v8.7.2 output.

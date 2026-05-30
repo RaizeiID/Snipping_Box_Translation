@@ -1,0 +1,16 @@
+ORT Translation v8.7.1 — Changed-Files Patch Apply Notes
+=========================================================
+Base required: ORT Translation v8.7 full project GFL profile build.
+
+Cara menerapkan:
+1. Tutup WebUI/runtime ORT.
+2. Backup folder v8.7 Anda.
+3. Ekstrak ZIP patch ini tepat ke folder root ORT_Translation_v8_7 dan izinkan overwrite file yang sama.
+4. Jalankan WebUI kembali.
+5. Gunakan Reset Default pada model yang memiliki preset modifikasi lama bila ingin memakai default Auto baru.
+
+Catatan penting:
+- Patch hanya berisi file baru/berubah, bukan full project.
+- Legacy MemoryVault dinonaktifkan secara default untuk pengujian bersih; aktifkan hanya dengan ORT_ENABLE_LEGACY_VAULT=1 bila benar-benar diperlukan.
+- Patch tidak menimpa `npc_database.json`, `data_processing_store.json`, maupun preferensi aktif milik Anda. Saat GFL2 berjalan, seed DP-12/KSVK digabungkan melalui source/runtime; data NPC lokal yang sudah tercemar dapat dibersihkan melalui NPC Cleanup v8.7.1 (termasuk merge DP/Dp ke DP-12).
+- Default bawaan seluruh model sudah Auto. Preferensi manual Interval/Freeze yang pernah Anda simpan tidak dipaksa berubah; tekan Reset Default atau pilih Auto untuk memakai perilaku baru.

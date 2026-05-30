@@ -1,0 +1,8 @@
+ORT Translation v8.7.7 — Known Issues / Validation Needed
+======================================================
+- Gate baru bersifat konservatif: dialog pendek mencurigakan dapat ditahan daripada langsung diterjemahkan; ukur delay versus keamanan.
+- CT2 model besar tidak dibundel di changed-files patch; model valid tetap harus tersedia di folder instalasi.
+- Hasil live v8.7.7 belum tersedia sampai user menjalankan clone TEST.
+- Alias ROI-only belum diaktifkan fuzzy body secara sengaja.
+- GFL/WUWA full exact-speaker expansion belum menjadi fokus rilis ini.
+- Mode Responsif belum tervalidasi bersama Semantic/Completeness Gate.

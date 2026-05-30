@@ -1,0 +1,29 @@
+{
+  "version": "v8.4",
+  "notes": "Game-specific OCR correction examples for GFL2 Exilium. Safe dictionary; avoid aggressive global replacements.",
+  "speaker_aliases": {
+    "Vaymastina": "Voymastina",
+    "Ralzei": "Raizei",
+    "Raizel": "Raizei",
+    "Ralizei": "Raizei",
+    "Lentlne": "Lentine",
+    "Thearmor": "The armor"
+  },
+  "word_fixes": {
+    "feelas": "feel as",
+    "Thearmor": "The armor",
+    "Allare": "All are",
+    "Wellfind": "We'll find",
+    "Ifwe": "If we",
+    "Ifthe": "If the",
+    "donttalk": "don't talk",
+    "youII": "you'll",
+    "willeventually": "will eventually"
+  },
+  "noise_patterns": [
+    "LTSLL2",
+    "LTSIL2",
+    "LTFAIL2",
+    "011517"
+  ]
+}

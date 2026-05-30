@@ -1,0 +1,10 @@
+{
+    "mode": "dictionary_fallback",
+    "emergency_dictionary": {
+        "Start": "Mulai",
+        "Options": "Pengaturan",
+        "Exit": "Keluar",
+        "Resume": "Lanjut",
+        "Loading": "Memuat"
+    }
+}

@@ -1,0 +1,17 @@
+ORT Translation v7.8 compile / validation report
+==============================================
+Python py_compile: OK
+ZIP integrity: OK
+
+Smoke checks performed before final packaging:
+- benchmark_profiles.py: OK
+- benchmark_runtime.py: OK
+- benchmark_session_report.py: OK; no session log found is normal for a fresh package
+- runtime_dependency_checker.py: OK; reports missing dependencies in this Linux sandbox as expected
+- benchmark_cache_hit.py: OK
+- benchmark_translation.py: OK
+- benchmark_ocr.py: OK readiness check; real OCR requires Windows runtime dependencies
+- _tools/audit_py_usage.py: OK
+
+Note:
+This sandbox does not have the same Windows runtime as the user laptop, so real EasyOCR/Argos/GPU performance must be validated after extraction on the target machine.

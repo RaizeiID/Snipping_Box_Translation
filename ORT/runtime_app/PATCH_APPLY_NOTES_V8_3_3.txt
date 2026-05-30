@@ -1,0 +1,31 @@
+ORT Translation v8.3.3 - Fast Model Identity & Preset Memory Patch
+=================================================================
+Base version: v8.3.2
+Type: Changed-files patch
+Date: 2026-05-20
+
+What this patch does:
+- Keeps Freeze/Interval/Auto behavior global and familiar.
+- Adds Fast profile modifiers on top of selected mode:
+  * Fast V1 = speed-first, quickest progressive commits, lighter cleanup.
+  * Fast V2 = balanced, slightly more stable, better cleanup/cache behavior.
+  * Fast IDN = Fast V2-like behavior plus Indonesian naturalizer/post-edit.
+- Adds WebUI buttons near model selection:
+  * Simpan Default Model Ini
+  * Reset Default Model Ini
+- Saved per-model defaults restore mode/engine/interval/OCR when switching back to a model.
+- Adds stronger OCR typo normalization and speaker candidate filtering.
+
+How to apply:
+1. Close ORT/WebUI.
+2. Copy all files from this ZIP into the ORT project folder.
+3. Choose Replace/Overwrite.
+4. Start ORT again.
+
+Compile validation:
+- 198 Python files checked.
+- 0 syntax errors.
+
+Notes:
+- Fast CT2 model files are not included; this patch assumes your existing CT2 setup remains in models/ct2_opus_mt_en_id.
+- The custom model defaults are saved at runtime to configs/model_user_presets.json.

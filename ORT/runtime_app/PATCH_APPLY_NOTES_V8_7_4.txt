@@ -1,0 +1,26 @@
+ORT Translation v8.7.4 — Patch Apply Notes
+==========================================
+Patch type: integrated changed-files patch over the user's current v8.7.3 folder. v8.7.3 is treated as the fatal-bug source release corrected by v8.7.4.
+
+INSTALLATION SAFETY
+1. Keep your current v8.7.3 folder unchanged as backup.
+2. Copy it to `ORT_Translation_v8_7_4_TEST`.
+3. Extract this ZIP into the TEST folder root and overwrite source/docs files.
+4. Run dry-run checks:
+   python tools/v8_7_4_cache_rotation.py --base-dir .
+   python tools/v8_7_4_identity_migration.py --base-dir .
+   python tools/npc_database_cleanup.py --dry-run
+5. After review, rotate contaminated cache in the TEST folder only:
+   python tools/v8_7_4_cache_rotation.py --base-dir . --apply
+6. Start WebUI in Baseline Correctness; test GFL2 IDN. Then test `Mode Responsif / Story Cepat (Tanpa Voice)`.
+7. Export logs with: python tools/export_debug_bundle_v8_7_4.py
+
+NOT OVERWRITTEN BY THIS PATCH
+- npc_database.json, data_processing_store.json, data_processing_settings.json, webui_prefs.json, configs/app_state.json, speaker_registry_v2.json
+- logs/, cache/, status/, backups/
+
+CORE FIXES
+- EntitySpan replaces fatal post-entity placeholder path through IDN/QA.
+- Residual internal marker results are blocked/fallback and cannot be cached.
+- Cache namespace becomes `v8_7_4_entity_span_responsive`; old contaminated cache is rotated with backup tools.
+- Responsive Story mode reduces stale prefix work; Two-Pass Name ROI remains enabled in normal play.

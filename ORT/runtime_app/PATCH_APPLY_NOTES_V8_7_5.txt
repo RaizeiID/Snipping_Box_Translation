@@ -1,0 +1,31 @@
+ORT Translation v8.7.5 — Patch Apply Notes
+===========================================
+Base: folder runtime v8.7.4 yang telah diuji pengguna.
+Release type: integrated changed-files patch; pasang pertama kali pada folder salinan TEST.
+
+PERBAIKAN UTAMA
+- Full backend-safe EntitySpan: nama/term canonical tidak lagi masuk backend sebagai token `ORT_BKEND`; hanya TextSpan yang diterjemahkan.
+- Residual marker guard diperluas untuk `ORT_ENTITY`, `ORT_BKEND`, `ORT_BKED`, `ORT_BEND`, `_ _ ORT`, dan variasi internal terkait; overlay/export/cache memblok output tersebut.
+- Tier `verified_character_speaker_exact` untuk karakter resmi GFL2; exact Name ROI/prefix dapat melabel `Zhaohui`, `Vector`, `Colphne`, `Groza`, `Ullrid`, `Harpsy`, dll. Fuzzy tetap hanya untuk active/reviewed alias.
+- Migrasi diperbaiki agar membaca `reference_roster_catalog.entries[].display_name`, bukan field lama yang kosong.
+- Speaker transition/stale-overlay guard membuang hasil speaker lama bila speaker baru sudah terdeteksi sebelum hasil lama tampil.
+- Cache namespace baru: `v8_7_5_verified_exact_entity_safe`.
+- Export debug baru: `tools/export_debug_bundle_v8_7_5.py`.
+
+CARA PEMASANGAN AMAN
+1. Salin folder v8.7.4 Anda menjadi `ORT_Translation_v8_7_5_TEST`.
+2. Ekstrak ZIP patch v8.7.5 ke folder TEST dan overwrite file yang sama.
+3. Dari folder TEST jalankan dry-run:
+   python tools/v8_7_5_cache_rotation.py --base-dir .
+   python tools/v8_7_5_identity_migration.py --base-dir .
+   python tools/npc_database_cleanup.py --dry-run
+4. Setelah memeriksa hasil, terapkan hanya pada folder TEST:
+   python tools/v8_7_5_cache_rotation.py --base-dir . --apply
+   python tools/v8_7_5_identity_migration.py --base-dir . --apply
+5. Jalankan aplikasi dan uji Baseline Correctness terlebih dahulu pada scene yang memuat Zhaohui/Vector/Alya Kujou/Helen/Helena/Phaetusa.
+6. Setelah correctness aman, uji ulang scene cepat dengan `Mode Responsif / Story Cepat (Tanpa Voice)`.
+7. Export debug bundle setelah uji:
+   python tools/export_debug_bundle_v8_7_5.py
+
+KEAMANAN DATA
+ZIP patch tidak membawa/menimpa data aktif pengguna: `speaker_registry_v2.json`, `data_processing_store.json`, `data_processing_settings.json`, `npc_database.json`, `cache/`, `logs/`, `status/`, `backups/`, dan preference runtime aktif tidak termasuk paket overwrite.

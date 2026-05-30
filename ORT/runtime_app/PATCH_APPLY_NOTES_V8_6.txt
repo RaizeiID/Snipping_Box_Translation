@@ -1,0 +1,26 @@
+ORT Translation v8.6 — IDN Quality Layer & IDN Model Optimization
+Base: v8.5.2 final
+Type: changed-files patch
+
+How to apply:
+1. Close ORT/WebUI.
+2. Extract this changed-files ZIP.
+3. Copy all files/folders into your current ORT v8.5.2 folder.
+4. Choose Replace/Overwrite.
+5. Start with Start_ORT_Translation.bat.
+
+Main goals:
+- Promote IDN Quality Layer into a shared architecture for Fast IDN, Lite IDN, and Normal IDN.
+- Add IDN Light / Balanced / Natural / Quality modes.
+- Add terminology consistency for game/story terms.
+- Version naturalized IDN cache as v8_6 so old v8.5.x cache entries do not hide new output polish.
+- Keep Fast and Lite runtime behavior stable from v8.5.2 unless explicitly retuned later.
+
+Recommended first tests:
+- Lite IDN V2 / Auto / Hybrid / GFL2_EXILIUM / OCR 45%
+- Lite IDN V3 / Auto / Hybrid / GFL2_EXILIUM / OCR 50%
+- IDN V3 / Auto or Freeze / Hybrid / GFL2_EXILIUM
+- IDN V5 / Freeze / Hybrid only for quality comparison, not heavy-game default.
+
+Known limitation:
+- Tiny/blurred numeric OCR misses in GFL2 remain known minor limitation after v8.5.1 and are not the main focus of v8.6.

@@ -1,0 +1,6 @@
+{
+    "name_extraction_regex": "^([A-Z][a-zA-Z0-9\\-\\.]+)[:\\s]+(.*)",
+    "max_name_length": 18,
+    "line_connector_chars": ["-"],
+    "sentence_end_chars": [".", "?", "!", "\"", "'", ")"]
+}

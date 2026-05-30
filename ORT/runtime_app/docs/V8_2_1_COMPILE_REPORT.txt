@@ -1,0 +1,4 @@
+ORT Translation v8.2.1 compile report
+- Python files checked: 196
+- Syntax errors: 0
+- Focus: Story Dialogue Scheduler bounded commit hotfix and 45ms interval floor for Fast GFL2.

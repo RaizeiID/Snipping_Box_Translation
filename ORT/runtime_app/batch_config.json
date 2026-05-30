@@ -1,0 +1,4 @@
+{
+    "max_batch_size": 5,
+    "wait_time_ms": 50
+}

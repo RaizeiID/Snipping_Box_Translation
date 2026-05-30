@@ -1,0 +1,22 @@
+ORT Translation v8.7.7 — Apply Notes
+===================================
+Type: changed-files patch over ORT Translation v8.7.6 tested runtime.
+
+AMAN DIPASANG PADA FOLDER CLONE TEST, BUKAN SATU-SATUNYA FOLDER AKTIF.
+
+Langkah:
+1. Salin folder v8.7.6 menjadi ORT_Translation_v8_7_7_TEST.
+2. Ekstrak ZIP v8.7.7 ke clone tersebut dan overwrite file yang sama.
+3. Dari folder TEST jalankan dry-run lalu apply:
+   python tools/v8_7_7_cache_rotation.py --base-dir .
+   python tools/v8_7_7_identity_migration.py --base-dir .
+   python tools/v8_7_7_cache_rotation.py --base-dir . --apply
+   python tools/v8_7_7_identity_migration.py --base-dir . --apply
+4. Buka WebUI > Runtime & Tools > Repair / Rebind CT2 Model & SPM Path, lalu Test Fast Engine.
+5. Uji Baseline Correctness sebelum Mode Responsif.
+6. Ekspor bukti: python tools/v8_7_7_test_ledger.py --base-dir . dan python tools/export_debug_bundle_v8_7_7.py
+
+Catatan:
+- Patch tidak menimpa registry/cache/log/status/prefs aktif pengguna; tool apply membuat backup.
+- Nama exact-only baru perlu identity migration --apply agar masuk registry aktif user.
+- Vilyz, ARVITA ID, dan ATVITA ID tidak diaktifkan global.

@@ -1,0 +1,8 @@
+{
+    "preserve_numbers": true,
+    "preserve_proper_nouns": true,
+    "forbidden_reversals": [
+        {"original": "attack", "forbidden": "defend"},
+        {"original": "win", "forbidden": "lose"}
+    ]
+}

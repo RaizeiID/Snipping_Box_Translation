@@ -1,0 +1,39 @@
+ORT Translation v8.7.1 — Compile & Regression Test Report
+=====================================================
+Date: 2026-05-25
+Build type: Changed-files patch over v8.7 full project
+
+Implemented validation targets:
+- Every built-in model registry default resolves to Auto.
+- GFL2 canonical/alias handling recognizes DP-12 and KSVK.
+- GFL2 speaker guard rejects observed narrative false speakers.
+- Legacy MemoryVault is isolated by default through runtime environment and bridge/engine guards.
+- Progressive short-prefix cache guard is active for GFL/GFL2 validation sessions.
+- WebUI runtime card reads applied translation backend status (`argos_offline` test case).
+- NPC cleanup safely merges DP/Dp to DP-12 and removes an observed false speaker without overwriting user database in the patch package.
+
+Validation executed on an isolated copy of the patched source:
+1. `python -m compileall -q .`
+   Result: PASS — no Python syntax errors.
+
+2. `python tools/v8_7_gfl_smoke_test.py`
+   Result: PASS — existing v8.7 GFL profile/footer/cache/credit/speaker smoke coverage preserved.
+
+3. `python tools/v8_7_1_regression_test.py`
+   Result: PASS — Auto defaults, GFL2 DP-12/KSVK aliases, clean-vault flag, progressive cache guard, and seed declarations validated.
+
+4. Isolated NPC cleanup functional test
+   Result: PASS — `DP`/`Dp` merged to `DP-12`; `KSVK` retained; `Hereyes` removed.
+
+5. Applied backend status card functional test
+   Result: PASS — with synthetic translation status `applied_engine=argos_offline`, WebUI card renders Argos as the applied backend and shows legacy vault isolated.
+
+Not claimed without user runtime test:
+- Actual overlay output in live GFL2 for every DP-12/KSVK scene.
+- Cache HIT improvement on repeated in-game stable dialogue.
+- Actual CT2 or online-assist activation on the user's Windows runtime.
+- Long-session reduction of every false NPC candidate.
+
+Data preservation policy:
+- Patch ZIP intentionally omits mutable `npc_database.json`, `data_processing_store.json`, `webui_prefs.json`, and `configs/app_state.json`.
+- Canonical GFL2 seeds and default behavior are introduced through changed source; existing user data is preserved.

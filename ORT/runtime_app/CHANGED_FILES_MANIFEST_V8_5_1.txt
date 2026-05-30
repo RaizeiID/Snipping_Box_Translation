@@ -1,0 +1,18 @@
+Changed/added files in v8.5.1:
+- TITANMAIN.py
+- runtime_health_applier.py
+- launcher_backend.py
+- webui.py
+- model_strategy.py
+- app/ocr/number_guard.py
+- app/runtime/lite_gpu_guard.py
+- ORTCORE_VERSION.txt
+- TITANCORE_VERSION.txt
+- PATCH_APPLY_NOTES_V8_5_1.txt
+- docs/V8_5_1_NUMERIC_ROI_AND_VRAM_GUARD.md
+- docs/V8_5_1_COMPILE_REPORT.txt
+- docs/CHANGELOG.md
+- docs/VERSION_HISTORY.txt
+- docs/IMPLEMENTATION_STATUS.txt
+- docs/KNOWN_ISSUES.txt
+- docs/NEXT_RECOMMENDATIONS.txt

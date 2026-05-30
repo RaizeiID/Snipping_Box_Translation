@@ -1,0 +1,18 @@
+Release Cleanup v8.4
+====================
+Cleaned from full folder package:
+- __pycache__/ directories
+- *.pyc files
+- runtime logs
+- generated reports
+- backups
+- accidental file: --local-dir
+
+Preserved:
+- legacy compatibility code and v7 archive documentation
+- version history and patch notes
+- runtime repair scripts
+- model registry and Fast lock documentation
+
+Reason:
+The user requested a new-folder v8.4 package. The release is cleaned for use while preserving compatibility files that may still be referenced by the project.

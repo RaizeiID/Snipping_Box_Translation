@@ -1,0 +1,24 @@
+ORT Translation v8.7.3 — Roster Source Manifest
+================================================
+Checked date: 2026-05-26
+Purpose: exact-name/reference catalog and Named Entity Protection; not unrestricted fuzzy live speaker labels.
+
+GFL / Girls' Frontline
+- Source checked: IOP Wiki — T-Doll Index; page states it is a complete image list of all T-Dolls covered in the wiki.
+- Packaged catalog scope: normal and extra T-Doll name transcription plus selected story/faction metadata for UI grouping.
+- Story grouping source checked: IOP Wiki — List of Characters / faction references for Paradeus and Sangvis Ferri.
+- Generic enemy index is intentionally not auto-imported as active speaker data.
+
+GFL2 / Girls' Frontline 2: Exilium
+- Source checked: IOP Wiki — GFL2 Doll Index.
+- Packaged scope: Doll names in checked index plus project-observed named story/speaker additions required by live logs (`Helena`, `Melanie`, `Lentine`, `Dandelion`, `Descender Zero`, `DP-12`, `KSVK`, `Commander`).
+- Project rule: `Helen` and `Helena` are distinct canonical entities.
+
+WUWA / Wuthering Waves
+- Source checked: current playable character roster reference covering Version 3.2 state at checked date.
+- Packaged scope: 45 playable Resonator names, stored as a versioned/updateable catalog.
+- Future patches must refresh this catalog when new Resonators are released.
+
+Safety model
+- `reference_roster_catalog`: exact matching, UI search, and backend name protection.
+- `active_speaker_registry`: only protected/user-configured/approved/reviewed identities may become orange speaker labels.

@@ -1,0 +1,11 @@
+ORT Translation v8.4.5 Compile Report
+
+Scope: full project compile sweep after applying v8.4.5 changed files over v8.4.4.
+Result: PASS
+Python files checked: 206
+Syntax errors: 0
+
+Notes:
+- New file app/ocr/number_guard.py compiled successfully.
+- Fast CT2 path unchanged.
+- Lite/Lite IDN profile ladder unchanged from v8.4.4.

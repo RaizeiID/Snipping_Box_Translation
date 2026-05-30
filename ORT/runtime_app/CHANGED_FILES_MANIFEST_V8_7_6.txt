@@ -1,0 +1,63 @@
+ORT Translation v8.7.6 — Changed Files Manifest
+==================================================
+Tanggal: 27 Mei 2026
+Baseline: runtime v8.7.5 yang diunggah pengguna (`ORT_Translation_v8_7_5.zip`)
+Format: changed-files patch terintegrasi dengan project memory.
+Jumlah file baru/berubah dalam patch: 36
+
+TUJUAN RILIS
+- Adaptive OCR Readability Guard untuk profile GFL2 Fast/Lite yang rendah.
+- Manual OCR override dan runtime reporting yang jujur.
+- Exact-only speaker fallback gate untuk memblok false label dari parser body.
+- Observed/alias review metadata tanpa auto-promosi alias berisiko.
+- Namespace cache baru, migrasi/rotasi, benchmark replay, dan ledger pengujian.
+- Mempertahankan EntitySpan safe, exact-speaker official GFL2, dual Helen/Helena, stale-overlay guard, Two-Pass OCR, Mode Responsif, dan UI multi-game.
+
+FILE YANG SENGAJA TIDAK DITIMPA
+- speaker_registry_v2.json
+- data_processing_store.json
+- data_processing_settings.json
+- webui_prefs.json
+- configs/app_state.json
+- cache/*
+- logs/*
+- status/*
+- backups/*
+
+DAFTAR FILE BARU/BERUBAH
+- CHANGED_FILES_MANIFEST_V8_7_6.txt
+- PATCH_APPLY_NOTES_V8_7_6.txt
+- READ_FIRST_AFTER_MEMORY_RESET_V8_7_6.txt
+- TITANMAIN.py
+- app/identity/entity_span.py
+- app/identity/speaker_registry.py
+- app/ocr/gfl2_speaker_roi.py
+- app/ocr/readability_guard.py
+- app/runtime/lite_gpu_guard.py
+- benchmark_session_report.py
+- cache_store.py
+- configs/gfl2_observed_candidates_v8_7_6.json
+- configs/speaker_registry_v2.defaults.json
+- docs/CHANGELOG.md
+- docs/IMPLEMENTATION_STATUS_V8_7_6.txt
+- docs/KNOWN_ISSUES_V8_7_6.txt
+- docs/NEXT_RECOMMENDATIONS_V8_7_6.txt
+- docs/ORTCORE_DEVELOPMENT_LEDGER_AND_WORKFLOW_V8_7_6.txt
+- docs/ORTCORE_MASTER_PROJECT_MEMORY_HANDOFF_V8_7_6.txt
+- docs/V8_7_6_COMPILE_TEST_REPORT.txt
+- docs/VERSION_HISTORY.txt
+- docs/roadmap_v8_7_6/ORT_V8_7_6_SOURCE_AUDIT_V8_7_5_DOWNGRADE_CHARACTER_OCCURRENCE_AND_LEDGER_2026-05-27.md
+- launcher_backend.py
+- model_registry.py
+- model_strategy.py
+- tools/export_debug_bundle_v8_7_6.py
+- tools/v8_7_4_regression_test.py
+- tools/v8_7_5_regression_test.py
+- tools/v8_7_6_cache_rotation.py
+- tools/v8_7_6_identity_migration.py
+- tools/v8_7_6_regression_test.py
+- tools/v8_7_6_replay_benchmark.py
+- tools/v8_7_6_test_ledger.py
+- translation_engine.py
+- v7_system_profile.py
+- webui.py

@@ -1,0 +1,65 @@
+Saran Peningkatan Setelah ORT Translation v7.8
+==============================================
+
+Status v7.8:
+- Sudah lebih bersih dari sisi launcher, status, dependency, dan telemetry.
+- Online Assist V4 sudah punya konfigurasi UI.
+- Structured session log sudah mulai langsung dari OCR/translation event.
+- Benchmark session nyata sudah tersedia.
+
+Prioritas v7.9 yang disarankan:
+
+1. Uji langsung di Windows dengan GFL2 dan Wuthering Waves
+   - Jalankan GFL2 + Normal V2 / IDN V2.
+   - Jalankan WUWA + Lite IDN V2 / Fast V1.
+   - Setelah sesi, jalankan benchmark_session_report.py.
+   - Bandingkan average translate ms, cache hit rate, runtime pressure, dan engine usage.
+
+2. Perbaiki duplicate event jika log terlalu ramai
+   - Saat ini event bisa datang dari TITANMAIN dan translation_engine.
+   - Jika JSONL terlalu padat, buat event deduplicator berbasis event_id.
+
+3. Mulai pecah TITANMAIN.py secara aman
+   Rekomendasi file baru:
+   - shutdown_controller.py
+   - ocr_runtime_config.py
+   - translation_worker_runtime.py
+   - overlay_controller.py
+   - cas_pipeline.py
+
+4. Migrasi root folder bertahap ke struktur app/
+   Jangan pindahkan semua sekaligus. Mulai dari modul baru:
+   - app/runtime/
+   - app/engines/
+   - app/diagnostics/
+   - app/tools/
+
+5. Fast Engine Wizard lebih penuh
+   - Tambahkan panduan konversi/download model CT2.
+   - Tambahkan validasi translate yang benar-benar memakai CT2 jika model tersedia.
+
+6. Online Assist provider modular
+   - Tambahkan adapter per provider:
+     LibreTranslate, DeepLX, GAS, Custom.
+   - Tambahkan circuit breaker status di UI.
+   - Tambahkan tombol reset circuit breaker.
+
+7. AI Recap lebih presisi
+   - Buat prompt recap membaca JSONL event, bukan hanya full text log.
+   - Kelompokkan dialog berdasarkan speaker/timestamp.
+
+8. Quality mode benchmark
+   - Benchmark V1-V5, Lite, IDN, Fast berdasarkan sample tetap.
+   - Buat report per model untuk mengetahui mana yang paling cocok untuk GFL2/WUWA.
+
+9. Installer/runtime validator
+   - Buat tombol di Runtime & Tools: Full Health Check.
+   - Cek Python, pip, dependencies, Argos model, EasyOCR, CT2, Online endpoint, GPU/CUDA.
+
+10. Testing automated smoke test
+   - Tambahkan script smoke_test_all.py untuk import module penting, build strategy, cache test, online config test, and benchmark parser.
+
+Catatan untuk percakapan baru:
+- v7.8 adalah folder baru lengkap.
+- Fokus berikutnya bukan menambah model baru, tetapi uji real session dan pecah TITANMAIN.py bertahap.
+- Area terkunci tetap: UI box terjemahan, indikator ping/ms/game/engine, kontrol engine/mode/shortcut, daftar model, dan struktur web UI utama.

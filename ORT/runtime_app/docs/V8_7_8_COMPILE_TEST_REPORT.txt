@@ -1,0 +1,40 @@
+ORT Translation v8.7.8 — Compile / Regression / Install Validation Report
+Tanggal: 28 Mei 2026
+Baseline: runtime v8.7.7 aktual yang diuji pengguna
+Jenis rilis: changed-files patch
+
+VALIDASI SOURCE KERJA
+- Compile changed Python modules: PASS (25 Python files setelah seluruh tool final masuk).
+- Regression v8.7.1: PASS.
+- Compatibility regression v8.7.2: PASS.
+- Regression v8.7.3: PASS.
+- Compatibility regression v8.7.4: PASS.
+- Regression v8.7.5: PASS.
+- Compatibility regression v8.7.6: PASS.
+- Regression v8.7.7: PASS.
+- Regression khusus v8.7.8: PASS.
+- GFL smoke test: PASS.
+- Replay Benchmark v8.7.8 smoke test: PASS.
+
+VALIDASI FITUR P0
+- Faithfulness v2 menolak contoh al-Qur 'ân/ayat/zakat/neraka tanpa dukungan source: PASS.
+- Source yang memang memuat Quran/verse tetap boleh diterjemahkan: PASS.
+- Qur best/Qur division repair dan Qur ambiguous quarantine: PASS.
+- Strict CT2 Story / final-only flags / IDN-over-CT2 contract: PASS.
+- Commander exclusions Vilyz/ARVITA ID/ATVITA ID: PASS.
+- Kalina/Farkas/Client dan special terms v8.7.8 tersedia melalui migration/defaults: PASS.
+
+VALIDASI INSTALL CLONE v8.7.7
+- Patch diterapkan ke clone baseline v8.7.7: PASS.
+- Compile di clone: PASS.
+- Regression v8.7.1–v8.7.8 + GFL smoke di clone: PASS (tes dijalankan individual dengan timeout aman karena folder lengkap memuat arsip besar).
+- Identity migration dry-run/apply pada clone: PASS; 69 official exact-speaker dipertahankan; additions Kalina/Farkas/Client; Commander exclusions tetap; pending review tidak auto-live.
+- Cache rotation dry-run/apply pada clone: PASS; 3 cache namespace v8.7.7 dipindahkan ke backup test.
+- Candidate Miner bounded pada 8 sesi terbaru: PASS; 128.797 lines dipindai dalam sekitar 7 detik, menghasilkan 68 kandidat review-only tanpa auto-promotion.
+- Test Ledger bounded pada 8 sesi: PASS.
+- Debug Bundle bounded export: PASS; bundle tail-excerpt/manifest selesai sekitar 6,5 detik.
+- Regression v8.7.8 sesudah apply/diagnostics pada clone: PASS.
+
+CATATAN KEJUJURAN
+- Validasi ini membuktikan kode, migrasi, tools, dan packaging path; bukan hasil gameplay live v8.7.8.
+- Pengguna tetap perlu menguji scene hallucination lama, output final IDN, strict CT2, label baru, dan Mode Responsif dengan log + video POV.

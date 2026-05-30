@@ -1,0 +1,7 @@
+VERSION COMPARISON
+==================
+
+v7.6: clean package/status foundation.
+v7.8: launcher + online config + fast setup + session benchmark foundation.
+v7.9: telemetry lintas proses + UI Perluas + training log OFF + package hygiene.
+v8.0: modular foundation + new settings mode + reset/analyze tools + diagnostics + documentation history.

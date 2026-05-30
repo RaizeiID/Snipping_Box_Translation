@@ -1,0 +1,29 @@
+ORT Translation v8.7.7 — Development Ledger & Workflow Policy
+=========================================================
+Tanggal: 27 Mei 2026
+
+KEPUTUSAN TERKUNCI
+- Semua temuan log/video dan keputusan user adalah input kumulatif update; tidak boleh hanya memakai rekomendasi terakhir.
+- Semantic hallucination yang tampil/cache adalah P0; output palsu lebih buruk daripada hasil yang ditahan.
+- CT2 terbukti aktif live setelah rebind manual; v8.7.7 membuat rebind permanen pada child runtime dan UI.
+- Berryfield, Cocoon, Carmen, Another Unfamiliar Worker masuk sebagai exact-only melalui migrasi.
+- Vilyz, ARVITA ID, ATVITA ID adalah Commander-profile-only/excluded global.
+- Alias OCR hanya ROI-only/review; Helene tetap tidak auto-map karena Helen dan Helena berbeda.
+
+EVENT BARU UNTUK AUDIT
+SEMANTIC_HALLUCINATION_BLOCKED, SEMANTIC_CACHE_REJECTED, UNTRUSTED_TRANSLATION_HELD,
+SAFE_LITERAL_RETRY_USED, PREVIEW_HELD_INCOMPLETE, OMISSION_SUSPECTED,
+OVERLAY_HELD_UNTRUSTED_OR_INCOMPLETE, CT2_JOB_FALLBACK, IDN_QUALITY_LOCK_HELD.
+
+FILE SOURCE INTI YANG DIUBAH
+translation_engine.py; TITANMAIN.py; launcher_backend.py; fast_model_manager.py;
+model_strategy.py; cache_store.py; v7_system_profile.py; benchmark_session_report.py;
+webui.py; data_processing_backend.py; app/translation/faithfulness_gate.py;
+app/translation/dialogue_completeness_gate.py; app/translation/naturalized_cache.py;
+app/diagnostics/idn_evaluation_export.py; configs/speaker_registry_v2.defaults.json;
+configs/gfl2_observed_candidates_v8_7_7.json; tools v8_7_7_*.
+
+POLICY PENGUJIAN BERIKUTNYA
+Setiap test harus mencatat versi, model, preset/requested/applied/rescue OCR, backend aktual,
+scene/video/log, label benar/salah, faithfulness block, omission/hold, cache status, latency,
+dan keputusan roadmap. Gunakan video + log + debug bundle secara bersama-sama.

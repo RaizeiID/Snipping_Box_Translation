@@ -1,0 +1,2 @@
+# Compatibility placeholder. Launcher selects constraints_runtime_cu121.txt or constraints_runtime_cpu.txt.
+# For RTX 4050 / CUDA 12.1 use constraints_runtime_cu121.txt.

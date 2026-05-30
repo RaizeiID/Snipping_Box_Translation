@@ -1,0 +1,363 @@
+{
+  "entry_points": [
+    "TITANMAIN.py",
+    "launcher_backend.py",
+    "model_registry.py",
+    "v71_runtime_bridge.py",
+    "v7_system_profile.py",
+    "webui.py"
+  ],
+  "total_py_files_non_archive": 130,
+  "reachable_or_v71_bridge_active_modules": [
+    "AdaptiveThrottleCore",
+    "BilingualConsistencyCore",
+    "BlackBoxCore",
+    "CharacterArcCore",
+    "ContextBufferCore",
+    "DuplicateSubtitleSuppressorCore",
+    "DynamicBatchingCore",
+    "EdgeCaseDetectorCore",
+    "EntityDiscoveryCore",
+    "FailoverCore",
+    "FallbackStrategyCore",
+    "FeedbackCollectorCore",
+    "LQAReportCore",
+    "LatencyBudgetManagerCore",
+    "LearningEngineCore",
+    "LoreKeeperCore",
+    "MemoryVaultCore",
+    "NarrativeCore",
+    "OverseerCore",
+    "PipelineOptimizerCore",
+    "PrioritySchedulerCore",
+    "ProfessorLogicCore",
+    "ProfessorSyntaxCore",
+    "ProfessorToneCore",
+    "QualityEstimationCore",
+    "ResourceSentinelCore",
+    "SanitizerCore",
+    "SmartCacheRouterCore",
+    "SociologistCore",
+    "SpellWeaverCore",
+    "StyleGuideCore",
+    "TITANMAIN",
+    "TerminologyConstraintCore",
+    "TextStitcherCore",
+    "TimelineTrackerCore",
+    "ValidationGateCore",
+    "VisionAnalystCore",
+    "data_processing_backend",
+    "gpu_runtime",
+    "launcher_backend",
+    "model_registry",
+    "runtime_config",
+    "v71_runtime_bridge",
+    "v7_system_profile",
+    "webui"
+  ],
+  "maybe_manual_or_compat_modules": [
+    "AsyncOrchestratorCore",
+    "BackTranslationVerifierCore",
+    "CaptureSpecialistCore",
+    "ConfigMasterCore",
+    "ConsistencyAuditorCore",
+    "DOWNLOADER",
+    "DeanCore",
+    "FormatterCore",
+    "HelsinkiCore",
+    "IdentityCore",
+    "MODE_DEBUG",
+    "MultiCandidateGeneratorCore",
+    "NexusCore",
+    "ORTCore_V5_Lv1",
+    "ORTCore_V5_Lv1_Lite",
+    "ORTCore_V5_Lv2",
+    "ORTCore_V5_Lv2_Lite",
+    "ORTCore_V5_Lv3",
+    "ORTCore_V5_Lv3_Lite",
+    "ORTCore_V5_Lv4",
+    "ORTCore_V5_Lv4_Lite",
+    "ORTUnifiedUIBox",
+    "PromptDirectorCore",
+    "RegressionTestCore",
+    "SemanticsCore",
+    "SynapseCore",
+    "TEST_OCR",
+    "TEST_TOKENIZER",
+    "TITAN_DEBUG_MAIN",
+    "TITAN_DOCTOR",
+    "TITAN_FAST",
+    "TITAN_LAUNCHER",
+    "TITAN_LEARN",
+    "TITAN_OFFLINE",
+    "TITAN_ONLINE",
+    "TITAN_ULTRA",
+    "TitanCore_V2",
+    "TitanGameNameClassifier",
+    "TitanIDN_PatchSuite",
+    "TitanIDN_Shared",
+    "TitanIndonesianLocalizer",
+    "TitanLoreGlossary",
+    "TitanMainV1",
+    "TitanMainV1Lite",
+    "TitanMainV1Lite_IDN",
+    "TitanMainV1_IDN",
+    "TitanMainV2",
+    "TitanMainV2Lite",
+    "TitanMainV2Lite_IDN",
+    "TitanMainV2_IDN",
+    "TitanMainV3",
+    "TitanMainV3Lite",
+    "TitanMainV3Lite_IDN",
+    "TitanMainV3_IDN",
+    "TitanMainV4",
+    "TitanMainV4Lite",
+    "TitanMainV4Lite_IDN",
+    "TitanMainV4_IDN",
+    "TitanMainV5",
+    "TitanMainV5Lite",
+    "TitanMainV5Lite_IDN",
+    "TitanMainV5_IDN",
+    "TitanMiniHUD",
+    "TitanRun",
+    "TitanTelemetry",
+    "UIConstraintCore",
+    "audit_py_usage_v71",
+    "fast_mt_core_ct2",
+    "fullscreen_translate_overlay",
+    "glossarycore",
+    "lite_policy",
+    "name_processing",
+    "ort_unified_wrapper",
+    "punctuationcore",
+    "shortcut_config",
+    "titan_deeplx_translator",
+    "titan_gas_translator",
+    "titan_marian_translator",
+    "titan_offline_translator",
+    "titan_online_translator",
+    "titan_traininglog",
+    "ui_adapter",
+    "ui_shortcuts",
+    "uniquetokencore",
+    "webui_prefs"
+  ],
+  "graph": {
+    "AdaptiveThrottleCore.py": [],
+    "AsyncOrchestratorCore.py": [],
+    "BackTranslationVerifierCore.py": [],
+    "BilingualConsistencyCore.py": [],
+    "BlackBoxCore.py": [],
+    "CaptureSpecialistCore.py": [],
+    "CharacterArcCore.py": [],
+    "ConfigMasterCore.py": [],
+    "ConsistencyAuditorCore.py": [],
+    "ContextBufferCore.py": [],
+    "data_processing_backend.py": [],
+    "DeanCore.py": [],
+    "DOWNLOADER.py": [],
+    "DuplicateSubtitleSuppressorCore.py": [],
+    "DynamicBatchingCore.py": [],
+    "EdgeCaseDetectorCore.py": [],
+    "EntityDiscoveryCore.py": [],
+    "FailoverCore.py": [],
+    "FallbackStrategyCore.py": [],
+    "fast_mt_core_ct2.py": [],
+    "FeedbackCollectorCore.py": [],
+    "FormatterCore.py": [],
+    "fullscreen_translate_overlay.py": [],
+    "glossarycore.py": [],
+    "gpu_runtime.py": [
+      "runtime_config"
+    ],
+    "HelsinkiCore.py": [],
+    "IdentityCore.py": [],
+    "LatencyBudgetManagerCore.py": [],
+    "launcher_backend.py": [
+      "data_processing_backend",
+      "gpu_runtime",
+      "model_registry",
+      "v7_system_profile"
+    ],
+    "LearningEngineCore.py": [],
+    "lite_policy.py": [],
+    "LoreKeeperCore.py": [],
+    "LQAReportCore.py": [],
+    "MemoryVaultCore.py": [],
+    "MODE_DEBUG.py": [
+      "NexusCore"
+    ],
+    "model_registry.py": [],
+    "MultiCandidateGeneratorCore.py": [],
+    "name_processing.py": [],
+    "NarrativeCore.py": [],
+    "NexusCore.py": [],
+    "ort_unified_wrapper.py": [],
+    "ORTCore_V5_Lv1.py": [],
+    "ORTCore_V5_Lv1_Lite.py": [],
+    "ORTCore_V5_Lv2.py": [],
+    "ORTCore_V5_Lv2_Lite.py": [],
+    "ORTCore_V5_Lv3.py": [],
+    "ORTCore_V5_Lv3_Lite.py": [],
+    "ORTCore_V5_Lv4.py": [],
+    "ORTCore_V5_Lv4_Lite.py": [],
+    "ORTUnifiedUIBox.py": [],
+    "OverseerCore.py": [],
+    "PipelineOptimizerCore.py": [],
+    "PrioritySchedulerCore.py": [],
+    "ProfessorLogicCore.py": [],
+    "ProfessorSyntaxCore.py": [],
+    "ProfessorToneCore.py": [],
+    "PromptDirectorCore.py": [],
+    "punctuationcore.py": [],
+    "QualityEstimationCore.py": [],
+    "RegressionTestCore.py": [],
+    "ResourceSentinelCore.py": [],
+    "runtime_config.py": [],
+    "SanitizerCore.py": [],
+    "SemanticsCore.py": [],
+    "shortcut_config.py": [],
+    "SmartCacheRouterCore.py": [],
+    "SociologistCore.py": [],
+    "SpellWeaverCore.py": [],
+    "StyleGuideCore.py": [],
+    "SynapseCore.py": [],
+    "TerminologyConstraintCore.py": [],
+    "TEST_OCR.py": [],
+    "TEST_TOKENIZER.py": [],
+    "TextStitcherCore.py": [],
+    "TimelineTrackerCore.py": [],
+    "TITAN_DEBUG_MAIN.py": [
+      "TITANMAIN"
+    ],
+    "titan_deeplx_translator.py": [],
+    "TITAN_DOCTOR.py": [],
+    "TITAN_FAST.py": [
+      "MODE_DEBUG"
+    ],
+    "titan_gas_translator.py": [],
+    "TITAN_LAUNCHER.py": [
+      "model_registry",
+      "v7_system_profile"
+    ],
+    "TITAN_LEARN.py": [],
+    "titan_marian_translator.py": [],
+    "TITAN_OFFLINE.py": [
+      "TITANMAIN",
+      "glossarycore",
+      "titan_offline_translator",
+      "titan_traininglog"
+    ],
+    "titan_offline_translator.py": [
+      "fast_mt_core_ct2"
+    ],
+    "TITAN_ONLINE.py": [
+      "TITANMAIN",
+      "glossarycore",
+      "titan_online_translator",
+      "titan_traininglog"
+    ],
+    "titan_online_translator.py": [],
+    "titan_traininglog.py": [],
+    "TITAN_ULTRA.py": [
+      "TITANMAIN",
+      "fast_mt_core_ct2"
+    ],
+    "TitanCore_V2.py": [],
+    "TitanGameNameClassifier.py": [],
+    "TitanIDN_PatchSuite.py": [
+      "TitanIndonesianLocalizer",
+      "TitanLoreGlossary"
+    ],
+    "TitanIDN_Shared.py": [
+      "TitanMainV2"
+    ],
+    "TitanIndonesianLocalizer.py": [],
+    "TitanLoreGlossary.py": [],
+    "TITANMAIN.py": [
+      "v71_runtime_bridge"
+    ],
+    "TitanMainV1.py": [
+      "ort_unified_wrapper"
+    ],
+    "TitanMainV1_IDN.py": [
+      "ort_unified_wrapper"
+    ],
+    "TitanMainV1Lite.py": [
+      "ort_unified_wrapper"
+    ],
+    "TitanMainV1Lite_IDN.py": [
+      "ort_unified_wrapper"
+    ],
+    "TitanMainV2.py": [
+      "ort_unified_wrapper"
+    ],
+    "TitanMainV2_IDN.py": [
+      "ort_unified_wrapper"
+    ],
+    "TitanMainV2Lite.py": [
+      "ort_unified_wrapper"
+    ],
+    "TitanMainV2Lite_IDN.py": [
+      "ort_unified_wrapper"
+    ],
+    "TitanMainV3.py": [
+      "ort_unified_wrapper"
+    ],
+    "TitanMainV3_IDN.py": [
+      "ort_unified_wrapper"
+    ],
+    "TitanMainV3Lite.py": [
+      "ort_unified_wrapper"
+    ],
+    "TitanMainV3Lite_IDN.py": [
+      "ort_unified_wrapper"
+    ],
+    "TitanMainV4.py": [
+      "ort_unified_wrapper"
+    ],
+    "TitanMainV4_IDN.py": [
+      "ort_unified_wrapper"
+    ],
+    "TitanMainV4Lite.py": [
+      "ort_unified_wrapper"
+    ],
+    "TitanMainV4Lite_IDN.py": [
+      "ort_unified_wrapper"
+    ],
+    "TitanMainV5.py": [
+      "ort_unified_wrapper"
+    ],
+    "TitanMainV5_IDN.py": [
+      "ort_unified_wrapper"
+    ],
+    "TitanMainV5Lite.py": [
+      "ort_unified_wrapper"
+    ],
+    "TitanMainV5Lite_IDN.py": [
+      "ort_unified_wrapper"
+    ],
+    "TitanMiniHUD.py": [],
+    "TitanRun.py": [],
+    "TitanTelemetry.py": [],
+    "ui_adapter.py": [],
+    "ui_shortcuts.py": [],
+    "UIConstraintCore.py": [],
+    "uniquetokencore.py": [],
+    "ValidationGateCore.py": [],
+    "VisionAnalystCore.py": [],
+    "webui.py": [
+      "data_processing_backend",
+      "gpu_runtime",
+      "launcher_backend",
+      "model_registry",
+      "v7_system_profile"
+    ],
+    "webui_prefs.py": [],
+    "v7_system_profile.py": [],
+    "v71_runtime_bridge.py": [],
+    "_tools/audit_py_usage_v71.py": [
+      "v71_runtime_bridge"
+    ]
+  }
+}

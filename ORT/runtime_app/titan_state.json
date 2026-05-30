@@ -1,0 +1,16 @@
+{
+  "region": {
+    "left": 22,
+    "top": 716,
+    "width": 1880,
+    "height": 363
+  },
+  "capture_mode": "STABLE",
+  "ocr_mode": "AUTO_GPU",
+  "visual_style": "GLASS",
+  "box_position": "COVER",
+  "font_size": 28,
+  "width_scale_idx": 1,
+  "paused": false,
+  "auto_snapshot": false
+}

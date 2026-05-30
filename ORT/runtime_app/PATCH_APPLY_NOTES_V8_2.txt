@@ -1,0 +1,26 @@
+ORT Translation v8.2 — Story/Dialog Performance & Fast Engine Activation
+=======================================================================
+
+Tipe paket: changed-files only patch setelah v8.1.
+Cara pasang: copy semua isi folder patch ini ke folder ORT Translation v8.0/v8.1, lalu pilih Replace/Overwrite.
+
+Fokus utama v8.2:
+1. Fast Engine validation lebih jujur: jika CT2/model Fast belum aktif, WebUI memberi warning bahwa runtime fallback Argos.
+2. Story/Dialog Scheduler:
+   - Freeze = manual story click, commit langsung.
+   - Interval = Freeze otomatis cepat, teks ditahan sampai stabil agar tidak menerjemahkan potongan saat typing.
+   - Auto = story otomatis, memakai image-hash trigger + stabilisasi ringan.
+3. Image Hash Gate sebelum EasyOCR untuk melewati OCR saat frame dialog belum berubah.
+4. Fuzzy Cache Key untuk mengurangi cache miss akibat typo OCR kecil.
+5. Speaker Candidate Gate v2 untuk menahan kata narasi seperti Contrary/Seemingly/Unsure agar tidak masuk NPC database.
+6. WebUI menampilkan scheduler, Fast status, dan performance reason.
+
+Catatan penting:
+- v8.2 tidak bisa membuat mode Fast benar-benar cepat jika Fast CT2 model/dependency belum terpasang. Dalam kondisi itu runtime tetap fallback ke Argos.
+- Untuk GFL2 story, rekomendasi utama adalah Fast V2 + Interval/Freeze Otomatis + OCR 55-60%.
+- Untuk story manual, gunakan Freeze Manual.
+- Untuk story otomatis cepat, gunakan Auto / Story Otomatis.
+
+Compile check:
+- 196 Python files checked.
+- 0 syntax errors.

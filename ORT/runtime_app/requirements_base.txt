@@ -1,0 +1,16 @@
+# Base runtime for ORT Translation v8.3
+# Torch/Torchvision/Torchaudio are intentionally handled by requirements_torch_*.txt
+# so pip cannot accidentally install mismatched ML packages.
+PyQt5
+keyboard
+mss
+opencv-python
+numpy
+psutil
+requests
+# OCR runtime; torch stack must already be installed/locked by launcher repair step
+easyocr
+# Offline translator
+argostranslate
+# WebUI
+gradio

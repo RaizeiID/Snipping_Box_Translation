@@ -1,0 +1,33 @@
+ORT Translation v8.7.8 — Apply Notes (Changed-Files Patch)
+Tanggal: 28 Mei 2026
+
+TUJUAN PATCH
+Faithfulness v2 + Qur Corruption Quarantine + Strict CT2 Story + IDN-over-CT2 + Final-only Safe Commit, dengan candidate mining review-only dan dokumentasi kontinuitas proyek/v9.0.
+
+INSTALASI AMAN
+1. Duplikasi folder v8.7.7 aktif menjadi folder TEST, misalnya:
+   ORT_Translation_v8_7_8_TEST
+2. Ekstrak ZIP patch v8.7.8 ke folder TEST dan overwrite file yang sama.
+3. Dari folder TEST, jalankan dry-run:
+   python tools/v8_7_8_cache_rotation.py --base-dir .
+   python tools/v8_7_8_identity_migration.py --base-dir .
+4. Setelah memeriksa output, terapkan hanya pada folder TEST:
+   python tools/v8_7_8_cache_rotation.py --base-dir . --apply
+   python tools/v8_7_8_identity_migration.py --base-dir . --apply
+5. Uji baseline OCR 50/55%, scene hallucination lama, IDN-over-CT2/strict CT2, lalu Mode Responsif.
+6. Ekspor bukti:
+   python tools/v8_7_8_candidate_miner.py --base-dir .
+   python tools/v8_7_8_test_ledger.py --base-dir .
+   python tools/export_debug_bundle_v8_7_8.py --base-dir .
+
+DATA YANG TIDAK DITIMPA ZIP
+speaker_registry_v2.json, data_processing_store.json, data_processing_settings.json, webui_prefs.json, configs/app_state.json, cache/, logs/, status/, backups/, reports/, debug_bundles/.
+
+CATATAN IDENTITAS
+- Added exact/role safe: Kalina, Farkas, Client.
+- Retained: Berryfield, Cocoon, Carmen, Another Unfamiliar Worker.
+- Pending review only: Chief of Odesa, Municipal Broadcast, Zyevnadya/Yyevnadya.
+- Never global: Vilyz, ARVITA ID, ATVITA ID; Commander per-account only.
+
+BATASAN
+Gameplay live v8.7.8 belum terbukti sampai pengguna menguji patch ini. Strict CT2/final-only safety dapat menambah waktu tunggu pada kalimat belum stabil, sebagai pertukaran untuk menahan output palsu.

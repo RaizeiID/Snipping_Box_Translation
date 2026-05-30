@@ -1,0 +1,5 @@
+{
+    "max_worker_threads": 4,
+    "ui_thread_safe": true,
+    "background_tasks_enabled": true
+}

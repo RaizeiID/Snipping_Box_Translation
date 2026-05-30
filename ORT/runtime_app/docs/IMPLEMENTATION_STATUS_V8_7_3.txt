@@ -1,0 +1,31 @@
+ORT Translation v8.7.3 — Implementation Status
+===============================================
+Implemented in source:
+- Trusted speaker registry and verified reference catalog separation.
+- Protected canonical GFL2 names: DP-12, KSVK, Helen, Helena, Melanie, Balthilde, Phaetusa, Dushevnaya, Suomi, Lentine, Dandelion, Descender Zero; Commander default Alya Kujou.
+- Metadata-authoritative GFL2 ROI route to final overlay; no body injection for detected speaker.
+- Named Entity Protection / restoration around backend and IDN output.
+- Critical token final-cache guard and new identity cache namespaces.
+- Multi-game Identity UI with Simple checkbox, Normal action panel, orange simple-origin migration, compound-name atomic handling.
+- Roster metadata catalogs: GFL2 verified Doll/story seed, WUWA 45-playable versioned roster, broad GFL T-Doll/story/faction seed architecture.
+- Migration/cleanup and debug bundle support tools.
+
+Implemented but still requires live-game validation:
+- Actual yellow/orange overlay stability for KSVK, Helen, Helena, Alya Kujou, Melanie, Balthilde and Phaetusa at user resolution.
+- Whether body stripping completely removes prior `Helena Helen` duplication in real scenes.
+- Whether Argos/IDN output now preserves all protected proper names during gameplay.
+- Whether Critical Token Guard improves actual `Level II`, `I am`, `I refuse`, `I've`, and `I'll` scenes.
+- UI usability of orange migration workflow in browser and data migration against the user's working data copy.
+- Cache hit-rate after new namespace begins empty.
+
+Not claimed complete:
+- GFL reference catalog is a broad verified seed plus update/import architecture; do not represent it as a permanently exhaustive all-story database.
+- WUWA roster is versioned and must be refreshed after new game releases.
+- V4 hybrid/online assist remains unproven unless applied backend reports it.
+
+UI SIMPLE-ORIGIN MIGRATION STATUS
+---------------------------------
+IMPLEMENTED: entities added from Tampilan Sederhana are tracked as unsorted protected items and exposed as orange action entries in Normal/Detail.
+IMPLEMENTED: click-select action list supports delete/migrate for orange items and delete-only behavior for already sorted green/category items.
+IMPLEMENTED: migration works on complete Compound Speaker Entity values rather than individual tokens.
+PENDING LIVE VALIDATION: visual browser interaction and user workflow confirmation on the user's Windows WebUI session.

@@ -1,0 +1,11 @@
+{
+    "context_prompts": {
+        "Military": "Terjemahkan dengan gaya militer tegas: ",
+        "Casual": "Terjemahkan dengan bahasa gaul sehari-hari: ",
+        "Formal": "Terjemahkan dengan bahasa baku dan sopan: ",
+        "Narrative": "Terjemahkan sebagai narasi novel: "
+    },
+    "censorship_bypass": [
+        "Fuck", "Shit", "Damn", "Kill"
+    ]
+}

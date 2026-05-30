@@ -1,0 +1,58 @@
+ORT Translation v8.7 — Meaningful Changed/Added File Manifest
+==========================================================
+Release type: Full project release for a new folder.
+Comparison base: reconstructed v8.6 source tree.
+
+New files:
+- app/games/__init__.py
+- app/games/gfl_profile.py
+- app/ocr/gfl_dialogue_layout.py
+- configs/gfl_dialogue_profile.json
+- tools/v8_7_gfl_smoke_test.py
+- docs/V8_7_GFL_DEDICATED_PROFILE.md
+- docs/V8_7_COMPILE_REPORT.txt
+- docs/PROJECT_CONTINUITY_HANDOFF_AFTER_MEMORY_RESET_V8_7.txt
+- READ_FIRST_AFTER_MEMORY_RESET.txt
+- PATCH_APPLY_NOTES_V8_7.txt
+- CHANGED_FILES_MANIFEST_V8_7.txt
+
+Modified source/runtime files:
+- TITANMAIN.py
+- v7_system_profile.py
+- webui.py
+- launcher_backend.py
+- runtime_bridge.py
+- translation_engine.py
+- model_strategy.py
+- benchmark_session_report.py
+- cache_store.py
+- data_processing_backend.py
+- data_processing_store.json
+- webui_prefs.json
+- configs/app_state.json
+- npc_database.json (reset to clean high-confidence seed for fresh release)
+- unique_terms.json (reset to clean seeded terminology)
+- runtime_candidates.json / punctuation_stats.json (clean first-run state)
+- tools/npc_database_cleanup.py
+- app/learning/learning_quarantine.py
+- app/runtime/app_state.py
+- app/ocr/ocr_noise_normalizer.py
+- app/strategies/profile_resolver.py
+- app/translation/fuzzy_cache_normalizer.py
+- app/translation/name_alias_normalizer.py
+- app/translation/speaker_candidate_gate.py
+
+Modified documentation/version tracking:
+- ORTCORE_VERSION.txt
+- TITANCORE_VERSION.txt
+- docs/CHANGELOG.md
+- docs/VERSION_HISTORY.txt
+- docs/IMPLEMENTATION_STATUS.txt
+- docs/NEXT_RECOMMENDATIONS.txt
+- docs/KNOWN_ISSUES.txt
+
+Deliberately preserved behavior:
+- Auto / Interval / Freeze meanings remain unchanged.
+- v8.6 IDN Quality Layer remains available.
+- Lite/Lite IDN OCR identity ladder remains V1=40%, V2=45%, V3=50%, V4=55%, V5=60%.
+- Controlled hybrid/online-assist design for V4 remains; its actual applied path must be read from runtime logs.
