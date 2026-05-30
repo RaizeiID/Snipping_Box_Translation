@@ -1,0 +1,8 @@
+ORT Translation v8.7.4 — BACA INI SETELAH MEMORY RESET
+=====================================================
+Pada chat baru, unggah folder/ZIP proyek terbaru, file `docs/ORTCORE_MASTER_PROJECT_MEMORY_HANDOFF_V8_7_4.txt`, dan Debug Bundle/log terbaru.
+
+Instruksi yang disarankan:
+"Baca master handoff v8.7.4 dan ZIP/log terbaru. Lanjutkan pengembangan ORT secara kumulatif, verifikasi terhadap source/log, pertahankan EntitySpan dan dual Helen/Helena, dan jangan menimpa data user tanpa backup/dry-run."
+
+Catatan: v8.7.3 memiliki bug fatal `ORT_ENTITY_*`; gunakan v8.7.4 untuk pengujian lanjutan.

@@ -1,0 +1,8 @@
+ORT Translation v8.4 Known Issues
+================================
+- Lite GPU Efficient is new and needs real heavy-game validation.
+- IDN Quality Layer is intentionally light; it will not fully solve mistranslations caused by very noisy OCR.
+- Learning quarantine may delay legitimate new speaker/term learning until repeated enough times.
+- Some legacy/root modules remain in the project for compatibility and are not deeply modularized yet.
+- TITANMAIN.py is still large; deeper modularization remains a future improvement.
+- Full release package excludes volatile logs/reports/backups; old local user data should be copied manually if needed.

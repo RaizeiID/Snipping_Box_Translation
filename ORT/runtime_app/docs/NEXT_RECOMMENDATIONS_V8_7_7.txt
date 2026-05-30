@@ -1,0 +1,7 @@
+ORT Translation v8.7.7 — Next Recommendations
+===========================================
+1. Uji scene hallucination lama dengan CT2 aktif dan ambil video + debug bundle.
+2. Bandingkan Baseline versus Mode Responsif pada scene identik setelah fidelity aman.
+3. Review visual alias Berryfield/Cocoon/Carmen/Duyhevnaya sebelum memperluas alias aktif.
+4. Pertimbangkan perluasan exact-live speaker GFL/WUWA setelah GFL2 stabil.
+5. Bila masih ada semantic false positive/negative, kalibrasikan gate berbasis replay benchmark, bukan menonaktifkannya.

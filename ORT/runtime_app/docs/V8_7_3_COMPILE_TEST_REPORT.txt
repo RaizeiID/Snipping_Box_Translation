@@ -1,0 +1,48 @@
+ORT Translation v8.7.3 — Compile/Test Report
+=============================================
+Validation date : 26 May 2026
+Base verified   : User-tested v8.7.2 source folder
+Release format  : Integrated changed-files patch; install first on a cloned TEST folder
+Status          : PASS for source/package regression validation; live-game validation pending user test
+
+VALIDATION EXECUTED ON A CLEAN v8.7.2 CLONE AFTER APPLYING THE PATCH CANDIDATE
+-------------------------------------------------------------------------------
+PASS - Python compile sweep (`python -m compileall -q .`).
+PASS - `tools/v8_7_gfl_smoke_test.py` (GFL v8.7 footer/layout/glossary regression).
+PASS - `tools/v8_7_1_regression_test.py` (Auto defaults, clean vault, GFL2 baseline guards).
+PASS - `tools/v8_7_2_regression_test.py` compatibility under v8.7.3 (stable cache, metadata-only ROI, text repair, new IDN export path, profile flags).
+PASS - `tools/v8_7_3_regression_test.py` (trusted identities, dual Helen/Helena guard, Named Entity Protection, critical tokens, simple-origin migration and compound entity behavior).
+PASS - `tools/npc_database_cleanup.py --dry-run` (protects both `Helen` and `Helena`; reviews/merges contaminated legacy data without applying changes).
+PASS - `tools/v8_7_3_identity_migration.py --base-dir .` dry-run (identifies contaminated legacy cache without applying invalidation).
+PASS - data/UI backend logic checks for multi-game registry and catalog categories.
+
+CATALOG/REGISTRY CHECKS
+-----------------------
+PASS - GFL2 reference catalog: 69 verified/reference entries in packaged snapshot.
+PASS - WUWA reference catalog: 45 versioned playable-reference entries in packaged snapshot.
+PASS - GFL reference catalog: 509 packaged reference entries including T-Doll index snapshot plus selected story/faction metadata.
+PASS - GFL detail categories expose Paradeus and Sangvis Ferri story-character categories.
+PASS - `Helen` and `Helena` are distinct trusted canonical names; `elanie` resolves only to `Melanie` via reviewed alias behavior.
+
+PACKAGING SAFETY
+----------------
+The patch intentionally excludes user/volatile state from overwrite:
+- `npc_database.json`
+- `data_processing_store.json`
+- `data_processing_settings.json`
+- `webui_prefs.json`
+- `configs/app_state.json`
+- generated `speaker_registry_v2.json`
+- `logs/*`, `cache/*`, `status/*`, `backups/*`, `__pycache__/*`, `*.pyc`
+
+LIVE VALIDATION STILL REQUIRED
+------------------------------
+The following are implemented and regression-tested in source, but must still be verified in the user's actual Windows/WebUI/game session:
+- orange `KSVK`/other speaker labels from real Name ROI at the user's resolution/UI scale;
+- distinct live labels for `Helen` versus `Helena` without duplicated body prefixes;
+- Named Entity Protection for `Phaetusa`/`Balthilde` on actual translation output;
+- `Level II` and pronoun/contraction correction during live progressive dialogue;
+- UI interaction comfort for checkbox Simple view and orange-item category migration;
+- backend/latency behavior during actual game load.
+
+The final ZIP checksum is supplied in the adjacent SHA-256 checksum artifact generated after packaging.

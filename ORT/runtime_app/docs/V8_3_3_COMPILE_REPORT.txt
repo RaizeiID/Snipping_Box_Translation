@@ -1,0 +1,7 @@
+ORT Translation v8.3.3 Compile Report
+====================================
+Date: 2026-05-20
+Base: v8.3.2
+Changed Python files compile: PASS
+Full Python compile sweep: 198 files checked, 0 syntax errors
+Result: PASS

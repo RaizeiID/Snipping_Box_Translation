@@ -1,0 +1,261 @@
+{
+  "version": "v8_7_7_observation_ledger_ct2_live_2026_05_27",
+  "game": "GFL2_EXILIUM",
+  "policy": {
+    "official_observed": "Official names already in reference_roster_catalog; annotate priority only, never duplicate.",
+    "reviewed_alias_candidate": "ROI-only proposal; must be approved after frame review before live use.",
+    "pending_story_role": "Manual review only; not a live speaker.",
+    "blocked_auto_classification": "Do not auto-promote ambiguous text."
+  },
+  "observed_official_priority": [
+    {
+      "display_name": "Colphne",
+      "selected_events": 1283,
+      "final_overlay_labels": 321,
+      "status": "observed_recent_story"
+    },
+    {
+      "display_name": "Groza",
+      "selected_events": 769,
+      "final_overlay_labels": 164,
+      "status": "observed_recent_story"
+    },
+    {
+      "display_name": "Krolik",
+      "selected_events": 187,
+      "final_overlay_labels": 23,
+      "status": "observed_recent_story"
+    },
+    {
+      "display_name": "Nikketa",
+      "selected_events": 178,
+      "final_overlay_labels": 76,
+      "status": "observed_recent_story"
+    },
+    {
+      "display_name": "Peri",
+      "selected_events": 66,
+      "final_overlay_labels": 110,
+      "status": "observed_recent_story"
+    },
+    {
+      "display_name": "Nemesis",
+      "selected_events": 48,
+      "final_overlay_labels": 13,
+      "status": "observed_recent_story"
+    },
+    {
+      "display_name": "Mayling",
+      "selected_events": 45,
+      "final_overlay_labels": 9,
+      "status": "observed_recent_story"
+    },
+    {
+      "display_name": "Sabrina",
+      "selected_events": 8,
+      "final_overlay_labels": 5,
+      "status": "observed_recent_story"
+    },
+    {
+      "display_name": "Voymastina",
+      "selected_events": 5,
+      "final_overlay_labels": 3,
+      "status": "observed_recent_story"
+    },
+    {
+      "display_name": "Ullrid",
+      "selected_events": 1,
+      "final_overlay_labels": 1,
+      "status": "observed_recent_story"
+    },
+    {
+      "display_name": "Zhaohui",
+      "selected_events": 0,
+      "final_overlay_labels": 0,
+      "status": "priority_retest_from_v8_7_4_video"
+    },
+    {
+      "display_name": "Vector",
+      "selected_events": 0,
+      "final_overlay_labels": 0,
+      "status": "priority_retest_from_v8_7_4_video"
+    },
+    {
+      "display_name": "Harpsy",
+      "selected_events": 0,
+      "final_overlay_labels": 0,
+      "status": "priority_transition_retest"
+    }
+  ],
+  "reviewed_alias_candidates": [
+    {
+      "ocr_form": "Perl",
+      "canonical": "Peri",
+      "hits": 615,
+      "scope": "name_roi_only",
+      "status": "review_strong"
+    },
+    {
+      "ocr_form": "Lentle",
+      "canonical": "Lentine",
+      "hits": 509,
+      "scope": "name_roi_only",
+      "status": "review_strong"
+    },
+    {
+      "ocr_form": "Lentlne",
+      "canonical": "Lentine",
+      "hits": 354,
+      "scope": "name_roi_only",
+      "status": "review_strong"
+    },
+    {
+      "ocr_form": "DP 12",
+      "canonical": "DP-12",
+      "hits": 367,
+      "scope": "name_roi_only",
+      "status": "safe_normalization_review"
+    },
+    {
+      "ocr_form": "0P-12",
+      "canonical": "DP-12",
+      "hits": 123,
+      "scope": "name_roi_only",
+      "status": "review"
+    },
+    {
+      "ocr_form": "Suoml",
+      "canonical": "Suomi",
+      "hits": 37,
+      "scope": "name_roi_only",
+      "status": "review"
+    },
+    {
+      "ocr_form": "Nemesls",
+      "canonical": "Nemesis",
+      "hits": 35,
+      "scope": "name_roi_only",
+      "status": "review"
+    },
+    {
+      "ocr_form": "Sprlngfield",
+      "canonical": "Springfield",
+      "hits": 27,
+      "scope": "name_roi_only",
+      "status": "review"
+    },
+    {
+      "ocr_form": "Krolk",
+      "canonical": "Krolik",
+      "hits": 27,
+      "scope": "name_roi_only",
+      "status": "review"
+    },
+    {
+      "ocr_form": "Groze",
+      "canonical": "Groza",
+      "hits": 23,
+      "scope": "name_roi_only",
+      "status": "review"
+    },
+    {
+      "ocr_form": "9r0za",
+      "canonical": "Groza",
+      "hits": 18,
+      "scope": "name_roi_only",
+      "status": "review"
+    },
+    {
+      "ocr_form": "RSVK",
+      "canonical": "KSVK",
+      "hits": 27,
+      "scope": "name_roi_only",
+      "status": "review_strict"
+    },
+    {
+      "ocr_form": "KSK",
+      "canonical": "KSVK",
+      "hits": 14,
+      "scope": "name_roi_only",
+      "status": "review_strict"
+    }
+  ],
+  "pending_story_role_candidates": [
+    "Cllent",
+    "Kenny",
+    "David",
+    "Mrs Grace",
+    "Cocoon",
+    "Heli",
+    "Unfamiliar Worker",
+    "Scavenger",
+    "Another Unfamllllar",
+    "Hybrld-Type Boajum",
+    "Igla"
+  ],
+  "blocked_auto_classification": [
+    {
+      "value": "DKRIN",
+      "hits": 1842,
+      "reason": "ambiguous UI/term/crop evidence; require visual classification"
+    },
+    {
+      "value": "Helene",
+      "reason": "ambiguous against distinct canonical Helen and Helena; never auto-map"
+    }
+  ],
+  "source_note": "Merged v8.7.5 observation audit with CT2-live logs validated on 2026-05-27; commander-profile-only names excluded from global roster.",
+  "approved_exact_additions": [
+    {
+      "display_name": "Berryfield",
+      "category": "approved_named_story_speaker_exact",
+      "evidence": "ct2_live_prefix_repeated",
+      "policy": "exact_only"
+    },
+    {
+      "display_name": "Cocoon",
+      "category": "approved_named_story_speaker_exact",
+      "evidence": "ct2_live_prefix_repeated",
+      "policy": "exact_only"
+    },
+    {
+      "display_name": "Carmen",
+      "category": "approved_named_story_speaker_exact",
+      "evidence": "ct2_live_named_context",
+      "policy": "exact_only"
+    },
+    {
+      "display_name": "Another Unfamiliar Worker",
+      "category": "approved_role_speaker",
+      "evidence": "ct2_live_role_context",
+      "policy": "exact_only"
+    }
+  ],
+  "commander_profile_only_excluded_global": [
+    {
+      "display_name": "Vilyz",
+      "reason": "Commander name on another account"
+    },
+    {
+      "display_name": "ARVITA ID",
+      "reason": "Commander name on another account"
+    },
+    {
+      "display_name": "ATVITA ID",
+      "reason": "OCR variant of commander profile name; not global"
+    }
+  ],
+  "ct2_live_special_terms": [
+    "URNC",
+    "Conglomerate",
+    "Green Zone",
+    "Yellow Zone",
+    "Odesa",
+    "ELID",
+    "ELIDs",
+    "ODE-01",
+    "Griffin",
+    "Griffin & Kryuger",
+    "Blusphere"
+  ]
+}

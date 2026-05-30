@@ -1,0 +1,37 @@
+ORT Translation v8.7 — Build Verification Report
+=================================================
+Date: 2026-05-25
+Release type: FULL PROJECT / NEW FOLDER BUILD
+Base: v8.6 reconstructed from v8.5.2 full + v8.6 changed-files patch
+
+Python compile sweep:
+- Command: python -m compileall -q ORT_Translation_v8_7
+- Python files checked: 213
+- Result: PASS (0 syntax errors reported)
+
+GFL functional smoke test:
+v8.7 GFL smoke test PASS
+- footer artifact normalization
+- normalized GFL cache key
+- credit/non-dialog candidate guard
+- Name/Body ROI + footer bbox mask
+- cache contamination rejection
+- GFL game selection/env contract
+- GFL seeded glossary
+
+Analyzer diagnostic smoke test:
+- Analyze Last Session GFL metrics smoke PASS
+- Verified detection counters for footer artifact, credit/non-dialog text, and suppressed non-dialog frame using synthetic JSONL events.
+
+Visual validation against supplied GFL screenshots:
+- Visual GFL dialogue/mask validation PASS: 10/10 supplied screenshots
+- The validation used representative dialog-area crops from the 10 supplied screenshots and verified that the dialogue presence guard accepted them while the footer mask was applied.
+
+Scope limitation:
+- This environment cannot execute the full Windows GUI overlay inside the user's running game.
+- Real in-game confirmation is still required for OCR output quality, mask geometry under the user's display scaling, cache HIT behavior after repeated lines, and applied CT2/online-assist engine state.
+
+Release hygiene performed after verification:
+- Removed generated `__pycache__` / `.pyc` from deliverable.
+- Removed legacy session logs, cache files and volatile status outputs from the fresh full package.
+- Reset NPC/unique-term runtime files to clean high-confidence seeded data so old OCR false-learning does not bias v8.7 tests.

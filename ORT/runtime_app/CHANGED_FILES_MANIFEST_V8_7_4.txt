@@ -1,0 +1,55 @@
+ORT Translation v8.7.4 — Integrated Changed-Files Manifest
+=========================================================
+Base: user-tested v8.7.3 project folder (treated as fatal-bug source release).
+Release type: changed-files only; install first into a cloned TEST folder.
+Runtime focus: EntitySpan Safety, Responsive Story, clean cache namespace, retained multi-game identity UI.
+
+FILES INCLUDED:
+- CHANGED_FILES_MANIFEST_V8_7_4.txt
+- ORTCORE_VERSION.txt
+- PATCH_APPLY_NOTES_V8_7_4.txt
+- READ_FIRST_AFTER_MEMORY_RESET_V8_7_4.txt
+- TITANCORE_VERSION.txt
+- TITANMAIN.py
+- app/diagnostics/idn_evaluation_export.py
+- app/identity/entity_span.py
+- app/identity/speaker_registry.py
+- app/ocr/gfl2_speaker_roi.py
+- app/translation/naturalized_cache.py
+- benchmark_session_report.py
+- cache_store.py
+- docs/CHANGELOG.md
+- docs/IMPLEMENTATION_STATUS.txt
+- docs/IMPLEMENTATION_STATUS_V8_7_4.txt
+- docs/KNOWN_ISSUES.txt
+- docs/KNOWN_ISSUES_V8_7_4.txt
+- docs/NEXT_RECOMMENDATIONS.txt
+- docs/NEXT_RECOMMENDATIONS_V8_7_4.txt
+- docs/ORTCORE_DEVELOPMENT_LEDGER_AND_WORKFLOW_V8_7_4.txt
+- docs/ORTCORE_MASTER_PROJECT_MEMORY_HANDOFF_V8_7_4.txt
+- docs/V8_7_4_COMPILE_TEST_REPORT.txt
+- docs/V8_7_4_RUNTIME_AND_UI_GUIDE.md
+- docs/VERSION_HISTORY.txt
+- docs/roadmap_v8_7_4/ORT_V8_7_4_HOTFIX_ROADMAP_ANALISIS_LOG_IDN_V8_7_3_2026-05-26.md
+- docs/roadmap_v8_7_4/ORT_V8_7_4_IMPLEMENTATION_DECISION_RESPONSIVE_ENTITYSPAN_2026-05-26.md
+- docs/roadmap_v8_7_4/ORT_V8_7_4_SOURCE_AUDIT_ENTITY_SPAN_TWO_PASS_DECISION_2026-05-26.md
+- launcher_backend.py
+- model_strategy.py
+- tools/export_debug_bundle_v8_7_4.py
+- tools/npc_database_cleanup.py
+- tools/v8_7_2_regression_test.py
+- tools/v8_7_4_cache_rotation.py
+- tools/v8_7_4_identity_migration.py
+- tools/v8_7_4_regression_test.py
+- translation_engine.py
+- v7_system_profile.py
+- webui.py
+
+EXCLUDED USER/VOLATILE DATA:
+- npc_database.json, data_processing_store.json, data_processing_settings.json, webui_prefs.json, configs/app_state.json, speaker_registry_v2.json
+- cache/, logs/, status/, backups/, __pycache__/
+
+INSTALL SAFETY:
+- Apply to a clone of v8.7.3 first.
+- Run v8.7.4 cache/identity migration dry-runs before applying rotation/cleanup.
+- Keep the original v8.7.3 folder only as rollback evidence; use v8.7.4 for new validation.

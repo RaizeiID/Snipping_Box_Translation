@@ -1,0 +1,67 @@
+ORT Translation v8.4.2 — Lite IDN Efficiency Tuning Patch
+=========================================================
+Base: v8.4 + v8.4.1 startup hotfix
+Type: changed-files patch
+Date: 2026-05-20
+
+Purpose
+-------
+Optimize Lite/Lite IDN for heavy-game efficiency while preserving the v8.3.4 Fast lock.
+This patch responds to Lite IDN tests where CT2 was already fast, but the experience felt
+behind dialog because Lite IDN defaults were too conservative and the wide GFL2 dialog box
+created OCR noise.
+
+Important design note
+---------------------
+The wide GFL2 dialog snip is treated as valid. v8.4.2 does not force a tight crop because
+long dialog lines may need the full box. Instead it adds internal wide-dialog filtering,
+noise rejection, and lower-latency Lite IDN presets.
+
+Implemented
+-----------
+- Lite/Lite IDN default intervals reduced and made more responsive:
+  - Lite IDN V1: 260ms / OCR 48%
+  - Lite IDN V2: 330ms / OCR 50% (recommended default)
+  - Lite IDN V3: 390ms / OCR 52%
+  - Lite IDN V4: 430ms / OCR 53%
+  - Lite IDN V5: 480ms / OCR 55% (quality safe, not heavy-game default)
+- Lite GPU Efficient guard now caps OCR/queue/CPU harder, even when VRAM looks healthy.
+- Lite IDN uses CT2 int8 by default to prioritize VRAM stability over raw speed.
+- Added Lite core profiles to reduce active runtime cores:
+  - lite_efficient
+  - lite_idn_efficient
+- Reduced runtime bridge sleep floor for Lite GPU Efficient so it does not feel sluggish.
+- Added OCR wide-dialog filter for GFL2-style full dialog boxes.
+- Added OCR noise rejector before queue/cache/translation to block UI fragments like LLI/SILJLI/numeric codes.
+- Expanded OCR typo normalization for GFL2 story logs.
+- OCR region status now labels full GFL2 dialog box as OK_WIDE_DIALOG when Lite wide filter is active.
+
+Files changed
+-------------
+- model_registry.py
+- model_strategy.py
+- launcher_backend.py
+- TITANMAIN.py
+- runtime_bridge.py
+- core_profile_manager.py
+- app/runtime/lite_gpu_guard.py
+- app/ocr/ocr_noise_normalizer.py
+- ORTCORE_VERSION.txt
+- TITANCORE_VERSION.txt
+- docs/CHANGELOG.md
+- docs/CHANGELOG_V8_4_2.md
+- docs/VERSION_HISTORY.txt
+- docs/IMPLEMENTATION_STATUS.txt
+- docs/NEXT_RECOMMENDATIONS.txt
+- docs/KNOWN_ISSUES.txt
+- docs/V8_4_2_COMPILE_REPORT.txt
+
+Validation
+----------
+Python compile check for changed Python files: PASS, 0 syntax errors.
+
+Known limitations
+-----------------
+- Real heavy-game testing is still needed, especially Wuthering Waves with limited VRAM.
+- Lite IDN V5 can still use more VRAM than V1/V2 because it is the quality-safe variant.
+- OCR preprocessing profiles and Session Replay OCR Lab remain future v8.4.x work.

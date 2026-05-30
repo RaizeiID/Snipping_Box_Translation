@@ -1,0 +1,16 @@
+ORT Translation v8.7.9 — Responsive Faithfulness & Turn-Safe Overlay (REBUILT PATCH)
+Base: ORT Translation v8.7.8 runtime uploaded by user on 29 May 2026.
+
+INSTALL (safe):
+1. Duplicate your v8.7.8 folder into a TEST folder.
+2. Extract this patch into the TEST folder and overwrite matching files.
+3. Run: python tools\v8_7_9_identity_migration.py --base-dir .
+4. Run: python tools\v8_7_9_cache_rotation.py --base-dir .
+5. After reviewing DRY-RUN output, run each tool again with --apply on the TEST folder only.
+6. Test GFL2 live mode and retain logs/debug bundle for the next audit.
+
+This changed-files patch intentionally excludes active registry/settings/cache/log/status/backups/reports/debug bundles.
+
+R2 Documentation Inclusion:
+- File docs/ORT_MASTER_PROJECT_MEMORY_HANDOFF_CURRENT.md wajib disimpan dan diperbarui pada update berikutnya.
+- Penambahan dokumen ini tidak mengubah runtime logic v8.7.9.

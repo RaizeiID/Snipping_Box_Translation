@@ -1,0 +1,30 @@
+ORT Translation v8.8.1 R3 — GitHub Safe Upload Ready
+Generated: 2026-05-30T06:19:21
+
+Purpose:
+- Prevent local runtime/cache/log/model/heavy folders from being uploaded to GitHub.
+- Add layered .gitignore protection for both root project and ORT/ folder.
+- Add export/check/untrack helper scripts for VSCode/Git workflow.
+
+Added/updated files:
+- .gitignore
+- ORT/.gitignore
+- .gitattributes
+- EXPORT_GITHUB_SOURCE.bat
+- CHECK_GITHUB_READY.bat
+- UNTRACK_LOCAL_RUNTIME_FROM_GIT.bat
+- .vscode/settings.example.json
+- ORT/docs/user_guide/GITHUB_UPLOAD_GUIDE_V8_8_1_R3.md
+- ORT/docs/changelog/CHANGELOG_V8_8_1_R3_GITHUB_SAFE.md
+
+Runtime behavior unchanged:
+- OCR behavior unchanged.
+- Auto/Freeze/Interval behavior unchanged.
+- Translation engine unchanged.
+- Scheduler/overlay unchanged.
+
+Recommended Git workflow:
+1. Open VSCode at the project root, not inside ORT/.
+2. Run CHECK_GITHUB_READY.bat before commit.
+3. If heavy folders are tracked, run UNTRACK_LOCAL_RUNTIME_FROM_GIT.bat.
+4. For manual upload, run EXPORT_GITHUB_SOURCE.bat.

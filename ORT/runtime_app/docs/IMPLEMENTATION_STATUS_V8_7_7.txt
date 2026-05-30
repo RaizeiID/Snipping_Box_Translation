@@ -1,0 +1,22 @@
+ORT Translation v8.7.7 — Implementation Status
+==============================================
+IMPLEMENTED
+- Universal faithfulness gate before cache/output/export.
+- Incomplete progressive preview hold and omission event path.
+- Semantic-contaminated cache namespace/rotation tool.
+- CT2/SPM permanent child-runtime rebind and WebUI repair button.
+- Per-job CT2 fallback reason telemetry.
+- IDN accuracy quality lock/hysteresis for transient warnings.
+- CT2-live approved exact names, ROI-only alias queue, new special terms, Commander exclusions.
+- Updated report/debug bundle/test ledger/replay benchmark.
+
+VALIDATED IN BUILD WORKSPACE
+- Compile sweep PASS.
+- Regression v8.7.1–v8.7.7 PASS individually.
+- GFL smoke test PASS.
+- Semantic and identity/cache tool dry-runs PASS.
+
+REQUIRES USER LIVE TEST
+- Gameplay overlay result after semantic/completeness gate.
+- CT2 rebind boot/live behavior without manual PowerShell variables.
+- Scene replay for previous hallucination cases and Mode Responsif.

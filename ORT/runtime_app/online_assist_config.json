@@ -1,0 +1,8 @@
+{
+  "enabled": false,
+  "provider": "libretranslate",
+  "endpoint": "",
+  "api_key": "",
+  "timeout": 1.2,
+  "max_chars": 220
+}

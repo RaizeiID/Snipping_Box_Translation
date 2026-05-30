@@ -1,0 +1,15 @@
+ORT Translation v8.7.8 — Next Recommendations
+Tanggal: 28 Mei 2026
+
+PRIORITAS VALIDASI LANGSUNG
+1. Pasang pada clone v8.7.7 dan jalankan cache rotation + identity migration.
+2. Verifikasi CT2 untuk Lite/Fast dan IDN/Normal: pipeline diharapkan memakai ct2_fast/IDN-over-CT2, bukan argos_offline.
+3. Uji ulang scene hallucination lama dan kirim log + video POV + debug bundle.
+4. Periksa event: SEMANTIC_HALLUCINATION_BLOCKED, OCR_QUR_CORRUPTION_REPAIRED, QUR_CORRUPTION_QUARANTINED, STRICT_CT2_STORY_HELD, STRICT_CT2_STORY_FALLBACK_SUPPRESSED, TRAINING_SAMPLE_BLOCKED_BY_SAFETY_GATE.
+5. Uji baseline pada OCR 50/55%, baru kemudian Mode Responsif pada scene sama.
+
+PENGEMBANGAN SELANJUTNYA
+- Bila v8.7.8 masih melewatkan pola hallucination baru, perlu perluasan semantic detector berdasarkan bukti baru, bukan blacklist sembarang.
+- Perkuat candidate miner dengan snapshot/timestamp visual agar review nama/term lebih cepat.
+- Evaluasi latency final-only safe commit dan strict CT2; buat opsi tuning jika delay terasa tinggi.
+- Siapkan roadmap v9.0: ZIP proyek utuh, struktur folder GitHub rapi, migration compatibility dan launcher root minimal.

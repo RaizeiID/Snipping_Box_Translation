@@ -1,0 +1,15 @@
+ORT Translation v8.7.5 — BACA INI SETELAH MEMORY RESET
+=======================================================
+
+Pada chat baru, unggah ZIP/folder proyek terbaru, file `docs/ORTCORE_MASTER_PROJECT_MEMORY_HANDOFF_V8_7_5.txt`, dan Debug Bundle/log terbaru.
+
+Instruksi singkat untuk AI di chat berikutnya:
+"Baca master handoff v8.7.5 dan ZIP/log terbaru. Lanjutkan pengembangan ORT secara kumulatif, verifikasi terhadap source/log/video bila tersedia, pertahankan exact-only verified GFL2 speaker, full backend-safe EntitySpan, dual Helen/Helena, dan jangan menimpa data user tanpa backup/dry-run."
+
+Konteks kritis:
+- v8.7.3 mempunyai bug fatal `ORT_ENTITY_*`.
+- v8.7.4 mengurangi bug itu, tetapi audit gameplay/video menemukan `ORT_BEND/BKED` masih dapat lolos karena token backend masih dikirim ke Argos; label resmi `Zhaohui`/`Vector` juga luput karena registry terlalu sempit dan migrasi membaca field catalog yang salah.
+- v8.7.5 memperbaiki dua akar tersebut: EntitySpan berlaku sebelum backend (tanpa token ORT di backend) dan tier `verified_character_speaker_exact` memungkinkan karakter resmi GFL2 dilabel exact-only tanpa fuzzy liar.
+- v8.7.5 menambah stale-overlay/speaker-transition guard dan cache namespace baru `v8_7_5_verified_exact_entity_safe`.
+
+Sebelum menggunakan folder utama, pasang patch ke salinan folder v8.7.4 dan jalankan tools dry-run/apply yang tertulis pada `PATCH_APPLY_NOTES_V8_7_5.txt`.

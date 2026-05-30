@@ -1,0 +1,67 @@
+ORT Translation v8.7.3 — Integrated Changed-Files Manifest
+========================================================
+Base: user-tested v8.7.2 project folder
+Release type: changed-files only; install first into a cloned TEST folder.
+Runtime identity: Trusted Identity, Multi-Game Data UI & Named Entity Protection.
+
+FILES INCLUDED (manifest generated with package build):
+- CHANGED_FILES_MANIFEST_V8_7_3.txt
+- ORTCORE_VERSION.txt
+- PATCH_APPLY_NOTES_V8_7_3.txt
+- READ_FIRST_AFTER_MEMORY_RESET_V8_7_3.txt
+- TITANCORE_VERSION.txt
+- TITANMAIN.py
+- app/diagnostics/idn_evaluation_export.py
+- app/identity/__init__.py
+- app/identity/speaker_registry.py
+- app/ocr/gfl2_speaker_roi.py
+- app/translation/critical_token_guard.py
+- app/translation/name_alias_normalizer.py
+- app/translation/stable_final_cache.py
+- benchmark_session_report.py
+- cache_store.py
+- configs/reference_roster_catalog_v8_7_3.json
+- configs/speaker_registry_v2.defaults.json
+- data_processing_backend.py
+- docs/CHANGELOG.md
+- docs/IMPLEMENTATION_STATUS.txt
+- docs/IMPLEMENTATION_STATUS_V8_7_3.txt
+- docs/KNOWN_ISSUES.txt
+- docs/KNOWN_ISSUES_V8_7_3.txt
+- docs/NEXT_RECOMMENDATIONS.txt
+- docs/NEXT_RECOMMENDATIONS_V8_7_3.txt
+- docs/ORTCORE_DEVELOPMENT_LEDGER_AND_WORKFLOW_V8_7_3.txt
+- docs/ORTCORE_MASTER_PROJECT_MEMORY_HANDOFF_V8_7_3.txt
+- docs/V8_7_3_COMPILE_TEST_REPORT.txt
+- docs/V8_7_3_ROSTER_SOURCE_MANIFEST.txt
+- docs/VERSION_HISTORY.txt
+- docs/VERSION_HISTORY_V8_7_3.txt
+- docs/roadmap_v8_7_3/ORT_V8_7_3_ADDITIONAL_OPTIMIZATION_ROADMAP_2026-05-26.md
+- docs/roadmap_v8_7_3/ORT_V8_7_3_CORRECTION_ADDENDUM_HELEN_HELENA_DUAL_CANONICAL_2026-05-26.md
+- docs/roadmap_v8_7_3/ORT_V8_7_3_ROADMAP_ADDENDUM_GFL_PARADEUS_SANGVIS_STORY_CHARACTERS_2026-05-26.md
+- docs/roadmap_v8_7_3/ORT_V8_7_3_ROADMAP_ADDENDUM_MULTI_GAME_DATA_PROCESSING_UI_2026-05-26.md
+- docs/roadmap_v8_7_3/ORT_V8_7_3_ROADMAP_ADDENDUM_PACKAGING_AND_MULTI_GAME_ROSTER_2026-05-26.md
+- docs/roadmap_v8_7_3/ORT_V8_7_3_ROADMAP_ADDENDUM_SIMPLE_VIEW_CHECKBOX_UI_2026-05-26.md
+- docs/roadmap_v8_7_3/ORT_V8_7_3_ROADMAP_ADDENDUM_SIMPLIFIED_NPC_ROLE_COMPOUND_NAMES_2026-05-26.md
+- docs/roadmap_v8_7_3/ORT_V8_7_3_ROADMAP_ANALISIS_LOG_IDN_V8_7_2_GFL2_2026-05-26.md
+- docs/roadmap_v8_7_3/ORT_V8_7_3_SOURCE_AUDIT_ROOT_CAUSE_REPORT_2026-05-26.md
+- docs/roadmap_v8_7_3/ORT_V8_7_3_UI_ADDENDUM_SIMPLE_ORIGIN_ORANGE_MIGRATION_2026-05-26.md
+- launcher_backend.py
+- runtime_bridge.py
+- tools/export_debug_bundle_v8_7_3.py
+- tools/npc_database_cleanup.py
+- tools/v8_7_2_regression_test.py
+- tools/v8_7_3_identity_migration.py
+- tools/v8_7_3_regression_test.py
+- translation_engine.py
+- v7_system_profile.py
+- webui.py
+
+USER DATA / VOLATILE FILES INTENTIONALLY NOT INCLUDED FOR OVERWRITE:
+- npc_database.json
+- data_processing_store.json
+- data_processing_settings.json
+- webui_prefs.json
+- configs/app_state.json
+- speaker_registry_v2.json (generated/migrated locally on first run)
+- logs/*, cache/*, status/*, backups/*, __pycache__/*, *.pyc

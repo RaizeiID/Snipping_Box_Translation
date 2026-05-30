@@ -1,9 +1,0 @@
-gradio>=6.0.0
-numpy>=1.26.0
-opencv-python>=4.10.0.84
-mss>=9.0.1
-easyocr>=1.7.1
-keyboard>=0.13.5
-PyQt5>=5.15.10
-argostranslate>=1.9.6
-torch

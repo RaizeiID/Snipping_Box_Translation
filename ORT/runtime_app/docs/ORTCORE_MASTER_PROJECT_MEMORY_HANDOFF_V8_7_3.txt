@@ -1,0 +1,298 @@
+CATATAN MASTER WARISAN PENGETAHUAN PROYEK ORTCORE / ORT TRANSLATION
+====================================================================
+Versi handoff  : v8.7.2 — After IDN Optimization Planning & Implementation
+Tanggal        : 26 Mei 2026
+Pemilik proyek : Diska Kurnia
+Tujuan         : Memo kedua / buku catatan proyek untuk memulihkan pemahaman
+                 ChatGPT setelah memory dibersihkan atau pada chat baru.
+
+PENTING UNTUK CHATGPT PADA CHAT BARU
+------------------------------------
+Dokumen ini harus dibaca bersama ZIP proyek atau patch/log terbaru pengguna.
+Ia menyimpan konteks, keputusan dan roadmap kumulatif, tetapi source dan log
+terbaru tetap menjadi sumber kebenaran utama. Jangan menganggap fitur runtime
+berhasil hanya karena tertulis sudah diimplementasikan; verifikasi dari source
+dan hasil tes aktual.
+
+1. IDENTITAS DAN VISI PROYEK
+-----------------------------
+ORT Translation / ORTCore adalah penerjemah dialog game real-time berbasis OCR
+untuk pengguna Indonesia. Sistem menangkap area dialog, membaca teks melalui
+OCR, membersihkan noise, menerjemahkan ke Bahasa Indonesia, menerapkan lapisan
+naturalisasi IDN, lalu menampilkan hasil melalui overlay/WebUI. Proyek juga
+mempunyai cache, glossary, speaker/NPC learning, profile game, diagnostic,
+runtime repair, dan log evaluasi.
+
+Perangkat utama pengguna:
+- Acer Predator Helios Neo PHN16-71
+- Intel Core i7-13700HX
+- NVIDIA RTX 4050 Laptop GPU 6 GB
+- RAM 64 GB
+- Windows
+
+Tujuan kualitas:
+- terjemahan cepat dan tetap akurat/natural;
+- status backend jujur;
+- penggunaan GPU/VRAM aman;
+- noise OCR dan false speaker tidak mencemari hasil;
+- cache membantu dialog stabil tanpa merusak makna;
+- seluruh perbaikan dapat dilacak melalui dokumentasi dan tes.
+
+2. ATURAN PENGEMBANGAN KUMULATIF DARI PENGGUNA
+-----------------------------------------------
+Pengguna menetapkan aturan kerja berikut:
+- Setelah setiap update, pengguna akan mengirim hasil tes/log dan mungkin
+  pertanyaan atau observasi tambahan.
+- Fokus saat ini adalah keluarga IDN, tetapi model/profile lain dapat diuji.
+- Semua temuan hasil tes, analisis, rekomendasi, keputusan percakapan, dan
+  masukan pengguna harus disimpan sebagai rancangan kumulatif untuk update
+  selanjutnya.
+- Ketika pengguna meminta update, patch tidak boleh hanya memakai rekomendasi
+  terakhir; seluruh backlog yang telah disepakati harus ditinjau.
+- Jika pengujian model lain mengungkap kebutuhan penting, model tersebut boleh
+  diperbaiki walaupun fokus utama masih IDN.
+- Minor update setelah full project v8.7 dikirim sebagai changed-files ZIP
+  kecuali pengguna meminta full project/folder baru.
+- Setiap rilis harus memperbarui changelog, history, implementation status,
+  known issues, next recommendations, manifest, test report, patch notes, dan
+  master handoff versi terbaru.
+- Master handoff TXT berfungsi sebagai memo kedua jika Memory ChatGPT penuh
+  atau dibersihkan.
+
+3. GARIS BESAR VERSI DAN KEPUTUSAN TERKUNCI
+-------------------------------------------
+v8.6:
+- Shared IDN Quality Layer untuk Fast IDN, Lite IDN, Normal IDN.
+- Mode Light/Balanced/Natural/Quality dan terminology consistency.
+- Jangan menilai online/hybrid hanya dari requested policy; cek applied engine.
+
+v8.7 — Full project GFL profile:
+- Game `GFL` dipisahkan dari `GFL2_EXILIUM`.
+- GFL mendapatkan footer mask GFsystem, Name/Body ROI, non-dialog guard,
+  speaker quarantine, seeded glossary, normalized cache mitigation.
+- Build dibuat sebagai folder baru; fitur harus diuji pada game aktual.
+
+v8.7.1 — Correctness/diagnostic patch:
+- Semua model default menjadi Auto; Interval/Freeze tetap tersedia manual.
+- GFL2 canonical seed `DP-12` dan `KSVK`.
+- Applied backend/status lebih jujur.
+- Legacy MemoryVault diisolasi secara default.
+- Speaker gate/quarantine/cleanup ditingkatkan.
+- Hasil log setelah patch: Auto dan vault isolation berhasil; false speaker
+  learned turun dari 47 menjadi 0 pada data uji; NPC database lama tetap
+  memerlukan cleanup/review.
+
+v8.7.2 — Cache/ROI/IDN observability patch:
+- Dibuat sebagai changed-files patch di atas v8.7.1.
+- Stable Final Cache v2 dan current-dialog memo ditambahkan.
+- Root cause cache penting diperbaiki: alasan negative numeric diagnosis seperti
+  `no_numeric_context` pada v8.7.1 dapat ikut memblokir cache store dialog
+  normal; v8.7.2 hanya memblokir cache bila numeric gap benar-benar ada.
+- Event cache target: CACHE_SKIP_PROGRESSIVE, CACHE_STORE_STABLE_FINAL,
+  CACHE_HIT_STABLE_FINAL, CACHE_DUPLICATE_OCR_SUPPRESSED.
+- GFL2 Speaker ROI/Name Pass v2 dan temporal speaker hold ditambahkan agar nama
+  seperti `KSVK` dapat tetap muncul orange walau body OCR/paragraf tidak selalu
+  membaca nama pada setiap frame.
+- Body OCR tetap paragraph-based untuk performa; tidak diubah menjadi OCR
+  karakter tunggal global.
+- Text repair kontekstual ditambahkan untuk `KSVKis`, safe `DP-125` possessive,
+  `Ifshe`, `isan`, `ofthe`, `ofit`, `Iike`, `apologles`, `recelved`, dan pola
+  yang terbukti di log.
+- Thin-glyph/start-of-line recovery hook ditambahkan secara konservatif untuk
+  gejala huruf awal `I` yang hilang; efektivitas untuk contoh nyata “I Am” dan
+  “I Refuse” belum dapat diklaim sebelum pengguna menguji scene/screenshotnya.
+- IDN Evaluation Export ditambahkan untuk merekam normalized source, backend
+  output dan final IDN output agar akurasi naturalisasi dapat dibandingkan.
+- Warmup/telemetry dan NPC cleanup/migration v2 ditambahkan.
+- Patch v8.7.2 tidak menimpa file data/prefs pengguna.
+- SHA-256 ZIP v8.7.2:
+  `972bc151f0f1335d5e95676e1e63f58baa67cabe65b87ffb00d5f554389081a0`.
+
+4. BUKTI LOG YANG MENJADI DASAR v8.7.1 DAN v8.7.2
+---------------------------------------------------
+Baseline v8.7 IDN GFL2 sebelum patch:
+- Lima log, 3.936 PIPE.
+- Semua cache=MISS, engine=argos_offline, PIPE tercatat mode=FREEZE.
+- V1/V4 requested interval; V3/V5 requested freeze.
+- MemoryVault lama memuat 4.317 memories.
+- NPC bertambah dari 85 hingga sekitar 133.
+- Terlihat 47 false speaker promotion, termasuk DP/Dp, Hereyes, Tillthe,
+  Dontworry, Decommission dan lain-lain.
+- `DP-12` banyak terbaca tetapi terpotong sebagai DP/Dp.
+- `KSVK` muncul pada body tetapi tidak stabil menjadi label speaker.
+
+Tes v8.7.1 setelah patch:
+- Lima log, 3.956 PIPE.
+- Semua PIPE `requested_mode=AUTO`, `capture_mode=STABLE`,
+  `scheduler=auto_story`.
+- Semua masih cache=MISS dan engine=argos_offline.
+- Sesi ber-header menunjukkan `legacy_vault=isolated`.
+- Tidak ada event New speaker learned.
+- `DP-12` tampil lengkap lebih dari 1.300 baris OCR; DP/Dp tidak dipromosikan.
+- Pola lama KSVKand/KSVKs hilang, tetapi muncul `KSVKis`.
+- Masih ada typo/word-join seperti DP-125, Ifshe, isan, ofthe, ofit, Iike,
+  apologles, recelved dan COTY.
+- First-event latency mencapai 1.009–3.924 ms; warmup dan reason OCR downscale
+  perlu dilacak.
+- Karena log belum merekam output Bahasa Indonesia, model IDN terbaik belum
+  boleh ditetapkan hanya dari data ini.
+
+5. STATUS VALIDASI v8.7.2
+--------------------------
+Yang telah diuji pada paket:
+- Python compile sweep: PASS.
+- Smoke test fitur GFL v8.7: PASS.
+- Regression test v8.7.1: PASS.
+- Regression test v8.7.2: PASS untuk final-cache/memo, GFL2 Speaker ROI,
+  contextual repair, IDN export, dan profile flags.
+- NPC cleanup dry-run: PASS; DP-12 dan KSVK terlindungi.
+- Package apply check ke baseline v8.7.1 bersih: PASS.
+
+Yang masih memerlukan log game aktual:
+- Apakah KSVK konsisten tampil sebagai label orange pada resolusi pengguna.
+- Apakah replay dialog menghasilkan CACHE_HIT_STABLE_FINAL nyata.
+- Apakah recovery huruf awal `I` membantu pada scene “I Am” / “I Refuse”.
+- Apakah output IDN V2/V3/V4/V5 lebih akurat berdasarkan file evaluation.
+- Apakah V4 pernah benar-benar memakai online assist atau tetap Argos Offline.
+
+6. KNOWN ISSUES / BATASAN YANG JANGAN DILUPAKAN
+------------------------------------------------
+- Tiny/blurred numeric OCR pada GFL2 masih merupakan known minor limitation
+  setelah numeric ROI fix, kecuali terbukti regresi baru.
+- Jangan menciptakan angka yang tidak terbaca; lebih baik tidak lengkap
+  daripada salah informasi.
+- Cache HIT tidak harus terjadi untuk dialog baru atau progressive text;
+  target sehat adalah final dialog/replay identik dapat HIT.
+- Jangan benchmark Fast bila applied backend masih Argos Offline.
+- V4 berhak memiliki jalur hybrid/online-assist, tetapi hanya dianggap aktif
+  bila log applied membuktikannya.
+- Speaker/NPC learning harus konservatif; body/narration tidak boleh menjadi
+  speaker hanya karena kata pertama.
+- GFL dan GFL2 adalah profil terpisah dan tidak boleh dicampur diam-diam.
+- Data user tidak ditimpa dalam patch kecil tanpa persetujuan/backup.
+
+7. PROSEDUR TES SELANJUTNYA SETELAH v8.7.2
+-------------------------------------------
+Fokus utama tes IDN:
+1. Jalankan scene GFL2 yang memuat `DP-12` dan `KSVK`.
+2. Pastikan mode Auto, scheduler auto_story, backend applied, legacy vault
+   isolation, dan OCR resolution reason tercatat.
+3. Cari event `GFL2_SPEAKER_ROI` dan lihat apakah label orange KSVK stabil.
+4. Mainkan ulang dialog final yang sama dan cari:
+   - CACHE_STORE_STABLE_FINAL
+   - CACHE_HIT_STABLE_FINAL
+   - CACHE_DUPLICATE_OCR_SUPPRESSED
+5. Salin file `logs/idn_evaluation_v8_7_2.jsonl` agar kualitas naturalisasi
+   dapat dibandingkan, bukan hanya latency/OCR.
+6. Uji scene yang memuat “I Am” atau “I Refuse” bila tersedia dan kirim
+   screenshot/log untuk memvalidasi thin-glyph recovery.
+7. Jalankan cleanup NPC dengan dry-run dahulu sebelum menerapkannya.
+
+8. ROADMAP BERIKUTNYA DAN ARAH BESAR v9
+----------------------------------------
+Sebelum v9:
+- Stabilkan cache final nyata, GFL2 ROI nama, output evaluation IDN, backend
+  status, NPC cleanup, warmup dan OCR text repair.
+- Pilih default IDN yang paling baik hanya setelah pengujian output Indonesia
+  pada scene yang sama.
+
+Arah besar v9 yang pernah disepakati sebagai rencana masa depan:
+- Audio Translate / Audio Assist.
+- Kemungkinan komponen: capture audio game/WASAPI loopback, VAD, ASR, opsi
+  AI vocal separation/noise/BGM filtering, dan jalur cepat versus jalur
+  kualitas lebih tinggi.
+- Audio tidak boleh menggeser fokus utama sebelum OCR, cache, engine applied,
+  diagnostic dan game profile telah stabil.
+
+AKHIR MASTER HANDOFF v8.7.2
+============================
+
+======================================================================
+ADDENDUM v8.7.3 — TRUSTED IDENTITY, MULTI-GAME DATA UI & NER PROTECTION
+Tanggal keputusan/implementasi: 26 Mei 2026
+======================================================================
+
+A. ALASAN UPDATE
+----------------
+Setelah v8.7.2 diuji pada seluruh model IDN GFL2, pengguna melaporkan KSVK tidak dilabel orange, Alya Kujou tidak menjadi speaker, Melanie sering menjadi elanie, Helen salah menjadi Helena dan mengganda menjadi "Helena Helen ...", Balthilde/Phaetusa tidak dilabel, serta token I/II masih lemah. Audit folder aktual v8.7.2 kemudian menemukan structured events dan IDN evaluation export yang menjelaskan akar masalah:
+- Name ROI sebenarnya dapat membaca Helen dan KSVK, tetapi metadata speaker tidak menjadi sumber final overlay.
+- Fuzzy matching legacy memetakan raw Helen menjadi Helena karena database trusted masih tercemar dan threshold terlalu permisif.
+- Phaetusa dan Balthilde benar pada source, tetapi backend Argos dapat mengubahnya menjadi Phaedusa/Balthalde.
+- Cache v8.7.2 sudah STORE/SKIP/HIT sebagian, tetapi menyimpan output salah dan membutuhkan namespace baru setelah perbaikan identitas.
+
+B. KOREKSI IDENTITAS YANG TIDAK BOLEH DILUPAKAN
+-----------------------------------------------
+- Helen dan Helena adalah dua karakter GFL2 yang valid dan berbeda.
+- Jangan pernah menerapkan global migration Helena -> Helen.
+- Keduanya adalah protected canonical speaker terpisah; exact match menang, fuzzy cross-map Helen<->Helena dilarang.
+- Cleanup hanya membuang output/cache klasifikasi salah seperti "Helena Helen ...", bukan menghapus karakter Helena yang benar.
+
+C. IMPLEMENTASI v8.7.3
+-----------------------
+1. Trusted Speaker Registry v2:
+   - protected_character, user_configured, approved_role_speaker, reviewed_alias,
+     unsorted_protected (nama yang ditambah di Simple mode), pending_session_candidate,
+     legacy_untrusted, special_terms, blacklist, original_identity_map.
+   - Name ROI hanya mempercayai registry aktif, bukan seluruh npc_database lama.
+2. GFL2 ROI/overlay integrity:
+   - ROI lebih sempit dan memakai canonical/alias terpercaya.
+   - Hasil ROI dikirim sebagai metadata speaker hingga overlay.
+   - Tracker tidak lagi menyuntikkan nama tebakan ke raw body.
+   - Event diagnostik baru mencatat raw ROI, selection dan final overlay.
+3. Named Entity Protection:
+   - Nama protected dibungkus/restore sebelum dan sesudah backend/IDN sehingga
+     Phaetusa/Balthilde/Helen/Helena/Alya Kujou/KSVK/DP-12 tidak rusak oleh backend.
+4. Critical Token Guard:
+   - Menahan final cache untuk varian ambigu seperti Level Il hingga pembacaan lebih aman tersedia.
+5. Cache hygiene:
+   - Scoped cache dan naturalized cache memakai namespace/version baru v8_7_3_identity_guard.
+   - Tool migration memindai cache terkontaminasi dan hanya menginvalidasi setelah --apply.
+6. Halaman Pengolahan Data & Identitas:
+   - Selector Game Profile yang terlihat; sinkron dengan dashboard.
+   - Checkbox `Tampilan Sederhana` default ON; uncheck membuka Normal/Detail.
+   - Mode Simple menampilkan Nama yang Dilindungi, Kata Khusus, Blacklist; alias/cleanup advanced.
+   - Nama yang ditambahkan melalui Simple dicatat sebagai unsorted_protected; pada Normal tampil orange dan dapat diklik untuk Hapus atau Migrasi kategori.
+   - Nama yang sudah tersortir tampil hijau dan tidak memiliki aksi migrasi asal-Simple.
+   - Compound entities (Alya Kujou, URNC Leader, M4 SOPMOD II, Descender Zero) diproses utuh dengan longest-match-first.
+7. Data multi-game:
+   - Reference roster catalog berbeda dari active speaker registry.
+   - GFL2 catalog memuat Doll/story names terverifikasi dan protected priority names.
+   - WUWA catalog memuat roster playable versioned pada scope build saat ini; harus diperbarui bila patch game bertambah.
+   - GFL memuat broad verified T-Doll/story seed dan struktur faksi Paradeus/Sangvis Ferri; generic enemy tidak auto-speaker.
+   - Original Identity hanya relevan utama untuk GFL2.
+8. Candidate/legacy safety:
+   - auto candidate live-label OFF; auto reset session candidate ON; legacy NPC trusted OFF.
+   - Tool cleanup menjaga Helen/Helena terpisah dan melindungi nama valid.
+9. Debug/tes:
+   - Identity migration dry-run tool, debug bundle export helper, dan regression tests v8.7.3 disertakan.
+
+D. DAFTAR NAMA/IDENTITAS PRIORITAS
+----------------------------------
+GFL2 protected priority: DP-12, KSVK, Helen, Helena, Melanie, Balthilde, Phaetusa, Dushevnaya, Suomi, Lentine, Dandelion, Descender Zero.
+Commander pengguna: Alya Kujou (user_configured; satu compound identity).
+Observed aliases: elanie -> Melanie; Phaedusa -> Phaetusa; Balthalde -> Balthilde; Dp-12 -> DP-12.
+Role title seperti URNC Leader / Army Guard hanya trusted setelah user approve.
+
+E. PACKAGING/INSTALLATION POLICY
+--------------------------------
+- v8.7.3 dikirim sebagai changed-files ZIP terintegrasi dengan seluruh dokumen memo.
+- Karena schema data/UI/cache berubah besar, terapkan lebih dahulu ke salinan folder v8.7.2 seperti ORT_Translation_v8_7_3_TEST.
+- File data/prefs/cache/log pengguna tidak disertakan untuk overwrite. Registry baru dibuat/migrasi saat runtime dan dapat ditinjau.
+- Backup/dry-run wajib sebelum cleanup/migration apply.
+
+F. VALIDASI YANG MASIH DIPERLUKAN USER
+--------------------------------------
+- Uji label orange KSVK/Helen/Helena/Alya Kujou/Melanie/Balthilde/Phaetusa dalam game nyata.
+- Uji Simple -> Normal: nama baru tampil orange, klik dan migrasi; compound name tidak pecah.
+- Uji output backend/IDN tidak lagi mengubah Phaetusa/Balthilde.
+- Uji Level II/I am/I refuse/I've/I'll.
+- Uji switching GFL2/WUWA/GFL dan kategori GFL Paradeus/Sangvis.
+- Kirim debug bundle/log evaluation terbaru setelah test.
+
+G. ROADMAP BESAR v9 YANG TETAP BERLAKU
+--------------------------------------
+Audio Translate / Audio Assist tetap menjadi arah besar masa depan (WASAPI loopback, VAD/ASR, opsi vocal/noise/BGM separation), tetapi hanya setelah OCR/speaker identity/cache/backend diagnostics dan output IDN stabil.
+
+V8.7.3 LATE UI REQUIREMENT — SIMPLE-ORIGIN ORANGE/MIGRATION BEHAVIOR
+---------------------------------------------------------------------
+On 26 May 2026, immediately before v8.7.3 packaging, the user specified that names added from the checked `Tampilan Sederhana` workflow must not be lost or require manual retyping when switching to Normal/Detail. Implemented decision: such valid but unsorted entities are stored with simple/unsorted origin, represented as orange selectable action items in the Normal UI, and may be deleted or migrated into the appropriate detailed category. Entities already sorted in Normal are shown in their normal/green category state and are selectable for delete/edit but do not offer simple-origin migration. Migration preserves multi-word entities such as `Alya Kujou`, `URNC Leader`, and `M4 SOPMOD II` as atomic identities.

@@ -1,0 +1,8 @@
+ORT Translation v8.3 Compile Report
+===================================
+Python files checked: 196
+Syntax errors: 0
+Result: PASS
+
+Scope:
+- Base v8.0 + v8.1 + v8.2 + v8.2.1 + v8.3 patch files.

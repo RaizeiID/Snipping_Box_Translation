@@ -1,0 +1,33 @@
+ORT Translation v8.6 Changed Files Manifest
+==========================================
+
+Root:
+- ORTCORE_VERSION.txt
+- TITANCORE_VERSION.txt
+- PATCH_APPLY_NOTES_V8_6.txt
+- CHANGED_FILES_MANIFEST_V8_6.txt
+- TITANMAIN.py
+- model_registry.py
+- model_strategy.py
+- translation_engine.py
+- runtime_bridge.py
+- launcher_backend.py
+- webui.py
+- benchmark_session_report.py
+
+App:
+- app/translation/idn_terminology.py
+- app/translation/idn_quality_layer.py
+- app/translation/indonesian_naturalizer.py
+- app/translation/naturalized_cache.py
+- app/translation/name_alias_normalizer.py
+- app/runtime/lite_gpu_guard.py
+
+Docs:
+- docs/V8_6_IDN_QUALITY_LAYER.md
+- docs/V8_6_COMPILE_REPORT.txt
+- docs/CHANGELOG.md
+- docs/VERSION_HISTORY.txt
+- docs/IMPLEMENTATION_STATUS.txt
+- docs/NEXT_RECOMMENDATIONS.txt
+- docs/KNOWN_ISSUES.txt

@@ -1,0 +1,13 @@
+ORT Translation v8.1 Compile Report
+===================================
+
+Python syntax compile check:
+- Files checked: 193 Python files
+- Errors: 0
+
+Command used:
+python -m py_compile / changed files and full project syntax sweep via py_compile.compile(..., doraise=True)
+
+Notes:
+- Compile check validates syntax only.
+- Runtime behavior still should be tested through Start_ORT_Translation.bat on Windows because OCR/GPU/Gradio depend on local runtime and hardware.

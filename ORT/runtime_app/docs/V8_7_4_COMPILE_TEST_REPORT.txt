@@ -1,0 +1,29 @@
+ORT Translation v8.7.4 — Compile/Test Report
+=============================================
+Tanggal: 26 Mei 2026
+Base verifikasi: salinan bersih folder v8.7.3 aktual pengguna, lalu di-overwrite dengan ZIP patch v8.7.4 kandidat.
+Status: PASS untuk validasi source/package; pengujian gameplay aktual tetap diperlukan oleh pengguna.
+
+VALIDATION PASS
+- Python compileall pada TITANMAIN.py, translation_engine.py, launcher_backend.py, webui.py, benchmark_session_report.py, app/, tools/, model_strategy.py, v7_system_profile.py, cache_store.py.
+- `tools/v8_7_gfl_smoke_test.py` — kompatibilitas fitur GFL dasar.
+- `tools/v8_7_1_regression_test.py` — Auto defaults, protected seed lama, vault/cache/speaker guard.
+- `tools/v8_7_2_regression_test.py` — stable-final/memo, metadata-only ROI, text repair, IDN export path v8.7.4.
+- `tools/v8_7_3_regression_test.py` — Trusted Identity, Helen/Helena, compound entity/UI migration inheritance.
+- `tools/v8_7_4_regression_test.py` — EntitySpan immutable names, no internal token through bridge/IDN, residual-cache reject, cache namespace, Responsive Story environment.
+- `tools/npc_database_cleanup.py --dry-run` — tidak menggabungkan Helen/Helena dan tidak mengubah data tanpa apply.
+- `tools/v8_7_4_identity_migration.py --base-dir .` — dry-run registry/cache contamination review.
+- `tools/v8_7_4_cache_rotation.py --base-dir .` — dry-run mendeteksi cache lama/tercemar; tidak menghapus data.
+- Package-apply validation: ZIP kandidat dipasang ke salinan baseline v8.7.3 aktual lalu seluruh validasi di atas dijalankan kembali: PASS.
+
+DIBUKTIKAN OLEH TEST
+- Placeholder string entity tidak dikirim ke text post-processor pada jalur EntitySpan yang diuji.
+- Output dengan marker internal ditolak dari naturalized cache baru.
+- Cache namespace runtime baru adalah `v8_7_4_entity_span_responsive` pada konfigurasi/launcher yang diuji.
+- Responsive Story mengaktifkan latest-frame-wins/coalescing settings tanpa menonaktifkan Two-Pass Name ROI normal.
+
+BELUM DAPAT DIKLAIM TANPA GAMEPLAY TEST BARU
+- Tidak ada lagi `ORT_ENTITY_*` pada overlay sepanjang sesi game nyata.
+- Penurunan latency/tail lag pada story tanpa voice.
+- Akurasi label speaker KSVK/Helen/Helena/Alya Kujou pada capture aktual.
+- Ketepatan final IDN untuk Phaetusa/Balthilde/Level II/I-contractions pada scene aktual.

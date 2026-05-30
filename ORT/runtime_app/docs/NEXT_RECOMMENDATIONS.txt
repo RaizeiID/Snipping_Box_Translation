@@ -1,0 +1,8 @@
+ORT Translation v8.7.5 — Next Recommendations / Test Plan
+===========================================================
+1. Terapkan patch ke clone v8.7.4, jalankan cache rotation dan identity migration pada folder TEST.
+2. Uji Baseline Correctness menggunakan Lite V5 atau IDN V2/V3 pada scene visual yang dahulu menunjukkan `Zhaohui`, `Vector`, `Alya Kujou`, `Helen`, `Helena`, `Phaetusa`, dan `Suomi`.
+3. Pastikan final overlay tidak memuat `ORT_*`, `BEND`, `BKED`, atau placeholder internal; kirim Debug Bundle v8.7.5.
+4. Uji scene yang sama dengan Mode Responsif ON; bandingkan queue wait, p95 latency, stale-overlay drop, dan akurasi speaker.
+5. Bila `Ullrid` masih terbaca `rid` atau `Zhaohui` menjadi `Zhohul`, kirim frame/video timestamp untuk memutuskan alias ROI terbatas, bukan fuzzy global.
+6. Setelah GFL2 stabil, audit CT2/SPM Fast/Lite dan perluasan exact-speaker yang aman untuk WUWA/GFL.

@@ -1,0 +1,54 @@
+ORT Translation v8.3.1 - Mode Mapping & Interval Restore Hotfix
+===============================================================
+
+TYPE
+- Hotfix after v8.3
+
+BASE VERSION
+- ORT Translation v8.3
+
+SUMMARY
+- Fixes WebUI/runtime mode mismatch where selecting Auto could still boot/display as Interval/FREEZE.
+- Restores the safe Interval floor back to 90ms for the default WebUI path.
+- Keeps Fast CT2 active path unchanged.
+- Updates scheduler log label from v8.2.1 to v8.3.1.
+
+FIXES
+1. Auto mode mapping bug
+   - In v8.3, strategy environment could overwrite the user-selected WebUI mode.
+   - This caused Fast V2 Auto to show scheduler=auto_story but BOOT mode=interval and box/shortcut labeling as Interval.
+   - v8.3.1 reapplies ORT_BOOT_MODE, ORT_BOOT_ENGINE, and ORT_BOOT_INTERVAL_MS after strategy env injection.
+
+2. Interval timing restore
+   - v8.2.1/v8.3 allowed GFL2 Fast interval floor down to 45ms.
+   - User requested returning Interval timing to the earlier safer behavior.
+   - v8.3.1 restores TITAN_AUTO_SNAPSHOT_MIN_MS to 90ms in the default launcher path and sets WebUI interval slider minimum to 90ms.
+
+3. Log/cosmetic cleanup
+   - Scheduler debug label updated from [SCHED v8.2.1] to [SCHED v8.3.1].
+   - Auto mode shortcut/help text is now displayed differently from Interval mode.
+
+FILES CHANGED
+- launcher_backend.py
+- webui.py
+- TITANMAIN.py
+- ORTCORE_VERSION.txt
+- TITANCORE_VERSION.txt
+- docs/CHANGELOG.md
+- docs/VERSION_HISTORY.txt
+- docs/IMPLEMENTATION_STATUS.txt
+- docs/NEXT_RECOMMENDATIONS.txt
+- docs/KNOWN_ISSUES.txt
+- docs/V8_3_1_COMPILE_REPORT.txt
+- PATCH_APPLY_NOTES_V8_3_1.txt
+
+TESTED
+- Python syntax compile check for changed Python files: PASS
+  * launcher_backend.py
+  * webui.py
+  * TITANMAIN.py
+  * app/runtime/story_dialogue_scheduler.py
+
+KNOWN ISSUES / NEXT
+- Fast CT2 is already confirmed active when models/ct2_opus_mt_en_id exists and validates.
+- Remaining work is OCR quality: typo/name alias normalization, NPC merge/cleanup UI, stricter speaker candidate gate, and better story voice-hold tuning.

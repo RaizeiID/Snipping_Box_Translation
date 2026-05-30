@@ -1,0 +1,11 @@
+ORT Translation v7.5 compile report
+
+Checked: Python files excluding archive/__pycache__
+Result : OK, no py_compile errors in the package created in this session.
+
+Smoke checks executed:
+- benchmark_profiles.py
+- benchmark_ocr.py
+- benchmark_runtime.py
+
+Note: Real performance still needs direct testing on the target Windows laptop with GFL2 Exilium and Wuthering Waves.

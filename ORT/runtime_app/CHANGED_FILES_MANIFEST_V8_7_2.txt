@@ -1,0 +1,58 @@
+ORT Translation v8.7.2 — CHANGED FILES MANIFEST
+===============================================
+Release type: changed-files patch only
+Base required: ORT Translation v8.7 project with v8.7.1 patch applied
+
+MAJOR IMPLEMENTATION GROUPS
+- Stable Final Cache v2 and numeric-gap cache blocker correction.
+- GFL2 Speaker ROI / temporal orange label retention for DP-12 and KSVK.
+- Contextual OCR/text repair and conservative initial-I recovery hook.
+- IDN evaluation export, warmup and telemetry/report improvements.
+- NPC cleanup/migration v2, release documentation and regression testing.
+
+DATA FILES INTENTIONALLY NOT OVERWRITTEN
+- npc_database.json
+- data_processing_store.json
+- webui_prefs.json
+- configs/app_state.json
+
+FILES IN PATCH (33):
+- CHANGED_FILES_MANIFEST_V8_7_2.txt
+- ORTCORE_VERSION.txt
+- PATCH_APPLY_NOTES_V8_7_2.txt
+- README.md
+- RUNTIME.bat
+- Start_ORT_Translation.bat
+- TITANCORE_VERSION.txt
+- TITANMAIN.py
+- app/diagnostics/idn_evaluation_export.py
+- app/learning/learning_quarantine.py
+- app/ocr/gfl2_speaker_roi.py
+- app/ocr/ocr_noise_normalizer.py
+- app/runtime/app_state.py
+- app/runtime/model_user_presets.py
+- app/translation/fuzzy_cache_normalizer.py
+- app/translation/name_alias_normalizer.py
+- app/translation/stable_final_cache.py
+- benchmark_session_report.py
+- cache_store.py
+- docs/CHANGELOG.md
+- docs/IMPLEMENTATION_STATUS.txt
+- docs/KNOWN_ISSUES.txt
+- docs/NEXT_RECOMMENDATIONS.txt
+- docs/V8_7_2_COMPILE_TEST_REPORT.txt
+- docs/VERSION_HISTORY.txt
+- launcher_backend.py
+- model_strategy.py
+- runtime_bridge.py
+- tools/npc_database_cleanup.py
+- tools/v8_7_2_regression_test.py
+- translation_engine.py
+- v7_system_profile.py
+- webui.py
+
+
+DOCUMENTATION CONTINUITY FILES INCLUDED IN THIS INTEGRATED PACKAGE
+- docs/ORTCORE_MASTER_PROJECT_MEMORY_HANDOFF_V8_7_2_AFTER_IDN_OPTIMIZATION.txt
+- docs/ORTCORE_DEVELOPMENT_LEDGER_AND_WORKFLOW_V8_7_2.txt
+- READ_FIRST_AFTER_MEMORY_RESET_V8_7_2.txt

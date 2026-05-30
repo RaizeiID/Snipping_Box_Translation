@@ -1,0 +1,50 @@
+ORT Translation v8.7.2 — COMPILE AND REGRESSION REPORT
+========================================================
+Date: 2026-05-25
+Release type: CHANGED-FILES PATCH over v8.7.1
+
+VALIDATION COMMANDS
+-------------------
+python -m compileall -q .
+python tools/v8_7_gfl_smoke_test.py
+python tools/v8_7_1_regression_test.py
+python tools/v8_7_2_regression_test.py
+python tools/npc_database_cleanup.py --dry-run
+
+RESULTS
+-------
+- Python compile sweep: PASS (no syntax errors detected).
+- v8.7 GFL smoke test: PASS.
+- v8.7.1 regression test: PASS.
+- v8.7.2 regression test: PASS for final-cache/memo, GFL2 Speaker ROI,
+  contextual text repair, IDN evaluation export, and profile flags.
+- NPC cleanup dry-run: PASS; canonical seeds DP-12 and KSVK protected.
+
+CRITICAL DEFECT CORRECTED
+-------------------------
+In v8.7.1, the translation engine could treat negative numeric-gap diagnostic
+reasons such as `no_numeric_context` as cache-blocking reasons even when no
+numeric gap was detected. This prevented ordinary dialogue from being stored
+in cache and materially contributed to all-MISS behaviour. v8.7.2 blocks cache
+only when a true numeric uncertainty/gap is present.
+
+DATA SAFETY
+-----------
+The changed-files package does not include user-state data files such as:
+- npc_database.json
+- data_processing_store.json
+- webui_prefs.json
+- configs/app_state.json
+
+LIMITS OF THIS VALIDATION
+-------------------------
+Synthetic validation cannot prove the exact GFL2 speaker ROI geometry on the
+user's actual display/UI scale, real replay cache-hit rates, or the recovery of
+missing thin glyph `I` on a scene not included in the supplied logs. These need
+in-game validation after installation.
+
+PACKAGE APPLICATION CHECK
+-------------------------
+- A clean v8.7.1 baseline was reconstructed, the v8.7.2 changed-files ZIP was
+  overlaid, and the compile/smoke/regression/dry-run commands were executed
+  from the applied package. Result: PASS.

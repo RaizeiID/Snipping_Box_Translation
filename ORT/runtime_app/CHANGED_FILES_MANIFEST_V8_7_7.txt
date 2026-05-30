@@ -1,0 +1,50 @@
+ORT Translation v8.7.7 — Changed Files Manifest
+===============================================
+Base: ORT_Translation_v8_7_6.zip
+Policy: exclude active user registry/data/cache/log/status/backups/preferences from overwrite.
+Total changed/new files in patch: 44
+
+- APPLY_NOTES_V8_7_7.txt
+- CHANGED_FILES_MANIFEST_V8_7_7.txt
+- ORTCORE_VERSION.txt
+- READ_FIRST_AFTER_MEMORY_RESET.txt
+- READ_FIRST_AFTER_MEMORY_RESET_V8_7_7.txt
+- TITANCORE_VERSION.txt
+- TITANMAIN.py
+- app/diagnostics/idn_evaluation_export.py
+- app/translation/dialogue_completeness_gate.py
+- app/translation/faithfulness_gate.py
+- app/translation/naturalized_cache.py
+- benchmark_session_report.py
+- cache_store.py
+- configs/gfl2_observed_candidates_v8_7_7.json
+- configs/speaker_registry_v2.defaults.json
+- data_processing_backend.py
+- docs/CHANGELOG.md
+- docs/IMPLEMENTATION_STATUS_V8_7_7.txt
+- docs/KNOWN_ISSUES_V8_7_7.txt
+- docs/NEXT_RECOMMENDATIONS_V8_7_7.txt
+- docs/ORTCORE_DEVELOPMENT_LEDGER_AND_WORKFLOW_V8_7_7.txt
+- docs/ORTCORE_MASTER_PROJECT_MEMORY_HANDOFF_V8_7_7.txt
+- docs/V8_7_7_COMPILE_TEST_REPORT.txt
+- docs/V8_7_7_RUNTIME_AND_UI_GUIDE.md
+- docs/VERSION_HISTORY.txt
+- docs/roadmap_v8_7_7/ORT_V8_7_7_ADDENDUM_CT2_CONFIRMED_VILYZ_COMMANDER_CORRECTION_NAMES_TERMS_2026-05-27.md
+- docs/roadmap_v8_7_7/ORT_V8_7_7_ADDENDUM_LIVE_CT2_VALIDATION_AND_NEW_CANDIDATES_2026-05-27.md
+- docs/roadmap_v8_7_7/ORT_V8_7_7_ROADMAP_AUDIT_V8_7_6_LOG_VIDEO_SEMANTIC_HALLUCINATION_2026-05-27.md
+- fast_model_manager.py
+- launcher_backend.py
+- model_strategy.py
+- tools/export_debug_bundle_v8_7_7.py
+- tools/v8_7_2_regression_test.py
+- tools/v8_7_4_regression_test.py
+- tools/v8_7_5_regression_test.py
+- tools/v8_7_6_regression_test.py
+- tools/v8_7_7_cache_rotation.py
+- tools/v8_7_7_identity_migration.py
+- tools/v8_7_7_regression_test.py
+- tools/v8_7_7_replay_benchmark.py
+- tools/v8_7_7_test_ledger.py
+- translation_engine.py
+- v7_system_profile.py
+- webui.py

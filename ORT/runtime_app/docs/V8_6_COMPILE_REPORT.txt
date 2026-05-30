@@ -1,0 +1,12 @@
+ORT Translation v8.6 Compile Report
+===================================
+Scope: full Python compile sweep excluding __pycache__ and virtual environments.
+Result: PASS
+Checked: 209 Python files
+Errors: 0
+
+Notes:
+- Added app/translation/idn_terminology.py.
+- Reworked app/translation/idn_quality_layer.py.
+- v8.6 Naturalized IDN Cache versioning compiled successfully.
+- Launcher/WebUI/runtime strategy files compiled successfully.

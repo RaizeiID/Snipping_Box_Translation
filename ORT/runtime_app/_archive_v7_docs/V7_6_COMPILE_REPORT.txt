@@ -1,0 +1,12 @@
+ORT Translation v7.6 compile/benchmark report
+
+Compile errors:
+NONE
+
+Benchmarks:
+benchmark_profiles.py: rc=0
+benchmark_ocr.py: rc=0
+benchmark_runtime.py: rc=0
+benchmark_translation.py: rc=0
+benchmark_real_translation.py: rc=0
+benchmark_cache_hit.py: rc=0

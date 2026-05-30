@@ -1,0 +1,17 @@
+ORT Translation v8.7.2 — BACA INI SETELAH MEMORY RESET
+=====================================================
+Unggah/berikan file berikut pada chat baru:
+1. ZIP proyek/patch terbaru yang sedang Anda pakai.
+2. ORTCORE_MASTER_PROJECT_MEMORY_HANDOFF_V8_7_2_AFTER_IDN_OPTIMIZATION.txt
+3. Log uji terbaru bila ada.
+
+Instruksi yang disarankan:
+"Baca master handoff v8.7.2 ini dan ZIP/log terbaru saya. Lanjutkan
+pengembangan ORT secara kumulatif: gunakan seluruh keputusan/roadmap yang
+tercatat, verifikasi terhadap source/log terbaru, dan jangan menimpa data
+pengguna dalam patch kecil tanpa penjelasan."
+
+Catatan:
+- Master handoff adalah memo proyek cadangan.
+- Source dan log terbaru tetap sumber kebenaran utama.
+- Setiap patch berikutnya harus memperbarui memo ini.

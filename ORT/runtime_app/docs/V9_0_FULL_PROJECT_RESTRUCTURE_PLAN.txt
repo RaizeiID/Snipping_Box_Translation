@@ -1,0 +1,31 @@
+ORT Translation — Rencana Rilis Besar v9.0: Full ZIP & GitHub-Ready Structure
+Tanggal keputusan: 28 Mei 2026
+
+Permintaan pengguna:
+- v9.0 diberikan sebagai ZIP UTUH seluruh proyek dalam folder baru.
+- Isi proyek dirapikan agar layak diunggah ke GitHub.
+- File root diminimalkan; idealnya hanya akses pengguna seperti Start OCR dan Runtime/launcher.
+
+Rancangan struktur awal (akan divalidasi sebelum v9.0):
+ORT_Translation_v9_0/
+  Start OCR.*                 launcher/shortcut pengguna
+  Runtime.*                   shortcut/panel runtime pengguna
+  app/                        source aplikasi modular
+  core/                       engine inti/compatibility legacy yang masih diperlukan
+  configs/                    profile, catalog, default settings
+  data/                       data referensi/migrations user-safe
+  models/                     model metadata/placeholder; model besar ditangani aman
+  tools/                      maintenance, diagnostics, migration, benchmark
+  tests/                      regression/smoke/replay benchmark
+  docs/                       handoff, changelog, roadmap, usage
+  assets/                     ikon/UI/static assets
+  runtime/                    virtual environment/bootstrap/runtime scripts bila sesuai
+  user_data/                  lokasi terpisah untuk registry/settings aktif
+  logs/ cache/ backups/       runtime-generated, dengan aturan .gitignore
+
+Prinsip migrasi v9.0:
+- tidak kehilangan setting/registry/katalog/term/candidate ledger pengguna;
+- menyediakan tool migrate dari v8.x ke v9.0;
+- menyimpan master project memory handoff dan changelog kumulatif;
+- memastikan launcher lama mudah diarahkan ke struktur baru;
+- pisahkan file yang aman di GitHub dari cache/log/model besar/credential/runtime user.

@@ -1,0 +1,30 @@
+ORT Translation v8.4.3 — Fast OCR Retune & Lite IDN Efficiency Polish
+======================================================================
+Base: v8.4.2
+Type: changed-files patch
+Date: 2026-05-20
+
+Summary
+-------
+- Retuned Fast model defaults after explicit user approval:
+  - Fast V1: OCR 40%, default interval 45ms, ultra speed-first.
+  - Fast V2: OCR 45%, default interval 60ms, low-latency balanced.
+  - Fast IDN: OCR 50%, default interval 75ms, light naturalized.
+- Lowered Fast scheduler wait/duplicate/progressive thresholds while preserving Auto/Interval semantics.
+- WebUI interval slider now allows 45ms minimum so Fast defaults are visible/selectable.
+- Added stale Fast preset migration guard so old autosaved Fast defaults do not hide the new built-in defaults.
+- Kept Lite IDN v8.4.2 direction but tightened GPU Efficient caps a little for lower VRAM/FPS pressure.
+- Reduced Lite IDN active core profile by removing live SpellWeaver from lite_idn_efficient.
+- Added extra OCR noise typo normalization for GFL2-style noisy wide dialog captures.
+
+Fast defaults
+-------------
+- Fast V1: OCR 40 / 45ms / minimal polish / lowest latency.
+- Fast V2: OCR 45 / 60ms / balanced cleanup.
+- Fast IDN: OCR 50 / 75ms / light IDN naturalizer.
+
+Known notes
+-----------
+- OCR 35% is not used as default because it can become too noisy on GFL2 wide dialog boxes.
+- Existing user-modified Fast presets may still override defaults if they are genuine custom values; press Reset Default if needed.
+- Fast CT2 model folder is still external and must remain at models/ct2_opus_mt_en_id.

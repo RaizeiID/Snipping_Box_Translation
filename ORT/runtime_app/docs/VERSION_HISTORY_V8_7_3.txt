@@ -1,0 +1,13 @@
+ORT Translation Version History Addendum — v8.7.3
+==================================================
+v8.7.3 | 2026-05-26 | Trusted Identity, Multi-Game Data UI & Named Entity Protection
+- Base: user-tested v8.7.2 folder.
+- Release form: integrated changed-files patch; test-folder installation recommended.
+- Primary trigger: v8.7.2 GFL2 logs/source audit showed KSVK metadata lost before overlay, Helen misclassified as Helena, Argos name corruption, and data-page limitations.
+- Core correction: identities are structured entities, not untrusted learned prefixes.
+- Documentation policy: project memory/handoff is embedded in every release ZIP.
+
+Earlier continuity:
+- v8.7.2: Stable Final Cache v2, GFL2 Speaker ROI & IDN Evaluation.
+- v8.7.1: Auto defaults, DP-12/KSVK guards, legacy vault isolation.
+- v8.7: Full project GFL dedicated profile.

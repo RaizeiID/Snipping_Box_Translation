@@ -1,0 +1,14 @@
+Changed/new files in v7.4 patch:
+- TITANMAIN.py
+- launcher_backend.py
+- translation_engine.py
+- runtime_health_applier.py
+- runtime_health_manager.py
+- online_assist_router.py
+- cache_store.py
+- session_log_manager.py
+- benchmark_runtime.py
+- graceful_shutdown.py
+- tools/migrate_legacy_cache.py
+- README_V7_4_UPDATE.md
+- V7_4_FILE_MANIFEST.txt

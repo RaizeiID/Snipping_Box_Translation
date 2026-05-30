@@ -1,0 +1,5 @@
+# Prevent pip from upgrading/downgrading Torch stack into a broken mix.
+torch==2.5.1+cpu
+torchvision==0.20.1+cpu
+torchaudio==2.5.1+cpu
+sympy==1.13.1

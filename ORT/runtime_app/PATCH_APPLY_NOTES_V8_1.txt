@@ -1,0 +1,25 @@
+ORT Translation v8.1 Patch Apply Notes
+======================================
+
+Isi ZIP ini adalah PATCH CHANGED FILES, bukan full package.
+Copy semua isi ZIP ini ke folder ORT_Translation_v8_0 Anda, lalu pilih Replace/Overwrite.
+
+Disarankan sebelum overwrite:
+1. Tutup WebUI ORT jika masih berjalan.
+2. Backup folder project jika ingin aman.
+3. Extract ZIP patch ini ke folder project utama.
+4. Jalankan Start_ORT_Translation.bat.
+
+Masalah v8.0 yang diperbaiki:
+- Exit WebUI menyebabkan SystemExit / ASGI traceback.
+- Reset Live Log hanya mengosongkan textbox, bukan buffer internal.
+- Beberapa tombol Runtime & Tools belum tersambung.
+- Manual mode bisa tertimpa rekomendasi.
+- Basic/Recommended/Expert belum benar-benar mengatur tampilan.
+- Status card kanan belum rapi.
+
+Setelah update:
+- Tombol Exit akan menutup WebUI lebih aman.
+- Reset Live Log membersihkan buffer tampilan tetapi tidak menghapus session log.
+- Runtime cards menunjukkan requested vs effective settings.
+- OCR Noise Normalizer dan Stable Text Commit mulai aktif di pipeline.

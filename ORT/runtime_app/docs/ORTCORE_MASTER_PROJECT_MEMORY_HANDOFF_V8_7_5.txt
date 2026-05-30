@@ -1,0 +1,49 @@
+ORTCORE / ORT TRANSLATION — MASTER PROJECT MEMORY HANDOFF v8.7.5
+=================================================================
+Tanggal pembaruan: 26 Mei 2026
+
+A. IDENTITAS PROYEK
+ORT Translation adalah OCR overlay translator real-time untuk story game, terutama GFL2, GFL, dan Wuthering Waves, dengan model Normal/Fast/Lite/IDN, WebUI, cache, evaluasi, speaker labeling, dan roadmap audio masa depan.
+
+B. KONTEKS VERSI PENTING
+- v8.7.2: Two-Pass OCR/Name ROI dan cache evaluasi; temuan `Helen/Helena`, KSVK, Alya, Phaetusa/Balthilde.
+- v8.7.3: UI/data multi-game, roster, entity protection; rilis ini mempunyai bug fatal placeholder `ORT_ENTITY_*` dan integrasi cache salah.
+- v8.7.4: EntitySpan postprocess, responsive story, cache baru; membaik tetapi belum penuh. Audit aktual menemukan marker backend `ORT_BEND/BKED` masih dapat lolos dan registry terlalu sempit sehingga Zhaohui/Vector/Colphne/Groza/Ullrid tidak menjadi label walau resmi.
+- v8.7.5: rilis koreksi saat ini.
+
+C. BUKTI PENGUJIAN v8.7.4 YANG MENJADI DASAR v8.7.5
+- 10 sesi gameplay: 9.957 PIPE, 96,2% MISS; backend Argos dan queue wait tetap dominan; semua sesi baseline (`responsive_story=0`).
+- ZIP runtime: catalog GFL2 69 nama, tetapi live trusted sekitar 13; migration salah membaca `reference_names` alih-alih `entries[].display_name`.
+- Video POV: Zhaohui dan Vector tampil jelas di game namun masuk body overlay tanpa label; Alya Kujou dapat berlabel; overlay lama tertinggal saat transition speaker.
+- EntitySpan v8.7.4: 19 residual block; terdapat output/cache bermarker `ORT_BEND/BKED` karena marker backend masih melewati Argos.
+
+D. IMPLEMENTASI v8.7.5
+1. `verified_character_speaker_exact` untuk GFL2: seluruh nama official catalog aman menjadi label hanya melalui exact Name ROI / exact prefix. Fuzzy/alias tetap untuk active/reviewed names; role/title tetap manual approved.
+2. Migration schema membaca `entries[].display_name`; tool dapat mempromosikan Zhaohui, Vector, Colphne, Groza, Ullrid dan nama resmi lain dari legacy/reference-only ke exact tier.
+3. Full backend-safe EntitySpan: backend dan IDN/QA hanya menerima `TextSpan`; nama canonical tidak diwakili token `ORT_*` lagi.
+4. Residual guard generik: memblok ENTITY/BKEND/BKED/BEND/`_ _ ORT` pada output/cache/export/overlay.
+5. Speaker transition epoch/stale overlay guard: hasil speaker lama dibuang bila speaker baru sudah terdeteksi.
+6. Cache namespace baru `v8_7_5_verified_exact_entity_safe`; tool rotasi menangani cache v8.7.4 yang telah tercemar.
+7. Event baru Name ROI reject untuk membedakan registry exclusion dengan OCR rusak.
+
+E. FITUR YANG TETAP DIPERTAHANKAN
+- Dual canonical identity: Helen dan Helena adalah karakter berbeda.
+- Commander multi-kata `Alya Kujou`, Compound Speaker Entity/longest-match-first.
+- Two-Pass OCR: Body OCR + Name ROI; tidak diganti OCR perhuruf global.
+- Pengolahan Data & Identitas multi-game, Tampilan Sederhana checkbox, chip orange/migrasi simple-view, roster GFL2/GFL/WUWA, kategori GFL Paradeus/Sangvis.
+- Mode Responsif / Story Cepat dan Diagnostic A/B.
+
+F. VALIDATION GATES SETELAH PEMASANGAN
+- Jalankan tools v8.7.5 pada folder TEST; jangan overwrite data aktif tanpa backup.
+- Gunakan Lite V5 atau IDN V2/V3 untuk baseline label name; Fast V1 OCR 40% bukan baseline akurasi.
+- Uji Zhaohui, Vector, Helen, Helena, Alya Kujou, Phaetusa, Suomi, KSVK; perhatikan Ullrid bila OCR masih hilang huruf awal.
+- Pastikan tidak ada output internal `ORT_*` atau marker backend.
+- Uji Mode Responsif setelah baseline benar dan kirim Debug Bundle.
+
+G. RISIKO YANG MASIH TERBUKA
+- Full span backend dapat memengaruhi keluwesan kalimat yang banyak proper noun; perlu tes final Indonesia.
+- OCR name yang benar-benar rusak (`Zhohul`, `rid`) masih memerlukan alias review/screenshot, bukan fuzzy otomatis.
+- CT2 Fast/Lite belum aktif bila model SPM hilang; perbaikan dependency adalah langkah berikutnya setelah correctness stabil.
+
+H. PRINSIP WORKFLOW PERMANEN
+Semua saran berbasis log/video/source menjadi roadmap kumulatif. Setiap rilis wajib membawa handoff/ledger/changelog/known issues/test report. Patch minor tetap changed-files ZIP; pasang ke folder salinan uji; data user hanya dimigrasikan dengan backup/dry-run.

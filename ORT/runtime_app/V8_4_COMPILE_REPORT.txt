@@ -1,0 +1,5 @@
+ORT Translation v8.4 Compile Report
+===================================
+Python compile sweep: 205 Python files checked.
+Syntax errors: 0.
+Status: PASS.

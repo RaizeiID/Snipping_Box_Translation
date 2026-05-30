@@ -1,0 +1,44 @@
+ORTCORE DEVELOPMENT LEDGER & WORKFLOW POLICY — v8.7.8
+Tanggal: 28 Mei 2026
+
+ATURAN KUMULATIF
+1. Setiap hasil log, video POV, ZIP runtime, temuan bug, kandidat nama/term, keputusan klasifikasi, dan patch harus dicatat dalam memo/dokumen proyek.
+2. Saat user meminta update, implementasi harus memakai seluruh roadmap kumulatif yang belum dibatalkan, bukan hanya pesan terakhir.
+3. Nama/term fresh dari log harus dicatat. Aktivasi mengikuti tier aman:
+   - official existing → observed metadata, tanpa duplikasi;
+   - named speaker terverifikasi → exact-only;
+   - role/NPC belum pasti → pending review;
+   - alias OCR → ROI-only/reviewed;
+   - lore/location/org → special_terms;
+   - Commander per akun → tidak global.
+4. Candidate Miner hanya menghasilkan laporan review. Tidak boleh auto-promote data mentah ke label live/cache learning.
+5. Hallucination/omission/unsafe output tidak boleh masuk overlay final, cache final, current-dialog memo, training sample, atau evaluation yang dianggap accepted.
+
+LEDGER v8.7.8
+Input: audit v8.7.7 log/POV/runtime pada 28 Mei 2026.
+P0 ditemukan:
+- Output `al-Qur 'ân`, `ayat`, `zakat`, tafsir-pattern lolos dari Faithfulness v1.
+- CT2 aktif tetapi `legacy_argos`/`mixed_ct2_legacy_argos` masih masuk pada progressive/noisy job.
+- Normal/IDN belum CT2-first.
+- Evaluation belum cukup memuat alasan safety/fallback.
+
+Keputusan implementasi:
+- Faithfulness v2 + Qur quarantine.
+- Strict CT2 Story + Argos suppression pada progressive/noisy CT2 path.
+- IDN-over-CT2 + final-only safe commit.
+- QA unsafe fallback fix dan full gate telemetry.
+- Candidate miner review-only; ledger kandidat v8.7.8.
+- Cache namespace baru dan semantic rotation.
+
+VALIDATION CONTRACT
+- Compile seluruh source baru/berubah.
+- Regression v8.7.1–v8.7.8 + GFL smoke.
+- Install patch ke clone baseline v8.7.7.
+- Dry-run dan apply migration/rotation hanya pada clone.
+- Re-run regression setelah apply.
+- Package manifest dan checksum final.
+
+V9.0 CONTRACT
+- Rilis sebagai full-project ZIP pada folder baru.
+- Susun root minimal launcher; organisasikan source/docs/tools/config/data/tests/assets/runtime/generated data.
+- Sertakan migration plan dan master handoff dari v8.x.

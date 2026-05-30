@@ -1,0 +1,122 @@
+ORT Translation v8.7.7 — Compile & Regression Test Report
+====================================================
+Date: 27 Mei 2026
+
+[1] Compile sweep
+PASS: compileall entire work tree
+
+[2] Regression / smoke tests
+-- tools/v8_7_1_regression_test.py
+v8.7.1 regression test PASS: Auto defaults, GFL2 names, clean-vault/cache/speaker guards verified.
+-- tools/v8_7_2_regression_test.py
+v8.7.2 compatibility regression PASS under v8.7.5: cache final/memo, metadata-only GFL2 ROI, text repair, IDN export, and profile flags verified.
+-- tools/v8_7_3_regression_test.py
+v8.7.3 regression test PASS
+-- tools/v8_7_4_regression_test.py
+v8.7.4 compatibility regression PASS under v8.7.6
+-- tools/v8_7_5_regression_test.py
+v8.7.5 regression test PASS
+-- tools/v8_7_6_regression_test.py
+v8.7.6 compatibility-on-v8.7.7 PASS
+-- tools/v8_7_7_regression_test.py
+v8.7.7 regression test PASS
+-- tools/v8_7_gfl_smoke_test.py
+v8.7 GFL smoke test PASS
+- footer artifact normalization
+- normalized GFL cache key
+- credit/non-dialog candidate guard
+- Name/Body ROI + footer bbox mask
+- cache contamination rejection
+- GFL game selection/env contract
+- GFL seeded glossary
+
+[3] Tool dry-runs on v8.7.6 baseline content
+ORT Translation v8.7.7 Identity & Terms Migration DRY-RUN
+Policy: official catalog exact-only; CT2-live approved names exact-only; aliases ROI-only; Commander profile names never global.
+Official exact-speaker entries: 69
+Official removed from legacy_untrusted: 0
+Approved CT2-live exact additions: Berryfield, Cocoon, Carmen, Another Unfamiliar Worker
+Special terms total from defaults: 16
+Excluded global commander names: Vilyz, ARVITA ID, ATVITA ID
+Gunakan --apply pada folder TEST setelah backup. Alias tidak menjadi fuzzy body matcher.
+
+ORT Translation v8.7.7 Semantic Cache Rotation DRY-RUN
+Target namespace: v8_7_7_faithful_complete_ct2_safe
+Candidates: 11
+- naturalized_idn_cache_v8_7_6_adaptive_ocr_exact_safe.json: old_namespace, semantic_or_internal_contamination
+- translation_memory_gfl2_exilium_fast_fast_idn_v8_7_6_adaptive_ocr_exact_safe.json: old_namespace
+- translation_memory_gfl2_exilium_fast_fast_v1_v8_7_6_adaptive_ocr_exact_safe.json: old_namespace
+- translation_memory_gfl2_exilium_idn_idn_v2.json: semantic_or_internal_contamination
+- translation_memory_gfl2_exilium_idn_idn_v3_v8_7_6_adaptive_ocr_exact_safe.json: old_namespace
+- translation_memory_gfl2_exilium_idn_idn_v5_v8_7_6_adaptive_ocr_exact_safe.json: old_namespace, semantic_or_internal_contamination
+- translation_memory_gfl2_exilium_lite_idn_lite_idn_v2_v8_7_6_adaptive_ocr_exact_safe.json: old_namespace
+- translation_memory_gfl2_exilium_lite_idn_lite_idn_v5_v8_7_6_adaptive_ocr_exact_safe.json: old_namespace, semantic_or_internal_contamination
+- translation_memory_gfl2_exilium_lite_lite_v1_v8_7_6_adaptive_ocr_exact_safe.json: old_namespace, semantic_or_internal_contamination
+- translation_memory_gfl2_exilium_lite_lite_v4_v8_7_6_adaptive_ocr_exact_safe.json: old_namespace
+- translation_memory_gfl2_exilium_normal_v1_v8_7_6_adaptive_ocr_exact_safe.json: old_namespace
+Gunakan --apply hanya pada clone TEST; cache v8.7.6 dapat memuat hallucination semantik yang tidak boleh digunakan lagi.
+
+[4] Notes
+PASS means code/package logic validated locally; gameplay live v8.7.7 remains to be tested by user on a TEST clone.
+
+[5] Installed-candidate validation on v8.7.6 clone
+ORT Translation v8.7.7 Identity & Terms Migration APPLY
+Policy: official catalog exact-only; CT2-live approved names exact-only; aliases ROI-only; Commander profile names never global.
+Official exact-speaker entries: 69
+Official removed from legacy_untrusted: 0
+Approved CT2-live exact additions: Berryfield, Cocoon, Carmen, Another Unfamiliar Worker
+Special terms total from defaults: 16
+Excluded global commander names: Vilyz, ARVITA ID, ATVITA ID
+Backup dibuat dan registry diterapkan: backups/identity_before_v8_7_7_20260527_132006
+ORT Translation v8.7.7 Semantic Cache Rotation APPLY
+Target namespace: v8_7_7_faithful_complete_ct2_safe
+Candidates: 11
+- naturalized_idn_cache_v8_7_6_adaptive_ocr_exact_safe.json: old_namespace, semantic_or_internal_contamination
+- translation_memory_gfl2_exilium_fast_fast_idn_v8_7_6_adaptive_ocr_exact_safe.json: old_namespace
+- translation_memory_gfl2_exilium_fast_fast_v1_v8_7_6_adaptive_ocr_exact_safe.json: old_namespace
+- translation_memory_gfl2_exilium_idn_idn_v2.json: semantic_or_internal_contamination
+- translation_memory_gfl2_exilium_idn_idn_v3_v8_7_6_adaptive_ocr_exact_safe.json: old_namespace
+- translation_memory_gfl2_exilium_idn_idn_v5_v8_7_6_adaptive_ocr_exact_safe.json: old_namespace, semantic_or_internal_contamination
+- translation_memory_gfl2_exilium_lite_idn_lite_idn_v2_v8_7_6_adaptive_ocr_exact_safe.json: old_namespace
+- translation_memory_gfl2_exilium_lite_idn_lite_idn_v5_v8_7_6_adaptive_ocr_exact_safe.json: old_namespace, semantic_or_internal_contamination
+- translation_memory_gfl2_exilium_lite_lite_v1_v8_7_6_adaptive_ocr_exact_safe.json: old_namespace, semantic_or_internal_contamination
+- translation_memory_gfl2_exilium_lite_lite_v4_v8_7_6_adaptive_ocr_exact_safe.json: old_namespace
+- translation_memory_gfl2_exilium_normal_v1_v8_7_6_adaptive_ocr_exact_safe.json: old_namespace
+Backup dibuat: backups/cache_before_v8_7_7_semantic_20260527_132037
+v8.7.7 regression test PASS
+
+[6] Replay Benchmark smoke test
+Replay benchmark written: /mnt/data/ort_v877_build/replay_smoke/report.json | runs=1
+{
+  "tool": "ORT v8.7.7 Replay OCR & Overlay Benchmark",
+  "ground_truth": "/mnt/data/ort_v877_build/replay_smoke/truth.json",
+  "runs": [
+    {
+      "file": "/mnt/data/ort_v877_build/replay_smoke/result.json",
+      "samples": 2,
+      "mean_cer": 0.0,
+      "mean_wer": 0.0,
+      "speaker_label_hit_rate": 1.0,
+      "false_speaker_count": 0,
+      "stale_overlay_count": 0,
+      "semantic_hallucination_count": 0,
+      "omission_suspected_count": 0,
+      "details": [
+        {
+          "id": "1",
+          "cer": 0.0,
+          "wer": 0.0,
+          "speaker_expected": "Berryfield",
+          "speaker_predicted": "Berryfield"
+        },
+        {
+          "id": "2",
+          "cer": 0.0,
+          "wer": 0.0,
+          "speaker_expected": "Cocoon",
+          "speaker_predicted": "Cocoon"
+        }
+      ]
+    }
+  ]
+}

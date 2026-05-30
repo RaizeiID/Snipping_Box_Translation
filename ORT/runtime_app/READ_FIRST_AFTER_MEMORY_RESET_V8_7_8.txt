@@ -1,0 +1,25 @@
+READ FIRST AFTER MEMORY RESET — ORT Translation v8.7.8
+Tanggal: 28 Mei 2026
+
+Dokumen ini adalah pintu masuk kontinuitas proyek ORT setelah memori percakapan dibersihkan.
+
+STATUS TERAKHIR
+- Baseline yang diuji pengguna sebelum patch: v8.7.7.
+- Masalah P0 v8.7.7: hallucination lolos via al-Qur 'ân/ayat/zakat/pola tafsir; Argos fallback masih masuk meski CT2 aktif; IDN/Normal masih Argos; completeness/telemetry belum cukup.
+- v8.7.8 dibuat sebagai changed-files patch dengan Faithfulness Gate v2, Qur quarantine, Strict CT2 Story, IDN-over-CT2, final-only safe commit, telemetry lengkap, candidate miner review-only, cache rotation, identity migration, debug bundle dan test ledger.
+
+NAMA/TERM BARU V8.7.8
+- Exact-only: Kalina, Farkas.
+- Role exact-only: Client.
+- Existing v8.7.7 retained: Berryfield, Cocoon, Carmen, Another Unfamiliar Worker.
+- Terms baru: Satellite City, ODE-01 Municipal Center.
+- Pending only: Chief of Odesa, Municipal Broadcast, Zyevnadya/Yyevnadya.
+- Commander global exclusions: Vilyz, ARVITA ID, ATVITA ID.
+
+VALIDASI WAJIB PENGGUNA
+- Install ke folder clone TEST.
+- Jalankan tools/v8_7_8_cache_rotation.py dan tools/v8_7_8_identity_migration.py (dry-run lalu --apply hanya di TEST).
+- Uji CT2/IDN-over-CT2, scene hallucination lama, safe commit, strict CT2, kemudian export debug bundle/ledger.
+
+KEPUTUSAN V9.0
+- Rilis besar berikutnya diminta sebagai ZIP proyek utuh pada folder baru, dengan struktur folder rapi untuk GitHub dan root minimal berisi Start OCR/Runtime launcher.

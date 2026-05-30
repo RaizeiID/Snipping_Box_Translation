@@ -1,0 +1,10 @@
+ORT Translation v8.7.8 — Known Issues / Batasan
+Tanggal: 28 Mei 2026
+
+1. Gameplay live v8.7.8 belum diuji pengguna pada saat paket dibuat; seluruh klaim rilis saat ini berdasar source/regression/install validation.
+2. Faithfulness Gate v2 berbasis pola+coverage dapat menahan sebagian output valid yang memakai istilah agama bila source OCR sangat rusak; event/debug bundle wajib ditinjau bila terjadi false block.
+3. IDN-over-CT2 memerlukan model CT2/SPM tetap tersedia dan path rebind berhasil; bila model tidak tersedia, warning/fallback masih perlu diaudit.
+4. Strict CT2 Story dapat meningkatkan waktu tunggu pada fragment progressive karena memilih hold dibanding Argos fallback berisiko.
+5. OCR 40% tetap diagnostic/ultra-speed; baseline story aman masih 50–55%.
+6. Candidate Miner tidak mengaktifkan nama/term otomatis; keputusan manual tetap diperlukan demi menghindari false speaker.
+7. Full restructure GitHub dan ZIP utuh belum dilakukan pada v8.7.8; dijadwalkan sebagai rencana v9.0.

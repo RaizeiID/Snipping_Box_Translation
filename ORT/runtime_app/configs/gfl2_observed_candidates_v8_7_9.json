@@ -1,0 +1,302 @@
+{
+  "version": "v8_7_9_candidate_ledger_from_v8_7_8_live_audit_2026_05_29",
+  "game": "GFL2_EXILIUM",
+  "policy": {
+    "official_observed": "Official roster entries receive observed metadata only; never duplicate.",
+    "approved_exact": "Fresh identities with sufficient prefix evidence may become exact-only; no fuzzy body matching.",
+    "pending_review": "Uncertain named/role candidates remain review-only and are not live labels.",
+    "commander_exclusion": "Vilyz, ARVITA ID and ATVITA ID are per-account Commander names only.",
+    "learning_boundary": "Candidate mining may suggest additions, but live promotion requires user-reviewed update.",
+    "release_focus": "Responsive Faithfulness & Turn-Safe Overlay; candidate mining remains review-only."
+  },
+  "observed_recent_story_v8_7_7": [
+    {
+      "display_name": "Lentine",
+      "prefix_hits": 205,
+      "total_ocr": 246
+    },
+    {
+      "display_name": "Lenna",
+      "prefix_hits": 179,
+      "total_ocr": 204
+    },
+    {
+      "display_name": "Sharkry",
+      "prefix_hits": 169,
+      "total_ocr": 280
+    },
+    {
+      "display_name": "Groza",
+      "prefix_hits": 113,
+      "total_ocr": 171
+    },
+    {
+      "display_name": "Sextans",
+      "prefix_hits": 72,
+      "total_ocr": 106
+    },
+    {
+      "display_name": "Colphne",
+      "prefix_hits": 70,
+      "total_ocr": 105
+    },
+    {
+      "display_name": "Springfield",
+      "prefix_hits": 50,
+      "total_ocr": 69
+    },
+    {
+      "display_name": "Krolik",
+      "prefix_hits": 24,
+      "total_ocr": 24
+    },
+    {
+      "display_name": "Centaureissi",
+      "prefix_hits": 20,
+      "total_ocr": 70
+    },
+    {
+      "display_name": "Leva",
+      "prefix_hits": 9,
+      "total_ocr": 37
+    },
+    {
+      "display_name": "Dushevnaya",
+      "prefix_hits": 8,
+      "total_ocr": 9
+    },
+    {
+      "display_name": "Nemesis",
+      "prefix_hits": 5,
+      "total_ocr": 27
+    },
+    {
+      "display_name": "Helen",
+      "prefix_hits": 3,
+      "total_ocr": 8
+    },
+    {
+      "display_name": "Helena",
+      "total_ocr": 124
+    },
+    {
+      "display_name": "Makiatto",
+      "total_ocr": 110
+    },
+    {
+      "display_name": "Mayling",
+      "total_ocr": 32
+    },
+    {
+      "display_name": "KSVK",
+      "total_ocr": 19
+    },
+    {
+      "display_name": "Dandelion",
+      "total_ocr": 9
+    }
+  ],
+  "already_added_v8_7_7_keep_exact_only": [
+    "Berryfield",
+    "Cocoon",
+    "Carmen",
+    "Another Unfamiliar Worker"
+  ],
+  "pending_story_role_or_identity_review": [
+    {
+      "display_name": "Chief of Odesa",
+      "evidence": "Chief of Odega 10 prefix; Chlef Odesa 7 prefix",
+      "reason": "visual canonical review required"
+    },
+    {
+      "display_name": "Municipal Broadcast",
+      "evidence": "single occurrence",
+      "reason": "narration label review, not global speaker"
+    },
+    {
+      "display_name": "Zyevnadya / Yyevnadya",
+      "evidence": "259 / 207 prefix",
+      "reason": "high-priority visual identity review; never auto-map to Dushevnaya"
+    },
+    {
+      "display_name": "Blondie",
+      "evidence": "v8.7.8 live audit / candidate review",
+      "reason": "seen in entity sequence; visual identity required"
+    },
+    {
+      "display_name": "DKRIN",
+      "evidence": "v8.7.8 live audit / candidate review",
+      "reason": "frequent prefix/label but unsafe without classification"
+    },
+    {
+      "display_name": "NOMFA",
+      "evidence": "v8.7.8 live audit / candidate review",
+      "reason": "term/entity classification review only"
+    },
+    {
+      "display_name": "Perslcarla",
+      "evidence": "v8.7.8 live audit / candidate review",
+      "reason": "candidate mining review only"
+    },
+    {
+      "display_name": "Beepy",
+      "evidence": "v8.7.8 live audit / candidate review",
+      "reason": "candidate mining review only"
+    },
+    {
+      "display_name": "Warrant Officer",
+      "evidence": "v8.7.8 live audit / candidate review",
+      "reason": "role canonicalisation review only"
+    }
+  ],
+  "roi_only_alias_candidates": [
+    {
+      "ocr_form": "Krollk",
+      "canonical": "Krolik",
+      "hits": 106
+    },
+    {
+      "ocr_form": "Nemesls",
+      "canonical": "Nemesis",
+      "hits": 45
+    },
+    {
+      "ocr_form": "Kallna",
+      "canonical": "Kalina",
+      "hits": 88
+    },
+    {
+      "ocr_form": "Kalin",
+      "canonical": "Kalina",
+      "hits": 105
+    },
+    {
+      "ocr_form": "Cllent",
+      "canonical": "Client",
+      "hits": 277
+    },
+    {
+      "ocr_form": "QDE-01",
+      "canonical": "ODE-01",
+      "hits": 16
+    },
+    {
+      "ocr_form": "aklatto",
+      "canonical": "Makiatto",
+      "hits": 82
+    },
+    {
+      "ocr_form": "akiatto",
+      "canonical": "Makiatto",
+      "hits": 29
+    },
+    {
+      "ocr_form": "Maklatto",
+      "canonical": "Makiatto",
+      "hits": null,
+      "status": "review_roi_only_v8_7_9"
+    },
+    {
+      "ocr_form": "Centaurelssl",
+      "canonical": "Centaureissi",
+      "hits": null,
+      "status": "review_roi_only_v8_7_9"
+    },
+    {
+      "ocr_form": "Centawrelssl",
+      "canonical": "Centaureissi",
+      "hits": null,
+      "status": "review_roi_only_v8_7_9"
+    },
+    {
+      "ocr_form": "Shafkry",
+      "canonical": "Sharkry",
+      "hits": null,
+      "status": "review_roi_only_v8_7_9"
+    },
+    {
+      "ocr_form": "Sprlngfield",
+      "canonical": "Springfield",
+      "hits": null,
+      "status": "review_roi_only_v8_7_9"
+    },
+    {
+      "ocr_form": "Kalllna",
+      "canonical": "Kalina",
+      "hits": null,
+      "status": "review_roi_only_v8_7_9"
+    },
+    {
+      "ocr_form": "Dandelon",
+      "canonical": "Dandelion",
+      "hits": null,
+      "status": "review_roi_only_v8_7_9"
+    }
+  ],
+  "special_terms_additions": [
+    "Satellite City",
+    "ODE-01 Municipal Center",
+    "Port Vest",
+    "Collapse Epiphyllum",
+    "Collapse Epiphyllums",
+    "Boojum",
+    "Boajum",
+    "NOMFA",
+    "Varjager",
+    "Varjagers"
+  ],
+  "special_terms_keep_observed": [
+    "Odesa",
+    "Mangi Security",
+    "ODE-01",
+    "Griffin",
+    "Green Zone",
+    "Conglomerate",
+    "URNC"
+  ],
+  "commander_profile_only_excluded_global": [
+    "Vilyz",
+    "ARVITA ID",
+    "ATVITA ID"
+  ],
+  "blocked_semantic_injection_indicators": [
+    "nabi",
+    "Quran/Alquran",
+    "al-Qur 'ân",
+    "ayat",
+    "zakat",
+    "surat",
+    "neraka",
+    "kiamat",
+    "sekaratul maut",
+    "makkiyyah",
+    "mubtada",
+    "Mekah",
+    "Luth",
+    "Syuaib",
+    "malaikat",
+    "kafir",
+    "mukmin",
+    "Al-masyâriq"
+  ],
+  "approved_exact_additions_v8_7_9": [
+    {
+      "display_name": "Kalina",
+      "evidence": "206 prefix / 216 total; repeated Kallna/Kalin OCR variants",
+      "category": "approved_named_story_speaker_exact",
+      "policy": "exact_only"
+    },
+    {
+      "display_name": "Farkas",
+      "evidence": "66 prefix / 83 total",
+      "category": "approved_named_story_speaker_exact",
+      "policy": "exact_only"
+    },
+    {
+      "display_name": "Client",
+      "evidence": "Client 42 prefix plus Cllent 244 prefix",
+      "category": "approved_role_speaker",
+      "policy": "exact_only"
+    }
+  ]
+}

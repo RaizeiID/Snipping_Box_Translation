@@ -1,0 +1,362 @@
+ORTCORE / ORT TRANSLATION — CATATAN BESAR KELANJUTAN PROYEK SETELAH MEMORY RESET
+================================================================================
+Versi catatan : v8.7 handoff lengkap
+Tanggal       : 25 Mei 2026
+Tujuan        : Dibaca kembali oleh ChatGPT pada percakapan baru setelah memori pengguna dibersihkan.
+Status paket  : ORT Translation v8.7 FULL PROJECT — GFL Dedicated Dialogue Profile & OCR Contamination Guard
+
+PENTING UNTUK CHATGPT PADA PERCAKAPAN BARU
+------------------------------------------
+File ini bukan sekadar ringkasan singkat. File ini dibuat karena pengguna berencana menghapus seluruh memori ChatGPT setelah muncul notifikasi bahwa memori penuh. Ketika file ini diunggah pada chat baru, perlakukan isinya sebagai konteks utama proyek ORTCore/ORT Translation sampai pengguna memberikan folder atau log terbaru.
+
+Langkah pertama pada chat baru:
+1. Baca file catatan ini sampai selesai.
+2. Bila pengguna mengunggah ZIP proyek v8.7 atau folder terbarunya, analisis file `ORTCORE_VERSION.txt`, `TITANCORE_VERSION.txt`, `CHANGED_FILES_MANIFEST_V8_7.txt`, folder `docs/`, lalu source code yang berkaitan dengan permintaan baru.
+3. Bila pengguna mengunggah log pengujian baru, jangan menebak hasil. Analisis log aktual dan bandingkan terhadap target v8.7 di bawah.
+4. Pertahankan keputusan yang sudah dikunci, terutama perbedaan GFL dan GFL2, kebijakan keterbatasan OCR angka, semantik Auto/Interval/Freeze, serta aturan pengiriman ZIP.
+5. Untuk update kecil setelah v8.7, umumnya kirim hanya changed-files ZIP; untuk update besar/folder baru yang diminta pengguna, kirim full project ZIP.
+
+A. IDENTITAS PROYEK DAN KEBUTUHAN PENGGUNA
+------------------------------------------
+Nama proyek    : ORT Translation / ORTCore / TitanCORE translator
+Jenis aplikasi : Aplikasi penerjemah dialog game berbasis OCR real-time dengan overlay terjemahan, WebUI, cache, model/engine selection, diagnostic tools, dan learning/glossary.
+Platform utama : Windows pada laptop pengguna.
+Hardware yang pernah ditetapkan pengguna:
+- Acer Predator Helios Neo PHN16-71.
+- RAM 64 GB.
+- NVIDIA RTX 4050 Laptop GPU 6 GB VRAM.
+- Game berat seperti Wuthering Waves perlu preset aman karena VRAM juga digunakan game.
+
+Kebiasaan dan preferensi kerja pengguna:
+- Pengguna menguji langsung dengan game dan mengirim screenshot/log panjang.
+- Pengguna menginginkan analisis profesional, lalu file ZIP siap pakai.
+- Untuk update besar seperti v8.0, v8.4, dan v8.7, pengguna meminta full folder/project ZIP untuk membuat folder baru.
+- Setelah update besar selesai, update lanjutan minor biasanya harus berupa ZIP yang hanya berisi file berubah/ditambah, kecuali diminta berbeda.
+- Semua update harus terdokumentasi dengan versi, perubahan, file terubah, hasil tes/compile, known issues, dan rekomendasi berikutnya.
+- Fitur/UI penting jangan dirombak sembarangan: kotak terjemahan utama, indikator ping/ms/game/engine, kontrol engine/mode/shortcut, daftar keluarga model Normal/Lite/IDN/Lite IDN/Fast, Dashboard AI Recap, dan fokus Runtime & Tools.
+
+B. ARSITEKTUR UMUM APLIKASI YANG PERLU DIPAHAMI
+-----------------------------------------------
+Komponen yang sering menjadi pusat perubahan:
+- `TITANMAIN.py`               : runtime OCR/overlay/translation utama, masih cukup besar.
+- `webui.py`                   : Dashboard dan Runtime & Tools.
+- `launcher_backend.py`        : menerjemahkan pilihan UI menjadi environment/runtime start dan log status.
+- `model_registry.py` / `model_strategy.py` : model family, preset OCR/interval/engine dan strategi.
+- `translation_engine.py`      : backend terjemahan, cache/naturalization/engine path.
+- `runtime_bridge.py`          : preprocessing/postprocessing antar runtime dan engine.
+- `v7_system_profile.py`       : game/hardware profile dan environment yang diterapkan.
+- `cache_store.py`             : scoped cache/fuzzy cache/guard cache.
+- `benchmark_session_report.py`: Analyze Last Session.
+- `data_processing_backend.py` : WebUI glossary/name/special/blacklist/candidate handling.
+- `app/`                       : modul yang semakin dipisah mulai v8.0: OCR, runtime, translation, telemetry, learning, diagnostics.
+
+Keluarga model penting:
+- Normal V1–V5.
+- Lite V1–V5.
+- IDN V1–V5.
+- Lite IDN V1–V5.
+- Fast V1, Fast V2, Fast IDN.
+
+Semantik mode yang sudah diputuskan dan tidak boleh diubah tanpa permintaan pengguna:
+- Freeze   : pengguna memicu/dialog manual; snapshot cepat dan stabil untuk klik cerita manual.
+- Interval : Freeze otomatis secara berkala/stabil; cocok untuk cerita yang dibaca manual atau semi-otomatis.
+- Auto     : cerita berjalan otomatis; harus mendukung teks yang muncul bertahap tanpa menahan hasil terlalu lama.
+Fast/Lite/IDN hanya menjadi modifier profil/tuning di atas semantik mode tersebut, bukan mengganti arti mode.
+
+C. RIWAYAT VERSI PENTING DAN KEPUTUSAN PER VERSI
+-------------------------------------------------
+v6.6 → v7.x (konteks awal modernisasi)
+- Aplikasi sudah memiliki WebUI, OCR, overlay dan banyak model.
+- Target v7 adalah refactor aman: game profile, hardware/spec detection, model families lebih rapi, tanpa merusak UI utama.
+- Dashboard AI Recap dari Live Log dirancang berada di Dashboard/main page; tombol membuka ChatGPT/Gemini dengan prompt yang sudah disalin, bukan dipindahkan ke Runtime & Tools.
+- Runtime & Tools tetap fokus pada runtime/GPU tools; tombol Install/Repair GPU tetap oranye default dan abu-abu saat aktif.
+- OCR resolution tersedia dari 100% hingga 5%, baseline optimasi pernah sekitar 65%.
+
+v8.0 — Major Maturity / Foundation Build
+- Rilis full-folder besar.
+- Menambahkan fondasi `app/`, Mode Pengaturan (Rekomendasi Sistem vs Normal/Manual), Reset Live Log, Analyze Last Session, Reset Settings, Profile Resolver, Safe Mode Guard, Conflict Detector, GPU/Torch CUDA Diagnostic, OCR Noise Normalizer, Speaker Candidate Gate, dan prototype SQLite cache.
+- Belum final: `TITANMAIN.py` masih besar; stable text commit/correlation ID belum penuh; setup wizard/testing wizard belum selesai.
+
+v8.1 — WebUI Stability & Runtime Integration Hotfix
+- Memperbaiki Exit agar tidak menampilkan traceback ASGI/SystemExit.
+- Reset Live Log membersihkan buffer WebUI tanpa menghapus log sesi.
+- Menghubungkan tombol Analyze Last Session, GPU Diagnostic, Conflict Detector, Reset Settings, Clean NPC Database.
+- Memperbaiki Normal/Recommended agar tidak saling overwrite dan menambah status requested-vs-effective runtime.
+- Mengintegrasikan OCR Noise Normalizer dan StableTextCommitter lebih dekat ke runtime.
+
+v8.2 / v8.2.1 — Story Dialogue Performance & Fast Activation
+- Menambahkan Story Dialogue Scheduler, Image Hash Gate sebelum OCR, fuzzy cache key, Fast CT2 warning/fallback status, dan speaker gate lebih kuat.
+- v8.2.1 memperbaiki Interval yang sempat macet pada `TYPING:text_changed_wait_stable` sehingga terjemahan tidak muncul.
+- Pelajaran: pengujian model Fast tidak sah bila CT2 belum benar-benar aktif.
+
+v8.3 sampai v8.3.4 — Runtime Repair, Fast CT2, dan Penguncian Fast
+- Menambahkan repair/validation Torch CUDA/CPU, Fast CT2 setup diagnostics, validasi model folder/SPM, dan tuning story voice hold.
+- Pada tes GFL2, Fast CT2 pernah terbukti aktif dan waktu translasi dapat jauh turun; masalah berikutnya beralih ke kualitas OCR/scheduler/name typo.
+- v8.3.3 memperkenalkan identitas Fast V1/Fast V2/Fast IDN dan penyimpanan default per-model.
+- v8.3.4 mengunci perilaku Fast dan Auto/Interval sebelum fokus berpindah ke Lite; user tidak ingin Fast terus dituning tanpa alasan nyata.
+
+v8.4 sampai v8.4.5 — Lite/Lite IDN GPU Efficient dan Diagnose Foundation
+- v8.4 full package: Lite/Lite IDN dapat memakai GPU secara efisien pada game berat dengan VRAM guard, IDN Quality foundation, learning quarantine, Diagnose & Repair Center, dan release hygiene.
+- v8.4.3 menyesuaikan Fast: V1 OCR 40%/45ms, V2 OCR 45%/60ms, Fast IDN OCR 50%/75ms.
+- v8.4.4 menetapkan identitas akhir Lite/Lite IDN sebelum v8.5:
+  * V1 = OCR 40% ultra efficient.
+  * V2 = OCR 45% recommended efficient-balanced.
+  * V3 = OCR 50% balanced quality.
+  * V4 = OCR 55% quality-safe, desain hybrid/online+offline ketika configured.
+  * V5 = OCR 60% kualitas bersih, bukan default game berat.
+- v8.4.5 menemukan Number-Safe OCR dapat menolak noise angka UI, tetapi OCR sering tidak menangkap angka asli dalam dialog tactical GFL2.
+
+v8.5 / v8.5.1 / v8.5.2 — Numeric OCR dan Lite Maturity
+- v8.5 menambahkan numeric dual-pass OCR ketika konteks tactical/angka terdeteksi tetapi nilai hilang, serta cache protection untuk garis yang kehilangan angka.
+- v8.5.1 menambahkan ROI-first numeric OCR yang lebih ketat dan VRAM guard yang menurunkan OCR dahulu sebelum memaksa CPU.
+- KEPUTUSAN PENTING: bila angka kecil/blur tetap gagal terbaca setelah v8.5.1, anggap sebagai keterbatasan minor OCR dan jangan menjadikannya blocker utama, kecuali muncul regresi besar.
+- v8.5.2 menyelesaikan Lite/Lite IDN maturation: Naturalized IDN Cache, GFL2 name alias normalizer, Lite telemetry requested vs applied, controlled online assist guard, dan rekomendasi Analyze Last Session.
+
+v8.6 — IDN Quality Layer & IDN Model Optimization
+- Base langsung sebelum v8.7.
+- Menambahkan IDN Quality Layer bersama untuk Fast IDN, Lite IDN, dan Normal IDN; mode Light/Balanced/Natural/Quality; terminology consistency; naturalized cache version `v8_6`; dan menghindari double pass untuk Lite IDN.
+- Desain V4 dipertahankan: V4 adalah jalur kualitas/hybrid yang boleh memakai bantuan online jika configured. Jangan pernah menyatakan online assist digunakan hanya karena policy `hybrid`; harus cek log applied engine/online events.
+
+v8.7 — RILIS SAAT CATATAN INI DIBUAT
+- Nama: `GFL Dedicated Dialogue Profile & OCR Contamination Guard`.
+- Tipe: FULL PROJECT untuk folder baru, karena pengguna akan memulai chat baru dan update ini besar.
+- Base build: folder sumber penuh v8.5.2 dari `ORT_Translation_v8_5 FINAL.zip` ditimpa patch v8.6 dari `ORT_Translation_v8_6_CHANGED_FILES.zip`, lalu dimodifikasi menjadi v8.7.
+- Alasan utama: user menguji game Girls' Frontline seri pertama, tetapi log masih memakai `game=GFL2_EXILIUM`; panel dialog GFL mempunyai footer/ikon `GFsystem` di kanan bawah yang mencemari OCR dan cache serta memicu pembelajaran speaker salah.
+
+D. HASIL UJI GFL YANG MENJADI DASAR v8.7
+-----------------------------------------
+Input pengujian yang pernah diberikan pengguna:
+- 10 screenshot dialog/scene Girls' Frontline seri pertama, termasuk narasi, AK-12, AN-94, dan Dandelion.
+- 10 file log pengujian model pada 25 Mei 2026.
+
+Observasi screenshot:
+- GFL seri pertama memiliki kotak dialog lebih kecil/kompak daripada GFL2.
+- Di kanan bawah kotak dialog terdapat ikon lanjut/lingkaran, tulisan kecil `GFsystem`, dan pola garis kuning. Area ini tetap berada di dalam crop dialog dan berpotensi terbaca sebagai teks.
+- Dialog karakter menempatkan nama pada kiri atas panel, contohnya `AK-12`, `AN-94`, dan `Dandelion`; isi dialog berada di bawahnya.
+- Narasi tidak memiliki nama pembicara sehingga kata pertama narasi tidak boleh dipromosikan sebagai NPC.
+
+Temuan log yang dianalisis sebelum v8.7:
+- Meskipun game yang dimainkan adalah GFL seri pertama, log berjalan dengan `game=GFL2_EXILIUM`, jadi belum ada profile GFL khusus.
+- Crop pada log sekitar width 1304–1309 dan height 293–308.
+- Hasil analisis sesi sebelumnya mencatat 9.529 event PIPE; seluruhnya `cache=MISS` dan `engine=argos_offline`.
+- Median latency sekitar 105 ms, p90 sekitar 185 ms, maksimum sekitar 962 ms. Angka ini tidak boleh dipakai membandingkan kecepatan model Fast/Lite karena applied engine sama-sama Argos fallback dan mode sesi tidak seragam.
+- Pattern noise OCR khas GFL yang terlihat/terhitung: `gFn` sekitar 782, `ngf` sekitar 998, `nifn` 271, `ni5e` 59, `nfe` 185, `ylf` 20, `Sn` 348, `吊` 26, `另` 161.
+- Kontaminasi layar non-dialog/credit terlihat seperti `CHARACTER VO`, `ON SCENE`, `GAME DESIGN`, `Mica-team`, `SUNBORN`, dan `TRUE ENDING`.
+- Terdapat 122 event `New speaker learned`; banyak yang palsu/terkontaminasi narasi atau credit, misalnya `Familiar`, `Kalinais`, `Shortly`, `Afaint`, `Ablade`, `Arasping`, `Facing`, `Conference`, `Character`, `Girls'`, `Programming`, `TEAM`, `VIDEO`, dan `Sunborn`.
+- Pada log Fast V2, CT2 tidak benar-benar aktif karena dilaporkan kekurangan file SPM; jalur jatuh ke Argos.
+- Pada log Lite IDN V4 terdapat kebijakan hybrid, tetapi event yang terlihat masih Argos offline; v8.7 perlu menampilkan requested/applied path agar tidak terjadi asumsi keliru.
+
+E. IMPLEMENTASI AKTUAL v8.7
+----------------------------
+1. Profil game baru `GFL`
+- File utama: `v7_system_profile.py`, `app/strategies/profile_resolver.py`, `webui.py`, `launcher_backend.py`.
+- Pilihan baru: `Girls' Frontline (GFL)` dengan key `GFL`, terpisah dari `GFL2_EXILIUM`.
+- Rekomendasi awal GFL: Lite IDN V3, mode Interval, engine Hybrid, OCR 55%, interval 240 ms sebagai starting point yang seimbang; pengguna dapat menyesuaikan setelah real test.
+- Environment khusus saat GFL dipilih:
+  `ORT_GFL_LAYOUT=1`, `ORT_GFL_FOOTER_MASK=1`, `ORT_GFL_DIALOG_PRESENCE_GUARD=1`, `ORT_GFL_SPEAKER_ROI=1`, `ORT_GFL_ARTIFACT_FILTER=1`, `ORT_GFL_CACHE_NORMALIZED=1`, `ORT_GFL_CACHE_STABLE_ONLY=1`, strict speaker gate, dan quarantine tiga hit.
+
+2. GFL Dialogue Layout Resolver
+- File baru: `app/games/gfl_profile.py` dan `app/ocr/gfl_dialogue_layout.py`.
+- Resolusi layout menggunakan bounding box OCR: kandidat di bagian kiri atas hanya diterima sebagai speaker jika cocok terhadap nama seeded/aman; teks lainnya disusun menjadi body.
+- Dalam narasi tanpa speaker, semua teks diperlakukan sebagai body, sehingga kata pertama tidak langsung menjadi NPC.
+
+3. Footer mask `GFsystem` / ikon kanan bawah
+- File: `app/ocr/gfl_dialogue_layout.py` dan integrasi di `TITANMAIN.py`.
+- Area kanan bawah tetap dimask pada frame OCR GFL, tetapi seluruh baris bawah tidak dipotong agar dialog panjang tetap dapat terbaca.
+- Selain mask visual, token footer dibersihkan lagi secara text-level untuk menangkap noise yang masih lolos.
+
+4. Footer Artifact Filter dan Credit Guard
+- Target awal footer/noise: `gFn`, `ngf`, `nifn`, `ni5e`, `nfe`, `ylf`, `Sn`, `S5gg`, `GFsystem`, serta karakter footer asing seperti `吊`, `另`, `墨`.
+- Marker credit/non-dialog yang ditolak: `CHARACTER VO`, `ON SCENE`, `GAME DESIGN`, `MICA-TEAM/MICA TEAM`, `SUNBORN`, `TRUE ENDING`, `PROGRAMMING`, `VIDEO DESIGN`, `AUDIO DESIGN`.
+- Integrasi filter: `app/ocr/ocr_noise_normalizer.py`, `runtime_bridge.py`, `translation_engine.py`, dan `TITANMAIN.py`.
+
+5. Dialogue Presence Guard
+- Guard visual murah berbasis indikasi garis kuning/oranye dan panel gelap pada crop GFL.
+- Bersifat konservatif: baru menahan proses setelah beberapa miss berturut-turut agar tampilan dialog yang tidak biasa tidak langsung hilang.
+- Event baru dapat muncul: `GFL_NON_DIALOG_FRAME_SKIPPED` dan `GFL_NON_DIALOG_TEXT_SKIPPED`.
+
+6. Speaker learning/quarantine dan NPC cleanup
+- File: `app/translation/speaker_candidate_gate.py`, `app/learning/learning_quarantine.py`, `tools/npc_database_cleanup.py`, `data_processing_backend.py`.
+- Nama seeded GFL seperti `AK-12` dan `AN-94` boleh lolos meski mengandung angka/tanda hubung.
+- False learning populer dari hasil log GFL diblokir/ditandai untuk pembersihan: `Familiar`, `Shortly`, `Facing`, `Conference`, `Official`, `Character`, `Girls`, `Programming`, `Team`, `Video`, `Sunborn`, dan variasi noise.
+- Candidate processing WebUI untuk game GFL juga membersihkan footer/credit sebelum menawarkan item kepada pengguna.
+
+7. Seeded GFL glossary
+- File konfigurasi: `configs/gfl_dialogue_profile.json`.
+- Disimpan juga sebagai bucket `GFL` dalam `data_processing_store.json` ketika paket dibuat.
+- Nama awal aman/berkeyakinan tinggi antara lain: Commander, Kalina, Dandelion, AK-12, AN-94, AK-15, Tokarev, Groza, M4A1, M4 SOPMOD II, ST AR-15, AR-15, RO635, UMP45, UMP9, HK416, G11, M16A1, Kryuger, Helian, Persica, Angelina/Ange, Lunasia, dan William.
+- Istilah awal: T-Doll, Task Force DEFY, DEFY, Griffin & Kryuger, Paradeus, Sangvis Ferri, Nyto, White Nyto, Black Nyto, Neural Cloud, Diergate, ELID, IOP.
+- Daftar sengaja tidak diklaim sebagai roster lengkap semua karakter; konsepnya seed aman dan dapat diperluas dari tes nyata tanpa menambah false positive besar.
+
+8. Cache all-MISS mitigation
+- File: `app/translation/fuzzy_cache_normalizer.py`, `cache_store.py`, `translation_engine.py`.
+- Ketika GFL aktif, source text dinormalisasi setelah footer removal/name-alias repair sebelum lookup/store cache.
+- Token footer yang berbeda tidak lagi seharusnya membuat key berbeda untuk kalimat yang sama.
+- Prefix dialog pendek yang masih progresif tidak disimpan untuk mengurangi polusi cache.
+- Penting: v8.7 memperbaiki sumber fragmentasi cache, tetapi keberhasilan cache HIT baru dianggap terbukti setelah replay/ulang dialog di instalasi pengguna.
+
+9. Diagnostic report v8.7
+- File: `benchmark_session_report.py` dan `launcher_backend.py`.
+- Analyze Last Session sekarang dapat melaporkan jumlah GFL footer artifact, credit/non-dialog OCR, teks/frame non-dialog yang disuppress, cache rate, Argos fallback/engine path, dan rekomendasi profile.
+- Tujuan: memisahkan kegagalan OCR/layout dari mutu model atau backend penerjemahan.
+
+10. Region quality check GFL
+- File: `TITANMAIN.py`.
+- Saat GFL aktif, status region menyatakan mask aktif dan memberi peringatan bila area sangat lebar/tinggi, sambil tetap mempertahankan teks dialog panjang.
+
+11. Release hygiene dan first-run preset untuk build baru
+- Karena rilis ini dibuat khusus untuk pengujian GFL pada folder baru, log/cache/status runtime lama dan database hasil learning lama yang terkontaminasi tidak dibawa ke rilis; `npc_database.json` dan `unique_terms.json` dimulai dari seed berkeyakinan tinggi yang bersih.
+- `webui_prefs.json` dan state awal diarahkan ke game `GFL`, mode Recommended, model `ORTCore Lite IDN V3`, Interval 240 ms dan OCR 55%.
+- Pengguna tetap dapat memilih game/model lain; perubahan ini hanya membuat validasi awal v8.7 tidak kembali salah memakai GFL2.
+
+F. FILE BERUBAH / BARU PADA v8.7
+---------------------------------
+File baru utama:
+- `app/games/__init__.py`
+- `app/games/gfl_profile.py`
+- `app/ocr/gfl_dialogue_layout.py`
+- `configs/gfl_dialogue_profile.json`
+- `tools/v8_7_gfl_smoke_test.py`
+- `docs/V8_7_GFL_DEDICATED_PROFILE.md`
+- `docs/V8_7_COMPILE_REPORT.txt`
+- `docs/PROJECT_CONTINUITY_HANDOFF_AFTER_MEMORY_RESET_V8_7.txt`
+- `READ_FIRST_AFTER_MEMORY_RESET.txt`
+- `PATCH_APPLY_NOTES_V8_7.txt`
+- `CHANGED_FILES_MANIFEST_V8_7.txt`
+
+File source yang dimodifikasi:
+- `TITANMAIN.py`
+- `v7_system_profile.py`
+- `webui.py`
+- `launcher_backend.py`
+- `runtime_bridge.py`
+- `translation_engine.py`
+- `model_strategy.py`
+- `benchmark_session_report.py`
+- `cache_store.py`
+- `data_processing_backend.py`
+- `data_processing_store.json`
+- `tools/npc_database_cleanup.py`
+- `app/learning/learning_quarantine.py`
+- `app/ocr/ocr_noise_normalizer.py`
+- `app/strategies/profile_resolver.py`
+- `app/translation/fuzzy_cache_normalizer.py`
+- `app/translation/name_alias_normalizer.py`
+- `app/translation/speaker_candidate_gate.py`
+
+Dokumentasi/version tracking:
+- `ORTCORE_VERSION.txt`, `TITANCORE_VERSION.txt`
+- `docs/CHANGELOG.md`, `docs/VERSION_HISTORY.txt`, `docs/IMPLEMENTATION_STATUS.txt`, `docs/NEXT_RECOMMENDATIONS.txt`, `docs/KNOWN_ISSUES.txt`
+
+G. KEPUTUSAN YANG SUDAH DIKUNCI / JANGAN DILUPAKAN
+----------------------------------------------------
+1. GFL dan GFL2 adalah profile berbeda.
+   - Jangan kembali memproses Girls' Frontline seri pertama memakai `GFL2_EXILIUM` bila pengguna memilih GFL.
+   - GFL memerlukan footer mask dan Name/Body ROI; GFL2 memiliki isu wide-dialog/numeric lain.
+
+2. OCR angka kecil bukan lagi prioritas utama.
+   - Setelah perbaikan numeric ROI pada v8.5.1, angka yang tetap tidak terbaca dianggap known minor limitation, kecuali ada regresi besar atau pengguna secara eksplisit kembali memprioritaskannya.
+
+3. Jangan menyimpulkan performa Fast ketika engine masih Argos fallback.
+   - Jika log menunjukkan `engine=argos_offline` atau Fast CT2 unavailable karena model/SPM tidak ada, benchmark Fast vs Lite tidak valid.
+
+4. V4 tetap hybrid/online+offline secara desain.
+   - Model V4 tidak boleh dipaksa offline-only secara permanen.
+   - Namun, bantuan online hanya dianggap benar-benar berjalan bila log/status membuktikan applied online assist; policy hybrid saja bukan bukti.
+
+5. Cache harus dinilai setelah OCR bersih.
+   - Masalah all-MISS pada GFL dipengaruhi footer artifact dan progressive typing. Uji ulang cache hanya setelah profile GFL v8.7 aktif.
+
+6. Speaker/NPC learning harus konservatif.
+   - Nama valid dapat di-seed atau dikonfirmasi.
+   - Narasi dan credit tidak boleh otomatis masuk database speaker.
+
+7. Fitur UI yang tidak boleh dirusak tanpa instruksi eksplisit pengguna:
+   - Translation overlay utama dan gaya inti.
+   - Indikator ping/ms/game/engine.
+   - Kontrol engine/mode/shortcut.
+   - Seluruh kelompok model V1–V5, Lite, IDN, Lite IDN, Fast.
+   - Dashboard AI Recap tetap di Dashboard; Runtime & Tools fokus runtime/diagnostic.
+   - Reset Live Log di sebelah Copy Live Log.
+
+H. VERIFIKASI BUILD v8.7 YANG TELAH DILAKUKAN
+---------------------------------------------
+Yang dapat diverifikasi di lingkungan pembuatan paket:
+- Seluruh 213 file Python dikompilasi menggunakan `python -m compileall` tanpa syntax error setelah modifikasi.
+- Smoke test v8.7 lulus untuk:
+  * pembersihan footer token GFL;
+  * penyamaan normalized cache key antara variasi `gFn` dan `ngf`;
+  * pemblokiran credit/non-dialog pada candidate pipeline;
+  * ekstraksi `AK-12: Shit!` dengan footer bbox diabaikan;
+  * penolakan cache contamination;
+  * aktivasi environment/profile GFL;
+  * adanya seeded glossary GFL.
+- Diagnostic analyzer diuji dengan event JSONL sintetis untuk menghitung footer artifact, credit, dan suppressed frame.
+- Presence Guard + footer mask diuji pada 10 screenshot GFL yang diunggah pengguna; seluruh 10 crop dialog terdeteksi sebagai dialog dan mask footer diterapkan.
+
+Yang belum dapat diklaim tanpa pengujian pengguna di Windows/game:
+- Ketepatan footer mask pada seluruh resolusi/UI scaling GFL.
+- Penurunan nyata noise OCR pada seluruh scene.
+- Kenaikan cache HIT pada replay dialog nyata.
+- Aktivasi CT2/online assist pada mesin pengguna setelah setup runtime/model.
+
+I. PROSEDUR UJI YANG DISARANKAN SETELAH USER MENGEKSTRAK v8.7
+--------------------------------------------------------------
+Tes pertama — validasi profile GFL:
+1. Ekstrak full ZIP sebagai folder baru.
+2. Jalankan WebUI.
+3. Pilih game `Girls' Frontline (GFL)`.
+4. Pilih `ORTCore Lite IDN V3` sebagai tes awal seimbang.
+5. Gunakan mode Interval untuk kontrol awal; kemudian Auto bila panel sudah stabil.
+6. Snip hanya kotak dialog GFL secara penuh secukupnya, tidak perlu memotong footer manual karena mask otomatis aktif.
+7. Test scene:
+   - Narasi tanpa nama.
+   - Dialog `AK-12`.
+   - Dialog `AN-94`.
+   - Dialog `Dandelion`.
+   - Kalimat panjang yang mendekati kanan bawah panel.
+   - Ending/credit atau screen tanpa dialog.
+8. Selesai sesi, klik Analyze Last Session dan salin Live Log.
+
+Indikator keberhasilan minimal:
+- Log startup menyatakan GFL layout/footer mask/scene guard/cache normalized aktif.
+- Token footer `gFn/ngf/nifn/ni5e/nfe` turun drastis atau hilang dari output/dialog yang diterjemahkan.
+- Ending/credit tidak menghasilkan NPC baru seperti `Sunborn`, `Programming`, `Character`, atau `Conference`.
+- Nama speaker `AK-12`, `AN-94`, dan `Dandelion` tidak tertukar menjadi narasi.
+- Pada replay dialog yang sama, cache memiliki peluang HIT setelah source text stabil/bersih.
+
+Tes kedua — kualitas IDN/hybrid:
+- Gunakan Lite IDN V4 hanya setelah profile GFL terbukti bersih.
+- Cek log apakah online assist benar-benar digunakan atau tetap offline; jangan menilai berdasar label hybrid saja.
+
+Tes ketiga — performa Fast:
+- Jalankan Fast V2/Fast IDN hanya jika Fast CT2/berkas SPM telah dipastikan aktif.
+- Jika masih Argos fallback, laporkan sebagai masalah konfigurasi engine, bukan kegagalan tuning Fast.
+
+J. BACKLOG SETELAH v8.7 / ARAH SEBELUM v9
+-------------------------------------------
+Prioritas terdekat setelah mendapat log v8.7 nyata:
+1. Koreksi geometry footer mask bila UI scale/aspect ratio GFL berbeda.
+2. Perbaiki false speaker yang masih lolos dan perluas roster GFL secara terukur dari bukti log, bukan bulk guess.
+3. Ukur cache HIT setelah filter aktif; bila tetap nol, telusuri commit timing dan key generation lebih dalam.
+4. Validasi requested/applied engine untuk Fast IDN, Lite IDN V4 dan fallback Argos.
+5. Lanjutkan optimasi Lite/Lite IDN setelah input OCR GFL benar-benar bersih.
+6. Pertahankan Diagnose & Repair Center dan NPC Review/Cleanup sebagai jalur maintenance.
+
+Arah besar v9 yang pernah disimpan sebagai rencana masa depan, bukan prioritas sekarang:
+- Audio Translate / Audio Assist eksperimen, misalnya WASAPI loopback + VAD + ASR dan opsi AI Vocal separation/noise/BGM filtering.
+- Audio tidak boleh menggeser fokus sebelum OCR/runtime stabil dan game profiles sudah matang.
+
+K. CATATAN UNTUK PENGGUNA SETELAH MENGHAPUS MEMORY CHATGPT
+-----------------------------------------------------------
+Menghapus memory ChatGPT tidak menghapus file proyek di perangkat Anda, tetapi ChatGPT pada percakapan baru tidak otomatis mengetahui seluruh konteks panjang ini. Simpan setidaknya dua file berikut:
+1. ZIP proyek full v8.7 yang siap dijalankan.
+2. File TXT handoff ini.
+
+Pada chat baru, unggah file ini terlebih dahulu bersama ZIP/log terbaru dan tulis kurang lebih:
+"Baca catatan handoff ORTCore v8.7 ini, analisis project ZIP/log terbaru saya, lalu lanjutkan pengembangan tanpa menghilangkan keputusan yang sudah dikunci."
+
+Dengan cara itu, konteks proyek dapat dipulihkan secara eksplisit walaupun memory telah dibersihkan.
+
+AKHIR CATATAN HANDOFF v8.7
+==========================

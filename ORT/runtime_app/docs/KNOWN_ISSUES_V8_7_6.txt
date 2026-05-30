@@ -1,0 +1,29 @@
+ORT Translation v8.7.6 — Known Issues / Validation Gates
+=========================================================
+Tanggal: 27 Mei 2026
+
+STATUS RILIS
+v8.7.6 ditujukan sebagai patch perbaikan matang di atas v8.7.5, tetapi belum dapat dinyatakan sempurna sebelum gameplay nyata diuji pada folder TEST. Patch mempertahankan perbaikan correctness v8.7.5 dan memperbaiki masalah yang terbukti pada audit folder/log/video.
+
+KNOWN ISSUES YANG MASIH MEMERLUKAN VALIDASI LIVE
+1. Adaptive OCR Readability Guard baru harus diuji pada scene GFL2 yang sama:
+   - profil 40%/45% boleh melakukan retry sementara ke 50%/55% bila hasil mentah dinilai rusak;
+   - retry dapat menambah biaya pada frame sulit; manfaat kualitas harus dibandingkan dengan latency final.
+2. Mode Responsif / Story Cepat masih belum memiliki bukti gameplay pengguna karena sesi v8.7.5 sebelumnya seluruhnya baseline.
+3. Fast/Lite masih dapat jatuh ke Argos bila file CT2/SPM belum tersedia. v8.7.6 memberi warning dan rescue OCR, tetapi tidak menjamin dependency CT2 otomatis pulih.
+4. Alias candidate seperti `Perl→Peri`, `Lentle→Lentine`, dan `DP 12→DP-12` belum otomatis diaktifkan. Ini disengaja; alias harus direview dari frame/Name ROI agar tidak menambah false speaker.
+5. `DKRIN` sangat sering muncul dalam area OCR, tetapi klasifikasinya belum aman. Jangan auto-add sebagai karakter atau blacklist sebelum bukti visual/scene review.
+6. Registry persistent pengguna mungkin masih berisi official GFL2 di `legacy_untrusted`; runtime exact catalog tetap bekerja, tetapi UI baru sinkron setelah migrasi `v8_7_6_identity_migration.py --apply` pada folder TEST.
+7. Replay benchmark membutuhkan ground truth manual dari frame/video yang sama; tool tersedia, tetapi perbandingan v8.7.2/v8.7.5/v8.7.6 belum dijalankan otomatis dalam patch.
+8. Perlu memastikan generic false-speaker lama benar-benar hilang pada gameplay (`DP`, `Name`, `TC`, `Hybrid`, `Scavenger Ugh`). Regression source sudah memblok jalur fallback umum untuk GFL2, tetapi evidence live tetap diperlukan.
+
+TIDAK DIANGGAP BUG BARU
+- V1/V2 40%/45% tetap tersedia sebagai mode ultra-efficient/diagnostic, bukan baseline recommended story GFL2.
+- OCR yang ambigu tidak dipetakan fuzzy bebas ke karakter resmi; keselamatan false-label lebih penting daripada menebak satu frame rusak.
+
+ACCEPTANCE GATES UNTUK TES PENGGUNA
+- Tidak ada output/cache/export dengan marker internal ORT_*.
+- `Groza`, `Colphne`, `Mayling`, `Zhaohui`, `Vector`, `Ullrid` dapat berlabel saat nama terbaca tepat.
+- Tidak ada label palsu `DP`, `Name`, `TC`, `Hybrid` dari parser fallback.
+- OCR <50% menampilkan event rescue bila raw text rusak; UI menampilkan preset/requested/applied/rescue dengan jujur.
+- Mode Responsif dibandingkan dengan Baseline pada scene yang sama.

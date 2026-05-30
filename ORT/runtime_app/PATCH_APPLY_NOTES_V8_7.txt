@@ -1,0 +1,17 @@
+ORT Translation v8.7 — Full Project Release Instructions
+=========================================================
+
+Tipe rilis: FULL PROJECT / FOLDER BARU
+Base: v8.6 (direkonstruksi dari full v8.5.2 + patch v8.6)
+
+Cara instalasi aman:
+1. Ekstrak ZIP ke folder baru, misalnya ORT_Translation_v8_7.
+2. Jangan menimpa folder lama apabila masih ingin menyimpan titik balik/testing sebelumnya.
+3. Bila ingin membawa model CT2, cache terpilih, atau konfigurasi pribadi dari folder lama, salin secara sadar setelah backup.
+4. Untuk game Girls' Frontline seri pertama pilih menu game: Girls' Frontline (GFL).
+5. Jalankan tools/v8_7_gfl_smoke_test.py untuk cek cepat komponen profil GFL sebelum pengujian game jika diperlukan.
+
+Catatan penting:
+- v8.7 berisi glossary awal GFL dan filter noise khusus footer GFsystem.
+- Fast CT2 tetap memerlukan file model/SPM yang benar; tanpa itu Fast dapat berjalan melalui Argos fallback.
+- OCR angka kecil yang tidak terbaca tetap dianggap keterbatasan minor setelah v8.5.1, kecuali muncul regresi besar.

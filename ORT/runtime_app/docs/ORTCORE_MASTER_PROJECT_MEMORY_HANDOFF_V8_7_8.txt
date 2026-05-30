@@ -1,0 +1,52 @@
+ORTCORE MASTER PROJECT MEMORY HANDOFF — v8.7.8
+Tanggal: 28 Mei 2026
+Tujuan: memo kedua lengkap untuk melanjutkan proyek ORT setelah berpindah percakapan/memory reset.
+
+A. IDENTITAS PROYEK DAN TARGET
+- ORT Translation adalah overlay OCR+translation untuk game/story, fokus uji terbaru GFL2 Exilium, dengan profile Normal/IDN/Lite/Lite IDN/Fast/Fast IDN.
+- Target pengguna: translation cepat tetapi faithful, lengkap, label nama karakter tepat, data/term bertambah dari pengujian nyata tanpa false promotion.
+- Pengguna menghendaki setiap hasil log/video, diagnosis, keputusan, patch, dan known issue dicatat sebagai memo proyek di dalam folder ORT.
+
+B. RIWAYAT RELEVAN TERBARU
+- v8.7.5: backend-safe EntitySpan dan verified official exact-speaker; marker internal membaik, namun OCR rendah/false parser perlu ditangani.
+- v8.7.6: Adaptive OCR Readability, exact fallback speaker gate, test ledger; hallucination agama terbukti tampil/cached saat Argos aktif.
+- v8.7.7: CT2/SPM rebind, Faithfulness Gate v1, Stable Commit, quality lock, semantic cache namespace, exact additions dari CT2 live; CT2 berhasil aktif Lite/Fast. Tetapi hallucination lolos melalui `al-Qur 'ân`, `ayat`, `zakat`, tafsir-pattern; legacy/mixed Argos masih masuk; Normal/IDN tetap Argos utama.
+- v8.7.8: patch ini menargetkan Faithfulness v2, Qur quarantine, Strict CT2 Story, IDN-over-CT2, final-only safe commit, telemetry dan candidate mining review-only.
+
+C. ROOT CAUSE YANG WAJIB DIINGAT
+1. Hallucination agama bukan lore game; muncul dari backend Argos atau OCR rusak/progressive yang memicu pola memorized/domain-biased (nabi, Quran, ayat, zakat, neraka, Mekah, dll.).
+2. OCR `our/your` dapat berubah menjadi `Qur`, lalu memicu makna Qur'an. Token bare `Qur` perlu quarantine/repair, bukan langsung diterjemahkan.
+3. CT2 live telah berhasil sesudah konflik environment SPM diperbaiki; v8.7.7 melakukan rebind permanen. Namun job tertentu masih fallback legacy/mixed Argos sehingga v8.7.8 menahan fallback pada source progressive/noisy.
+4. Normal/IDN yang seharusnya akurat masih Argos pada v8.7.7; v8.7.8 mengarahkan IDN-over-CT2 bila model tersedia.
+5. OCR 40% tidak aman untuk story; 45% adaptive minimum; baseline story aman 50–55%; IDN accuracy perlu quality lock.
+6. Auto-learning speaker/term tanpa review berbahaya; sistem perlu mining kandidat semi-otomatis yang tidak mengaktifkan data sendiri.
+
+D. FITUR UTAMA v8.7.8
+- `app/translation/faithfulness_gate.py`: Faithfulness Gate v2 dengan normalisasi diakritik/apostrof/spasi, tafsir-pattern detector, bare Qur quarantine/repair.
+- `app/translation/dialogue_completeness_gate.py`: final-only safe commit untuk profile akurasi dan coverage floor lebih ketat.
+- `translation_engine.py`: backend gate sebelum post-process, final gate setelah post-process, Strict CT2 Story, IDN-over-CT2, metadata safety lengkap, cache/training block.
+- `runtime_bridge.py`: QA rejected output tidak lagi kembali ke hallucinated backend output.
+- `TITANMAIN.py`: final overlay telemetry dan training/memo block bila safety gate menolak.
+- Namespace cache baru: `v8_7_8_faithfulness_v2_strict_ct2_safe`.
+- Tools: identity migration, semantic cache rotation, candidate miner review-only, test ledger, debug bundle, regression.
+
+E. IDENTITAS DAN TERM
+- Official roster GFL2 existing tidak boleh diduplikasi; update observed metadata saja.
+- v8.7.7 retained exact/role: Berryfield, Cocoon, Carmen, Another Unfamiliar Worker.
+- v8.7.8 approved exact/role: Kalina, Farkas, Client.
+- Pending only: Chief of Odesa, Municipal Broadcast, Zyevnadya/Yyevnadya.
+- Alias ROI-only: Krollk→Krolik; Nenesls/Nemesls→Nemesis; Kallna/Kalin/Kalna→Kalina; Cllent→Client; QDE-01→ODE-01; GrOZy/Grozy→Groza; aklatto/akiatto→Makiatto; Dandelon→Dandelion; legacy safe aliases retained.
+- Special terms baru v8.7.8: Satellite City; ODE-01 Municipal Center. Terms v8.7.7 retained: URNC, Conglomerate, Green Zone, Yellow Zone, Odesa, ELID/ELIDs, ODE-01, Griffin/Griffin & Kryuger, Blusphere.
+- Commander exclusions global: Vilyz, ARVITA ID, ATVITA ID hanya user-configured per profile/account.
+
+F. VALIDASI YANG WAJIB SETELAH INSTALL
+- Pasang patch hanya pada clone TEST dari v8.7.7; jalankan cache rotation dan identity migration dry-run/apply pada TEST.
+- Uji boot/applied engine Lite/Fast serta Normal/IDN untuk memastikan CT2/IDN-over-CT2.
+- Uji ulang scene hallucination terdahulu dan kirim log, video POV, debug bundle, ledger.
+- Tinjau event safety: semantic blocked, Qur repair/quarantine, strict CT2 held/suppressed, omission/final commit, training blocked.
+- Uji Mode Responsif hanya sesudah baseline correctness aman.
+
+G. ROADMAP v9.0 TERKUNCI
+- Pengguna meminta v9.0 sebagai ZIP utuh dalam folder baru, bukan patch.
+- Struktur harus dirapikan untuk GitHub; root minimal berisi Start OCR dan Runtime/launcher, isi lain masuk folder terorganisasi.
+- Wajib ada migration dari v8.x, handoff/ledger lengkap, pemisahan data user/cache/log/model besar, dan kompatibilitas launcher.

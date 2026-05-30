@@ -1,0 +1,28 @@
+ORT Translation v8.7.6 — Next Recommendations / Test Plan
+===========================================================
+Tanggal: 27 Mei 2026
+
+LANGKAH INSTALASI DAN VALIDASI
+1. Salin folder aktif v8.7.5 menjadi `ORT_Translation_v8_7_6_TEST`.
+2. Ekstrak changed-files patch v8.7.6 ke folder TEST.
+3. Jalankan dry-run:
+   `python tools/v8_7_6_cache_rotation.py --base-dir .`
+   `python tools/v8_7_6_identity_migration.py --base-dir .`
+4. Terapkan hanya pada folder TEST setelah output diperiksa:
+   `python tools/v8_7_6_cache_rotation.py --base-dir . --apply`
+   `python tools/v8_7_6_identity_migration.py --base-dir . --apply`
+5. Jalankan Baseline Correctness pada GFL2 dengan Lite/Lite IDN V3 50% atau V4 55%.
+6. Uji nama official yang pernah bermasalah: Zhaohui, Vector, Colphne, Groza, Ullrid, serta nama yang sudah terbukti: Mayling, Krolik, Nikketa, Peri, Nemesis.
+7. Uji V1/V2 rendah: pastikan event `OCR_READABILITY_RESCUE` muncul pada frame rusak dan hasil tidak langsung disimpan bila kualitas buruk.
+8. Ulangi scene sama dengan `Mode Responsif / Story Cepat` aktif.
+9. Ekspor bundle dan ledger:
+   `python tools/export_debug_bundle_v8_7_6.py`
+   `python tools/v8_7_6_test_ledger.py --base-dir .`
+10. Untuk perbandingan lintas versi, siapkan ground truth frame yang sama lalu jalankan:
+   `python tools/v8_7_6_replay_benchmark.py --truth <ground_truth.json> --results <result_v875.json> <result_v876.json> --out <report.json>`
+
+PENGEMBANGAN BERIKUTNYA SETELAH DATA LIVE
+- Review alias ROI-only berdasarkan hit nyata dan cuplikan visual.
+- Perbaiki/restore paket CT2/SPM Fast/Lite agar keuntungan kecepatan kembali nyata.
+- Perluas exact-live speaker ke WUWA/GFL hanya setelah GFL2 stabil.
+- Gunakan ledger per-session untuk semua klaim peningkatan atau regresi.

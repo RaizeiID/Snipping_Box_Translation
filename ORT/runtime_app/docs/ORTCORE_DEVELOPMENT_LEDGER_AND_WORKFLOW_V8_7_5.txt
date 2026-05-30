@@ -1,0 +1,21 @@
+ORTCORE / ORT TRANSLATION — DEVELOPMENT LEDGER & WORKFLOW v8.7.5
+=================================================================
+Tanggal: 26 Mei 2026
+
+RIWAYAT PEMICU
+- Pengguna menguji v8.7.4 melalui banyak model, folder runtime, dan tiga video POV.
+- Bukti visual: Lite V5 menampilkan Zhaohui sebagai teks biasa tanpa label; Fast IDN menampilkan Vector sebagai teks biasa lalu overlay tertinggal saat game beralih ke Harpsy; Fast V1 membuktikan Alya Kujou dapat berlabel tetapi overlay Alya tertinggal saat game telah beralih ke Zhaohui.
+- Audit source: catalog GFL2 berisi 69 nama tetapi live registry hanya 13; migration membaca field salah. EntitySpan v8.7.4 masih mengirim `ORT_BKEND` ke backend dan cache baru kembali tercemar `BEND/BKED`.
+
+KEPUTUSAN v8.7.5
+- Perbaikan dikirim sebagai rilis v8.7.5 changed-files patch terintegrasi, dipasang pertama pada clone v8.7.4.
+- Tambah tier `verified_character_speaker_exact` untuk official GFL2 exact-only.
+- Full backend-safe EntitySpan: nama canonical tidak pernah menjadi marker dalam input backend.
+- Marker internal generik diblok sebelum overlay, export, dan cache.
+- Stale overlay dari speaker lama dibuang setelah transition speaker baru terdeteksi.
+- Namespace cache baru `v8_7_5_verified_exact_entity_safe`.
+
+WORKFLOW PENGUJIAN
+- Correctness dahulu, responsive kemudian.
+- Debug Bundle wajib untuk diagnosis berikutnya.
+- Data user tidak ditimpa; migration/cache cleanup selalu backup/dry-run dahulu.

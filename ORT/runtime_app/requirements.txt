@@ -1,0 +1,2 @@
+# ORT Translation v8.0 base runtime
+-r requirements_base.txt

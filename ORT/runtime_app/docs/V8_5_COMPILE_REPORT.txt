@@ -1,0 +1,13 @@
+ORT Translation v8.5 Compile Report
+
+Scope: full project source compile after applying v8.5 changed files over v8.4.5 final.
+Date: 2026-05-20
+
+Result:
+- Python files checked: 206
+- Syntax errors: 0
+- Status: PASS
+
+Notes:
+- This compile check validates Python syntax only.
+- Runtime behavior still needs in-game testing, especially numeric dual-pass OCR with GFL2 tactical dialog lines.

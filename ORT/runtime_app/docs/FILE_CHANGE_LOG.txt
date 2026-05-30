@@ -1,0 +1,50 @@
+ORT Translation v8.1 File Change Log
+====================================
+
+Changed files:
+- webui.py: WebUI v8.1 title, CSS cards, UI mode visibility, safe Exit, Reset Live Log, active diagnostic buttons, NPC cleanup button.
+- launcher_backend.py: clear_log, runtime_effective_status_html, app_state requested/effective values, v8.1 diagnostics, NPC cleanup wrapper.
+- TITANMAIN.py: OCR Noise Normalizer integration, StableTextCommitter integration for STABLE OCR queue, translator-side normalization.
+- v7_system_profile.py: cached hardware detection.
+- benchmark_session_report.py: Analyze Last Session v8.1 with OCR noise and speaker candidate hold signals.
+- app/ocr/ocr_noise_normalizer.py: stronger conservative OCR cleanup helpers.
+- app/ocr/stable_text_commit.py: stable result repeats, reset, already_committed guard.
+- app/translation/speaker_candidate_gate.py
+- app/diagnostics/conflict_detector.py
+- app/diagnostics/gpu_cuda_diagnostic.py: stronger candidate validation.
+- app/runtime/app_state.py: v8.1 state schema with requested/effective fields.
+- tools/npc_database_cleanup.py: backup + validation-based cleanup.
+- Clean_ORT_Translation.bat: safe cleaner, no project deletion.
+- status_manager.py
+- Start_ORT_Translation.bat: v8.1 labels.
+- README.md / READ_THIS_FIRST_V8.txt: v8.1 usage notes.
+- ORTCORE_VERSION.txt / TITANCORE_VERSION.txt: 8.1.
+
+
+[v8.2 FILE CHANGE LOG]
+Added:
+- app/ocr/image_hash_gate.py
+- app/runtime/story_dialogue_scheduler.py
+- app/translation/fuzzy_cache_normalizer.py
+- docs/V8_2_COMPILE_REPORT.txt
+- PATCH_APPLY_NOTES_V8_2.txt
+
+Modified:
+- TITANMAIN.py
+- launcher_backend.py
+- webui.py
+- model_registry.py
+- model_strategy.py
+- v7_system_profile.py
+- fast_model_manager.py
+- benchmark_session_report.py
+- cache_store.py
+- app/runtime/app_state.py
+- app/translation/speaker_candidate_gate.py
+- docs/CHANGELOG.md
+- docs/IMPLEMENTATION_STATUS.txt
+- docs/KNOWN_ISSUES.txt
+- docs/NEXT_RECOMMENDATIONS.txt
+- docs/VERSION_HISTORY.txt
+- ORTCORE_VERSION.txt
+- TITANCORE_VERSION.txt

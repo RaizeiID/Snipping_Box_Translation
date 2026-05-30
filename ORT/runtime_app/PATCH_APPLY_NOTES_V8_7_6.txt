@@ -1,0 +1,36 @@
+ORT Translation v8.7.6 — Patch Apply Notes
+============================================
+Tanggal: 27 Mei 2026
+
+Patch ini adalah changed-files patch dan TIDAK dimaksudkan langsung menimpa satu-satunya folder aktif Anda.
+
+PROSEDUR AMAN
+1. Backup/salin folder v8.7.5 menjadi:
+   `ORT_Translation_v8_7_6_TEST`
+2. Ekstrak ZIP patch ke folder salinan tersebut, pilih overwrite file kode/dokumentasi yang tercantum manifest.
+3. Jalankan:
+   `python tools/v8_7_6_cache_rotation.py --base-dir .`
+   `python tools/v8_7_6_identity_migration.py --base-dir .`
+4. Bila hasil dry-run benar, lanjutkan pada folder TEST saja:
+   `python tools/v8_7_6_cache_rotation.py --base-dir . --apply`
+   `python tools/v8_7_6_identity_migration.py --base-dir . --apply`
+5. Jalankan aplikasi dan gunakan Baseline Correctness terlebih dahulu.
+
+PENGUJIAN PERTAMA YANG DISARANKAN
+- Profile: GFL2.
+- Model baseline: Lite/Lite IDN V3 50% atau V4 55%.
+- Speaker: Zhaohui, Vector, Colphne, Groza, Ullrid, Mayling, Helen, Helena, Alya Kujou.
+- Pastikan tidak muncul false speaker `DP`, `Name`, `TC`, `Hybrid`.
+- Baru setelah baseline benar, aktifkan Mode Responsif pada scene sama.
+- Untuk menguji rescue, gunakan V1/V2 rendah dan cari event `OCR_READABILITY_RESCUE`.
+
+FILE DATA YANG TIDAK DITIMPA PATCH
+- `speaker_registry_v2.json`
+- `data_processing_store.json`
+- `data_processing_settings.json`
+- `webui_prefs.json`
+- `configs/app_state.json`
+- `cache/`, `logs/`, `status/`, `backups/`
+
+CATATAN CT2
+Bila `source.spm`/`target.spm` belum ada, Fast/Lite tetap dapat fallback ke Argos. v8.7.6 memberi warning serta rescue OCR; patch ini tidak mengklaim memperbaiki paket CT2 secara otomatis.

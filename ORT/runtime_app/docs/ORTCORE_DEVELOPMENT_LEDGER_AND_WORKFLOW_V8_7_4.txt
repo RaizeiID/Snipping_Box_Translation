@@ -1,0 +1,20 @@
+ORTCORE / ORT TRANSLATION — DEVELOPMENT LEDGER & WORKFLOW v8.7.4
+=================================================================
+Tanggal: 26 Mei 2026
+Pemilik proyek: Diska Kurnia
+
+ATURAN PERMANEN
+- Setiap hasil log/observasi/diskusi menjadi roadmap kumulatif, bukan hanya pesan terakhir.
+- Setiap patch/full build harus menyertakan master handoff, ledger, changelog, status, known issues, recommendations, manifest, apply notes, dan test report di ZIP yang sama.
+- Setelah full v8.7, format default tetap changed-files patch; pasang lebih dahulu pada folder clone/test.
+- Data user/cache/log tidak ditimpa tanpa backup/dry-run.
+
+KEPUTUSAN v8.7.4
+- Pengguna menetapkan nama versi `v8.7.4`, bukan `v8.7.3.1`; v8.7.3 dicatat sebagai rilis dengan bug fatal entity-placeholder.
+- Pilihan desain wajib: Entity diproses sebagai span terpisah; tidak ada placeholder literal entity yang boleh melewati IDN/QA.
+- Cache lama/tercemar diputar ke backup; namespace runtime baru adalah `v8_7_4_entity_span_responsive`.
+- Mode Responsif adalah opsi runtime terpisah dari checkbox Tampilan Sederhana; tidak menonaktifkan Two-Pass OCR.
+- Diagnostic No-Name-ROI hanya uji A/B dengan warning akurasi speaker.
+
+WARISAN FITUR YANG DIPERTAHANKAN
+Trusted Speaker Registry; Helen/Helena sebagai identitas terpisah; Compound Entity; Pengolahan Data & Identitas multi-game; Tampilan Sederhana; chip orange/migrasi; reference roster GFL2/GFL/WUWA; GFL Paradeus/Sangvis; role speaker manual-approved.
