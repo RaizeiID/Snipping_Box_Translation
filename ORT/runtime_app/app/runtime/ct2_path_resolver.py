@@ -1,4 +1,4 @@
-"""ORT v8.8.3 CT2 path resolver.
+"""ORT v8.8.5 CT2 path resolver.
 
 The v8.8.1 structure refactor intentionally keeps large model folders out of
 GitHub/source ZIPs.  In local installs those folders may exist beside the root

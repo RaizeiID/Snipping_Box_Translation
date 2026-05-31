@@ -1,4 +1,4 @@
-"""ORT Translation v8.8.3 translation engine layer.
+"""ORT Translation v8.8.5 translation engine layer.
 
 TITANMAIN owns OCR and UI.  This module owns translation routing:
 - scoped cache first
@@ -77,7 +77,7 @@ class TranslationEngine:
             "ct2": bool(self.ct2),
             "fast_status": self.fast_status,
             "online_router": bool(self.online_router),
-            "translation_engine": "v8.8.3",
+            "translation_engine": "v8.8.5",
         })
 
 
@@ -327,7 +327,7 @@ class TranslationEngine:
     def translate(self, text: str, bridge=None) -> Tuple[str, Dict[str, object]]:
         raw_src = (text or "").strip()
         src = raw_src
-        meta: Dict[str, object] = {"engine": "", "cache": "MISS", "strategy": self.strategy.strategy_name, "version": "v8.8.3", "responsive_story": os.environ.get("ORT_RESPONSIVE_STORY_MODE", "0") == "1", "entity_span_pipeline": True, "semantic_faithfulness_gate": True, "dialogue_completeness_gate": True}
+        meta: Dict[str, object] = {"engine": "", "cache": "MISS", "strategy": self.strategy.strategy_name, "version": "v8.8.5", "responsive_story": os.environ.get("ORT_RESPONSIVE_STORY_MODE", "0") == "1", "entity_span_pipeline": True, "semantic_faithfulness_gate": True, "dialogue_completeness_gate": True}
         if not src:
             append_event("TRANSLATION_SKIPPED", {"reason": "empty"}, source_module="translation_engine")
             return "", meta
@@ -680,7 +680,7 @@ class TranslationEngine:
             return
         self._last_status_write = now
         payload: Dict[str, object] = {
-            "version": "v8.8.3",
+            "version": "v8.8.5",
             "state": state,
             "strategy": self.strategy.strategy_name,
             "model_key": self.strategy.model_key,

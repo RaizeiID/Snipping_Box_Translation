@@ -1,0 +1,44 @@
+ORT Translation v8.8.4 — Changed Files Manifest
+==============================================
+
+Core runtime:
+- ORT/runtime_app/TITANMAIN.py
+- ORT/runtime_app/translation_engine.py
+- ORT/runtime_app/fast_model_manager.py
+- ORT/runtime_app/launcher_backend.py
+- ORT/runtime_app/webui.py
+- ORT/runtime_app/ORTCORE_VERSION.txt
+- ORT/runtime_app/TITANCORE_VERSION.txt
+
+Runtime modules:
+- ORT/runtime_app/app/runtime/overlay_commit_gate.py
+- ORT/runtime_app/app/runtime/render_signature.py
+- ORT/runtime_app/app/runtime/dialogue_stability.py
+- ORT/runtime_app/app/runtime/recording_telemetry.py
+- ORT/runtime_app/app/runtime/ct2_path_resolver.py
+
+Tests:
+- ORT/runtime_app/tools/v8_8_4_regression_test.py
+
+Docs/version:
+- VERSION.txt
+- README.md
+- CHANGELOG.md
+- APPLY_NOTES_V8_8_4.txt
+- CHANGED_FILES_MANIFEST_V8_8_4.txt
+- ORT/docs/changelog/ORT_V8_8_4_CHANGELOG.md
+- ORT/docs/test_reports/ORT_V8_8_4_VALIDATION_REPORT.md
+- ORT/docs/handoff/ORT_MASTER_PROJECT_MEMORY_HANDOFF_CURRENT.md
+
+Not included:
+- models/
+- ORT_Runtime/
+- cache/
+- logs/
+- backups/
+- debug_bundles/
+- active user data
+
+
+R2 test import hotfix:
+- ORT/runtime_app/tools/v8_8_4_regression_test.py now adds runtime_app to sys.path before importing app.runtime modules.

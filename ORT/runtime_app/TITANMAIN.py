@@ -107,7 +107,7 @@ def log(msg: str):
 # ==============================================================================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-VERSION = "ORT Translation v8.8.3 - TITANMAIN (GFL2 Recording Stability & Overlay Commit Gate)"
+VERSION = "ORT Translation v8.8.5 - TITANMAIN (Final Completeness & Never-Empty Overlay)"
 CACHE_FILE = os.path.join(BASE_DIR, "translation_memory.json")
 NPC_FILE = os.path.join(BASE_DIR, "npc_database.json")
 UNIQUE_FILE = os.path.join(BASE_DIR, "unique_terms.json")
@@ -203,6 +203,18 @@ try:
     from app.runtime.recording_telemetry import RecordingTelemetry
 except Exception:
     RecordingTelemetry = None
+try:
+    from app.runtime.ocr_churn_rescue import OCRChurnRescue
+except Exception:
+    OCRChurnRescue = None
+try:
+    from app.runtime.turn_finalizer import TurnFinalizer
+except Exception:
+    TurnFinalizer = None
+try:
+    from app.runtime.bad_cache_shield import BadCacheShield
+except Exception:
+    BadCacheShield = None
 ORT_LATEST_FRAME_WINS = os.environ.get("ORT_LATEST_FRAME_WINS", "0") == "1"
 ORT_ENTITY_SPAN_PIPELINE = os.environ.get("ORT_ENTITY_SPAN_PIPELINE", "0") == "1"
 ORT_SPEAKER_TRANSITION_GUARD = os.environ.get("ORT_SPEAKER_TRANSITION_GUARD", "1") != "0"
@@ -2354,11 +2366,68 @@ class TranslatorWorker(QThread):
         self.dialog_accumulator = DialogueTurnAccumulator.from_env() if DialogueTurnAccumulator is not None else None
         self.overlay_commit_gate = OverlayCommitGate.from_env() if OverlayCommitGate is not None else None
         self.recording_telemetry = RecordingTelemetry() if RecordingTelemetry is not None else None
+        self.ocr_churn_rescue = OCRChurnRescue.from_env() if OCRChurnRescue is not None else None
+        self.turn_finalizer = TurnFinalizer.from_env() if TurnFinalizer is not None else None
+        self.bad_cache_shield = BadCacheShield.from_env() if BadCacheShield is not None else None
 
     def stop(self):
         self.running = False
         self.quit()
         self.wait()
+
+    def _reuse_last_visible_overlay(self, reason: str = "keep_last") -> bool:
+        """v8.8.5 hard repaint for never-empty dialogue overlay.
+
+        v8.8.5 prevented logical clear, but some UI paths could still look
+        blank/stale when a new turn was held. v8.8.5 actively re-emits the
+        last good payload whenever a dialogue frame is still present and a
+        candidate is held/suppressed.
+        """
+        try:
+            if self.overlay_commit_gate is not None and self.overlay_commit_gate.has_visible():
+                sp_html, dlg_html = self.overlay_commit_gate.last_visible_payload()
+                if dlg_html:
+                    self.last_speaker = sp_html
+                    self.last_dialog = dlg_html
+                    self.new_payload.emit(sp_html, dlg_html)
+                    self.debug.emit(f"[COMMIT v8.8.5] repaint_last_good | reason={reason}")
+                    if self.recording_telemetry is not None:
+                        try:
+                            self.recording_telemetry.inc("last_good_repainted")
+                            self.recording_telemetry.maybe_log(lambda msg: self.debug.emit(msg))
+                        except Exception:
+                            pass
+                    return True
+        except Exception:
+            pass
+        return False
+
+    def _emit_source_fallback_overlay(self, speaker: str, dialog: str, reason: str = "source_fallback") -> bool:
+        """Show a safe temporary OCR-source payload when no translation is visible.
+
+        This is only used as a last resort for never-empty behaviour. It avoids
+        a blank box during character speech without calling Argos or inventing
+        a translation.
+        """
+        try:
+            dialog = (dialog or "").strip()
+            if not dialog or len(dialog) < 8:
+                return False
+            sp = (speaker or "").strip()
+            sp_html = f"<b style='color:#FFD700; font-size:{CURRENT_FONT_SIZE+2}px; text-shadow:1px 1px 2px #000;'>{_html_escape(sp)}</b>" if sp else ""
+            dlg_html = f"<span style='color:#FFFFFF; font-size:{CURRENT_FONT_SIZE}px; text-shadow:1px 1px 2px #000;'>{_html_escape(_soft_wrap_long_tokens(dialog, max_run=18))}</span>"
+            self.last_speaker = sp_html
+            self.last_dialog = dlg_html
+            self.new_payload.emit(sp_html, dlg_html)
+            self.debug.emit(f"[COMMIT v8.8.5] source_fallback_visible | reason={reason}")
+            if self.recording_telemetry is not None:
+                try:
+                    self.recording_telemetry.inc("source_fallback_visible")
+                except Exception:
+                    pass
+            return True
+        except Exception:
+            return False
 
     def run(self):
         while self.running:
@@ -2395,7 +2464,9 @@ class TranslatorWorker(QThread):
             raw_text = (raw_text or "").strip()
             queue_wait_ms = max(0.0, (time.time() - float(ocr_meta.get("enqueued_at") or time.time())) * 1000.0)
             ocr_meta["queue_wait_ms"] = queue_wait_ms
-            if self.dialog_scheduler is not None:
+            # v8.8.5: Freeze is a snapshot/final-first mode. Do not let the
+            # auto-story scheduler repeatedly hold/re-process the same static frame.
+            if self.dialog_scheduler is not None and str(mode_name).upper() != "FREEZE":
                 try:
                     decision = self.dialog_scheduler.decide(raw_text, mode=mode_name, meta=ocr_meta)
                     if not decision.process:
@@ -2518,6 +2589,31 @@ class TranslatorWorker(QThread):
                 kind, speaker, dialog = split_speaker_and_dialog(raw_text)
             dialog = (dialog or "").strip()
 
+            if self.ocr_churn_rescue is not None and dialog:
+                try:
+                    churn = self.ocr_churn_rescue.analyze(
+                        dialog,
+                        ocr_percent=int(ocr_meta.get("runtime_ocr_percent") or ORT_RUNTIME_OCR_RESOLUTION_PERCENT),
+                        mode=mode_name,
+                        speaker=speaker or "",
+                    )
+                    ocr_meta["ocr_churn_corruption"] = float(churn.corruption)
+                    ocr_meta["ocr_churn_bad_cache_risk"] = bool(churn.bad_cache_risk)
+                    ocr_meta["ocr_churn_detected"] = bool(churn.churn)
+                    if churn.repaired and churn.text:
+                        dialog = churn.text
+                        if self.recording_telemetry is not None:
+                            self.recording_telemetry.inc("ocr_churn_rescued")
+                    if churn.force_hold:
+                        self.debug.emit(f"[CHURN v8.8.5] hold | reason={churn.reason} | corruption={churn.corruption:.2f}")
+                        if self.recording_telemetry is not None:
+                            self.recording_telemetry.inc("ocr_churn_held")
+                        if not self._reuse_last_visible_overlay("ocr_churn_hold"):
+                            self._emit_source_fallback_overlay(speaker, dialog, "ocr_churn_hold")
+                        continue
+                except Exception:
+                    pass
+
             if ORT_TURN_SAFE_OVERLAY and ORT_GAME_OVERRIDE == "GFL2_EXILIUM" and self.turn_safe_overlay is not None:
                 try:
                     turn_decision = self.turn_safe_overlay.evaluate(speaker, dialog, raw_text)
@@ -2537,6 +2633,11 @@ class TranslatorWorker(QThread):
                                 self.overlay_commit_gate.reset(clear_visible=True)
                             except Exception:
                                 pass
+                        if self.turn_finalizer is not None:
+                            try:
+                                self.turn_finalizer.reset()
+                            except Exception:
+                                pass
                         if self.recording_telemetry is not None:
                             try:
                                 self.recording_telemetry.inc("scene_exit_clear")
@@ -2547,8 +2648,9 @@ class TranslatorWorker(QThread):
                     if turn_decision.clear_overlay:
                         from translation_event_logger import append_event
                         append_event("STALE_OVERLAY_CLEARED_ON_NEW_TURN", {"dialog_turn_id": turn_decision.turn_id, "speaker": speaker or "", "source": dialog[:240]}, source_module="TITANMAIN")
-                        self.last_dialog = ""
-                        self.last_speaker = ""
+                        # v8.8.5: do not visually blank a dialogue turn. Keep the
+                        # last-good payload until the next meaningful commit wins.
+                        self._reuse_last_visible_overlay("new_turn_defer_clear")
                         if self.dialog_accumulator is not None:
                             try:
                                 self.dialog_accumulator.reset()
@@ -2556,13 +2658,13 @@ class TranslatorWorker(QThread):
                                 pass
                         if self.overlay_commit_gate is not None:
                             try:
-                                # v8.8.3: do not blank overlay on a normal new turn; keep last
+                                # v8.8.5: do not blank overlay on a normal new turn; keep last
                                 # readable translation until the next meaningful payload is ready.
                                 self.overlay_commit_gate.reset(clear_visible=False)
                             except Exception:
                                 pass
                         if ORT_RESPONSIVE_STORY_MODE:
-                            self.debug.emit("[COMMIT v8.8.3] defer_clear | reason=new_turn_keep_last_until_next_commit")
+                            self.debug.emit("[COMMIT v8.8.5] defer_clear | reason=new_turn_keep_last_until_next_commit")
                 except Exception:
                     pass
 
@@ -2572,6 +2674,8 @@ class TranslatorWorker(QThread):
                     ocr_meta["dialog_stability_state"] = stability.state
                     ocr_meta["dialog_stability_reason"] = stability.reason
                     ocr_meta["dialog_best_source"] = stability.text
+                    ocr_meta["dialog_source_stable"] = bool(stability.source_stable)
+                    ocr_meta["dialog_best_changed"] = bool(stability.best_changed)
                     if not stability.process:
                         try:
                             from translation_event_logger import append_event
@@ -2579,7 +2683,9 @@ class TranslatorWorker(QThread):
                         except Exception:
                             pass
                         if ORT_RESPONSIVE_STORY_MODE:
-                            self.debug.emit(f"[SMOOTH v8.8.3] keep_last | state={stability.state} | reason={stability.reason}")
+                            self.debug.emit(f"[SMOOTH v8.8.5] keep_last | state={stability.state} | reason={stability.reason}")
+                        if not self._reuse_last_visible_overlay("dialog_stability_hold"):
+                            self._emit_source_fallback_overlay(speaker, stability.text or dialog, "dialog_stability_hold")
                         continue
                     if stability.text and stability.text != dialog:
                         try:
@@ -2592,15 +2698,16 @@ class TranslatorWorker(QThread):
                     pass
 
             if not dialog and speaker:
-                # v8.8.3: speaker-only OCR fragments are common during typewriter transitions.
+                # v8.8.5: speaker-only OCR fragments are common during typewriter transitions.
                 # In Auto/Recording they should not blank or replace the current subtitle.
                 if ORT_RESPONSIVE_STORY_MODE and mode_name != "FREEZE":
-                    self.debug.emit("[COMMIT v8.8.3] keep_last | reason=speaker_only_fragment")
+                    self.debug.emit("[COMMIT v8.8.5] keep_last | reason=speaker_only_fragment")
                     if self.recording_telemetry is not None:
                         try:
                             self.recording_telemetry.inc("speaker_only_suppressed")
                         except Exception:
                             pass
+                    self._reuse_last_visible_overlay("speaker_only_fragment")
                     continue
                 speaker_html = f"<b style='color:#FFD700; font-size:{CURRENT_FONT_SIZE+2}px; text-shadow:1px 1px 2px #000;'>{_html_escape(speaker)}</b>"
                 self.new_payload.emit(speaker_html, "")
@@ -2650,9 +2757,24 @@ class TranslatorWorker(QThread):
                         self.recording_telemetry.inc("held_keep_last")
                     except Exception:
                         pass
+                if not self._reuse_last_visible_overlay("translation_hold"):
+                    self._emit_source_fallback_overlay(speaker, dialog, "translation_hold")
                 continue
             cache_label = str(meta_now.get("cache") or ("LEGACY_HIT" if cache_hit else "MISS"))
             engine_label = str(meta_now.get("engine") or "legacy_argos")
+            if self.bad_cache_shield is not None:
+                try:
+                    bc = self.bad_cache_shield.check(dialog, cache_label=cache_label, ocr_percent=int(ocr_meta.get("runtime_ocr_percent") or ORT_RUNTIME_OCR_RESOLUTION_PERCENT))
+                    ocr_meta["bad_cache_corruption"] = float(bc.corruption)
+                    if not bc.allow:
+                        cache_label = "BAD_CACHE_SHIELDED"
+                        meta_now["trusted_preview"] = True
+                        ocr_meta["bad_cache_shielded"] = True
+                        self.debug.emit(f"[CACHE v8.8.5] shielded | reason={bc.reason} | corruption={bc.corruption:.2f}")
+                        if self.recording_telemetry is not None:
+                            self.recording_telemetry.inc("bad_cache_shielded")
+                except Exception:
+                    pass
             requested_mode = os.environ.get("ORT_UI_REQUESTED_MODE", os.environ.get("ORT_BOOT_MODE", mode_name)).upper()
             scheduler_profile = os.environ.get("ORT_DIALOG_SCHEDULER_PROFILE", "-")
             self.debug.emit(f"[PIPE] cache={cache_label} | {dt}ms | engine={engine_label} | requested_mode={requested_mode} | capture_mode={mode_name} | scheduler={scheduler_profile} | responsive={1 if ORT_RESPONSIVE_STORY_MODE else 0} | queue={int(ocr_meta.get('queue_wait_ms', 0.0))}ms | entity={meta_now.get('entity_match_ms', '-')}ms | backend={meta_now.get('backend_translate_ms', '-')}ms | idn={meta_now.get('idn_post_ms', '-')}ms | kind={kind}")
@@ -2701,11 +2823,31 @@ class TranslatorWorker(QThread):
                     speaker_html = ""
                 dialog_html = f"<span style='color:#FFFFFF; font-size:{CURRENT_FONT_SIZE}px; text-shadow:1px 1px 2px #000;'>{safe_out}</span>"
 
-            # v8.8.3: final visual commit gate. OCR/translation may run quickly, but
+            # v8.8.5: final visual commit gate. OCR/translation may run quickly, but
             # the overlay is only replaced when the new payload is visually meaningful.
             if self.overlay_commit_gate is not None:
                 try:
                     final_payload = not bool(meta_now.get("trusted_preview")) and not bool(meta_now.get("cache_blocked"))
+                    turn_force_final = False
+                    turn_final_reason = ""
+                    if self.turn_finalizer is not None:
+                        try:
+                            tf = self.turn_finalizer.update(
+                                turn_id=str(ocr_meta.get("dialog_turn_id", "")),
+                                source=dialog,
+                                translation=out,
+                                source_stable=bool(ocr_meta.get("dialog_source_stable")),
+                                final_payload=bool(final_payload),
+                                mode=mode_name,
+                            )
+                            turn_force_final = bool(tf.force_final)
+                            turn_final_reason = tf.reason
+                            ocr_meta["turn_finalizer_reason"] = tf.reason
+                            ocr_meta["turn_finalizer_final_due"] = bool(tf.final_due)
+                            if turn_force_final and self.recording_telemetry is not None:
+                                self.recording_telemetry.inc("turn_finalizer_forced")
+                        except Exception:
+                            pass
                     gate_decision = self.overlay_commit_gate.decide(
                         speaker_html=speaker_html,
                         dialog_html=dialog_html,
@@ -2719,12 +2861,17 @@ class TranslatorWorker(QThread):
                         trusted_preview=bool(meta_now.get("trusted_preview")),
                         final=bool(final_payload),
                         held=False,
+                        source_stable=bool(ocr_meta.get("dialog_source_stable")),
+                        force_complete=bool(turn_force_final or ocr_meta.get("dialog_source_stable") or ocr_meta.get("dialog_best_changed") or str(ocr_meta.get("dialog_stability_state", "")).upper() in {"FINAL_READY", "INTERVAL_STABLE", "FREEZE_FINAL"}),
+                        dialogue_state=str(ocr_meta.get("dialog_stability_state", "")),
                     )
                     if not gate_decision.commit:
                         if self.recording_telemetry is not None:
                             try:
                                 self.recording_telemetry.inc("overlay_suppressed")
                                 self.recording_telemetry.inc("overlay_suppressed_" + gate_decision.state.lower())
+                                if gate_decision.state in {"MIN_VISIBLE", "SIMILAR", "DUPLICATE"} and ocr_meta.get("dialog_best_changed"):
+                                    self.recording_telemetry.inc("source_longer_but_suppressed")
                                 self.recording_telemetry.maybe_log(lambda msg: self.debug.emit(msg))
                             except Exception:
                                 pass
@@ -2733,7 +2880,9 @@ class TranslatorWorker(QThread):
                             append_event("OVERLAY_COMMIT_SUPPRESSED", {"state": gate_decision.state, "reason": gate_decision.reason, "speaker": speaker or "", "source": dialog[:240], "translation": out[:240], "engine": engine_label, "cache": cache_label, "turn_id": str(ocr_meta.get("dialog_turn_id", ""))}, source_module="TITANMAIN")
                         except Exception:
                             pass
-                        self.debug.emit(f"[COMMIT v8.8.3] suppress | state={gate_decision.state} | reason={gate_decision.reason}")
+                        self.debug.emit(f"[COMMIT v8.8.5] suppress | state={gate_decision.state} | reason={gate_decision.reason}")
+                        if gate_decision.force_visible:
+                            self._reuse_last_visible_overlay("commit_gate_suppressed")
                         continue
                     self.overlay_commit_gate.mark_committed(
                         speaker_html=speaker_html,
@@ -2742,16 +2891,19 @@ class TranslatorWorker(QThread):
                         source_text=dialog,
                         turn_id=str(ocr_meta.get("dialog_turn_id", "")),
                         signature=gate_decision.signature,
+                        state=gate_decision.state,
                     )
                     if self.recording_telemetry is not None:
                         try:
                             self.recording_telemetry.inc("overlay_committed")
                             self.recording_telemetry.inc("overlay_committed_" + gate_decision.state.lower())
+                            if gate_decision.state in {"FINAL", "FINAL_COMPLETE", "FREEZE"}:
+                                self.recording_telemetry.inc("final_complete_rendered")
                             self.recording_telemetry.maybe_log(lambda msg: self.debug.emit(msg))
                         except Exception:
                             pass
                 except Exception as exc:
-                    self.debug.emit(f"[COMMIT v8.8.3] gate_error_fallback_commit | {type(exc).__name__}: {exc}")
+                    self.debug.emit(f"[COMMIT v8.8.5] gate_error_fallback_commit | {type(exc).__name__}: {exc}")
             else:
                 if dialog_html == self.last_dialog and speaker_html == self.last_speaker:
                     continue
@@ -3894,7 +4046,7 @@ def boot_system():
     print("=" * 57)
 
     log(f"[BOOT] CPU threads target = {CPU_THREADS}")
-    log(f"[BOOT] v8.8.3 profile | game={ORT_GAME_OVERRIDE} | model={ORT_MODEL_KEY or '-'} | group={ORT_MODEL_GROUP} | policy={ORT_PERFORMANCE_POLICY} | core_profile={ORT_CORE_PROFILE} | engine_policy={ORT_ENGINE_POLICY} | heavy_safe={ORT_HEAVY_GAME_SAFE}")
+    log(f"[BOOT] v8.8.5 profile | game={ORT_GAME_OVERRIDE} | model={ORT_MODEL_KEY or '-'} | group={ORT_MODEL_GROUP} | policy={ORT_PERFORMANCE_POLICY} | core_profile={ORT_CORE_PROFILE} | engine_policy={ORT_ENGINE_POLICY} | heavy_safe={ORT_HEAVY_GAME_SAFE}")
     log(f"[BOOT] OCR resolution={ORT_OCR_RESOLUTION_PERCENT}% | scan_sleep_gpu={ORT_SCAN_SLEEP_GPU_MS}ms | scan_sleep_cpu={ORT_SCAN_SLEEP_CPU_MS}ms | queue_max={OCR_TO_TRANSLATE_MAX}")
     log(f"[BOOT] v8.7 story scheduler={os.environ.get('ORT_DIALOG_SCHEDULER_PROFILE','interval_auto')} | fast_profile={os.environ.get('ORT_FAST_PROFILE','standard')} | image_hash_gate={os.environ.get('ORT_IMAGE_HASH_GATE','1')} | fuzzy_cache={os.environ.get('ORT_FUZZY_CACHE_KEY','1')} | max_wait={os.environ.get('ORT_DIALOG_MAX_WAIT_MS','auto')}ms | voice_hold={os.environ.get('ORT_DIALOG_VOICE_HOLD_MS','-')}ms")
     if ORT_GFL_LAYOUT:

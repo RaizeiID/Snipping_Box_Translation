@@ -1,0 +1,34 @@
+ORT Translation v8.8.5 — Changed Files Manifest
+
+Changed/updated:
+- VERSION.txt
+- CHANGELOG.md
+- README.md
+- APPLY_NOTES_V8_8_5.txt
+- ORT/runtime_app/ORTCORE_VERSION.txt
+- ORT/runtime_app/TITANCORE_VERSION.txt
+- ORT/runtime_app/TITANMAIN.py
+- ORT/runtime_app/translation_engine.py
+- ORT/runtime_app/fast_model_manager.py
+- ORT/runtime_app/launcher_backend.py
+- ORT/runtime_app/webui.py
+- ORT/runtime_app/app/runtime/render_signature.py
+- ORT/runtime_app/app/runtime/dialogue_stability.py
+- ORT/runtime_app/app/runtime/overlay_commit_gate.py
+- ORT/runtime_app/app/runtime/recording_telemetry.py
+- ORT/runtime_app/app/runtime/ocr_churn_rescue.py
+- ORT/runtime_app/app/runtime/turn_finalizer.py
+- ORT/runtime_app/app/runtime/bad_cache_shield.py
+- ORT/runtime_app/tools/v8_8_5_regression_test.py
+- ORT/docs/changelog/ORT_V8_8_5_CHANGELOG.md
+- ORT/docs/test_reports/ORT_V8_8_5_VALIDATION_REPORT.md
+- ORT/docs/handoff/ORT_MASTER_PROJECT_MEMORY_HANDOFF_CURRENT.md
+
+Not included:
+- models/
+- ORT_Runtime/
+- cache/
+- logs/
+- backups/
+- debug_bundles/
+- active user data

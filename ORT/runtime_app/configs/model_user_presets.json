@@ -1,1 +1,10 @@
-{}
+{
+  "ORTCore Fast IDN": {
+    "mode": "auto",
+    "engine": "hybrid",
+    "interval_ms": 150,
+    "ocr_resolution": 55,
+    "updated_at": "2026-05-31 17:55:22",
+    "version": "v8.7.2"
+  }
+}

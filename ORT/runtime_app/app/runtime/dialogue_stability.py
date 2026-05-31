@@ -1,8 +1,8 @@
-"""ORT v8.8.3 dialogue stability helpers.
+"""ORT v8.8.5 dialogue stability helpers.
 
-This module is intentionally lightweight and deterministic.  It lives on the
+This module is intentionally lightweight and deterministic. It lives on the
 runtime path so Auto Story can smooth noisy/progressive OCR without adding a
-heavy semantic/model gate in the preview lane.
+heavy semantic/model gate in the preview lane. v8.8.5 also marks source-stable/final-ready turns so the overlay gate can force complete final renders instead of leaving a short preview visible.
 
 Main goals:
 - keep the best source text for the current dialogue turn;
@@ -17,6 +17,8 @@ from difflib import SequenceMatcher
 import os
 import re
 import time
+
+from app.runtime.render_signature import repair_ocr_text, ocr_corruption_score
 
 _WORD_RE = re.compile(r"[A-Za-zÀ-ÿ0-9']+")
 _TERMINAL_RE = re.compile(r"[.!?…][\"')\]]?\s*$")
@@ -55,17 +57,18 @@ def _looks_same_turn(prev: str, cur: str) -> bool:
 
 
 def _quality_score(text: str) -> float:
-    s = str(text or "").strip()
+    s = repair_ocr_text(str(text or "").strip())
     if not s:
         return -999.0
     words = _words(s)
     word_score = len(words) * 9.0
-    length_score = min(len(s), 220) * 0.35
-    terminal_bonus = 20.0 if _TERMINAL_RE.search(s) else 0.0
+    length_score = min(len(s), 240) * 0.35
+    terminal_bonus = 26.0 if _TERMINAL_RE.search(s) else 0.0
     punctuation_bonus = 4.0 if any(ch in s for ch in ",;:") else 0.0
     noise_penalty = len(_NOISE_RE.findall(s)) * 8.0
     orphan_penalty = sum(1 for w in words if len(w) == 1) * 1.5
-    return word_score + length_score + terminal_bonus + punctuation_bonus - noise_penalty - orphan_penalty
+    corruption_penalty = ocr_corruption_score(s) * 45.0
+    return word_score + length_score + terminal_bonus + punctuation_bonus - noise_penalty - orphan_penalty - corruption_penalty
 
 
 @dataclass(frozen=True)
@@ -90,12 +93,16 @@ class DialogueTurnAccumulator:
         interval_stable_ms: int = 420,
         interval_min_token_gain: int = 5,
         duplicate_hold_ms: int = 900,
+        finalizer_wait_ms: int = 420,
+        low_ocr_mode: bool = False,
     ) -> None:
         self.auto_min_ms = max(80, int(auto_min_ms))
         self.auto_min_token_gain = max(1, int(auto_min_token_gain))
         self.interval_stable_ms = max(120, int(interval_stable_ms))
         self.interval_min_token_gain = max(1, int(interval_min_token_gain))
         self.duplicate_hold_ms = max(120, int(duplicate_hold_ms))
+        self.finalizer_wait_ms = max(180, int(finalizer_wait_ms))
+        self.low_ocr_mode = bool(low_ocr_mode)
         self._speaker = ""
         self._turn_id = ""
         self._best = ""
@@ -115,6 +122,8 @@ class DialogueTurnAccumulator:
             interval_stable_ms=int(os.environ.get("ORT_INTERVAL_STABLE_MS", "420")),
             interval_min_token_gain=int(os.environ.get("ORT_INTERVAL_MIN_TOKEN_GAIN", "5")),
             duplicate_hold_ms=int(os.environ.get("ORT_OVERLAY_DUPLICATE_HOLD_MS", "900")),
+            finalizer_wait_ms=int(os.environ.get("ORT_TURN_FINALIZER_WAIT_MS", "420")),
+            low_ocr_mode=int(os.environ.get("ORT_RUNTIME_OCR_RESOLUTION_PERCENT", "65")) <= 50,
         )
 
     def reset(self) -> None:
@@ -124,12 +133,14 @@ class DialogueTurnAccumulator:
             interval_stable_ms=self.interval_stable_ms,
             interval_min_token_gain=self.interval_min_token_gain,
             duplicate_hold_ms=self.duplicate_hold_ms,
+            finalizer_wait_ms=self.finalizer_wait_ms,
+            low_ocr_mode=self.low_ocr_mode,
         )
 
     def update(self, speaker: str, body: str, *, mode: str = "", turn_id: str = "") -> DialogueStabilityDecision:
         now = time.time()
         speaker = str(speaker or "").strip()
-        body = str(body or "").strip()
+        body = repair_ocr_text(str(body or "").strip())
         mode_u = str(mode or "").upper()
         if not body:
             return DialogueStabilityDecision(False, body, "empty_body", "EMPTY", turn_id=turn_id)
@@ -176,7 +187,7 @@ class DialogueTurnAccumulator:
         score = _quality_score(body)
         best_changed = False
         # No-downgrade: keep a longer/cleaner best source when OCR briefly regresses.
-        if score > self._best_score + 3.0 or (len(body) > len(self._best) + 6 and _looks_same_turn(self._best, body)):
+        if (score > self._best_score + 3.0 and ocr_corruption_score(body) <= 0.68) or (len(body) > len(self._best) + 6 and _looks_same_turn(self._best, body) and ocr_corruption_score(body) <= 0.62):
             self._best = body
             self._best_score = score
             best_changed = True
@@ -190,7 +201,9 @@ class DialogueTurnAccumulator:
         token_gain = max(0, len(_words(best)) - len(_words(self._last_emit_text))) if self._last_emit_text else len(_words(best))
         has_tail = bool(_TERMINAL_RE.search(best))
         same_as_emitted = _norm(best) and _norm(best) == _norm(self._last_emit_text)
-        source_stable = self._repeat_count >= 2 or stable_ms >= (self.interval_stable_ms if mode_u == "INTERVAL" else self.auto_min_ms) or has_tail
+        final_wait = self.finalizer_wait_ms + (120 if self.low_ocr_mode else 0)
+        source_stable = self._repeat_count >= 2 or stable_ms >= (self.interval_stable_ms if mode_u == "INTERVAL" else self.auto_min_ms) or has_tail or age_ms >= final_wait
+        final_ready = bool(source_stable and len(_words(best)) >= 3 and ocr_corruption_score(best) <= (0.68 if self.low_ocr_mode else 0.58))
 
         if same_as_emitted and since_emit_ms < self.duplicate_hold_ms:
             return DialogueStabilityDecision(False, best, "duplicate_best_keep_overlay", "DUPLICATE", best_changed, source_stable, self._turn_id)
@@ -206,9 +219,9 @@ class DialogueTurnAccumulator:
             return DialogueStabilityDecision(False, best, "interval_wait_stable_keep_overlay", "INTERVAL_WAIT", best_changed, False, self._turn_id)
 
         # Auto/STABLE: allow progressive updates, but coalesce tiny OCR changes.
-        if has_tail or token_gain >= self.auto_min_token_gain or since_emit_ms >= self.auto_min_ms or source_stable:
+        if has_tail or final_ready or token_gain >= self.auto_min_token_gain or since_emit_ms >= self.auto_min_ms or source_stable:
             self._mark_emit(best, now)
-            return DialogueStabilityDecision(True, best, "auto_smooth_best_source", "AUTO_SMOOTH", best_changed, source_stable, self._turn_id)
+            return DialogueStabilityDecision(True, best, "turn_finalizer_best_source" if final_ready else "auto_smooth_best_source", "FINAL_READY" if final_ready else "AUTO_SMOOTH", best_changed, source_stable, self._turn_id)
         return DialogueStabilityDecision(False, best, "auto_micro_wait_keep_overlay", "AUTO_SMOOTH_WAIT", best_changed, source_stable, self._turn_id)
 
     def _mark_emit(self, text: str, now: float) -> None:

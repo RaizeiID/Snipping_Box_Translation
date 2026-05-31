@@ -1,0 +1,26 @@
+ORT Translation v8.8.5 — Apply Notes
+
+Target base:
+- Apply on top of ORT Translation v8.8.4 R2 or newer.
+
+How to apply:
+1. Extract this ZIP into:
+   D:\AI TRANSLATOR\ORT_Translation_v8_8_1
+2. Choose Replace / Overwrite.
+3. Verify VERSION.txt shows v8.8.5.
+4. Run:
+   cd "D:\AI TRANSLATOR\ORT_Translation_v8_8_1\ORT\runtime_app"
+   python tools\v8_8_5_regression_test.py
+
+Expected:
+- v8.8.5 regression PASS
+
+What changed:
+- Turn Finalizer added.
+- OCR Churn Rescue added.
+- Bad Cache Shield added.
+- Overlay Commit Gate now lets valid longer source win.
+- Never-empty overlay now performs hard repaint of last-good overlay.
+
+GitHub note:
+- Patch excludes models, ORT_Runtime, cache, logs, backups, debug bundles, and user active data.
