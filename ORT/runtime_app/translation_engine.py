@@ -1,4 +1,4 @@
-"""ORT Translation v8.8.1 translation engine layer.
+"""ORT Translation v8.8.3 translation engine layer.
 
 TITANMAIN owns OCR and UI.  This module owns translation routing:
 - scoped cache first
@@ -14,6 +14,10 @@ import os
 import re
 import time
 from pathlib import Path
+try:
+    from app.runtime.ct2_path_resolver import resolve_ct2_model_dir
+except Exception:
+    resolve_ct2_model_dir = None
 from typing import Callable, Dict, Optional, Tuple
 
 from model_strategy import ModelStrategy, strategy_from_env, write_strategy_status
@@ -73,7 +77,7 @@ class TranslationEngine:
             "ct2": bool(self.ct2),
             "fast_status": self.fast_status,
             "online_router": bool(self.online_router),
-            "translation_engine": "v8.8.1",
+            "translation_engine": "v8.8.3",
         })
 
 
@@ -98,8 +102,13 @@ class TranslationEngine:
         if self.strategy.fast_path or self.strategy.engine_policy == "fast" or os.environ.get("ORT_LITE_CT2_ALLOWED", "0") == "1" or os.environ.get("ORT_IDN_OVER_CT2", "0") == "1":
             try:
                 from fast_mt_core_ct2 import CT2Config, FastCT2Translator
-                model_dir = Path(os.environ.get("ORT_LITE_CT2_MODEL_DIR") or self.fast_status.get("model_dir") or os.environ.get("TITAN_CT2_EN_ID_DIR", os.environ.get("ORT_FAST_CT2_MODEL_DIR", str(self.base_dir / "models" / "ct2_opus_mt_en_id"))))
-                model_valid = bool((self.fast_status.get("model_validation") or {}).get("likely_valid")) or os.environ.get("ORT_LITE_CT2_ALLOWED", "0") == "1"
+                if resolve_ct2_model_dir is not None:
+                    resolved_ct2 = resolve_ct2_model_dir(self.base_dir)
+                    model_dir = resolved_ct2.path
+                    model_valid = bool(resolved_ct2.likely_valid)
+                else:
+                    model_dir = Path(os.environ.get("ORT_LITE_CT2_MODEL_DIR") or self.fast_status.get("model_dir") or os.environ.get("TITAN_CT2_EN_ID_DIR", os.environ.get("ORT_FAST_CT2_MODEL_DIR", str(self.base_dir / "models" / "ct2_opus_mt_en_id"))))
+                    model_valid = bool((self.fast_status.get("model_validation") or {}).get("likely_valid")) or os.environ.get("ORT_LITE_CT2_ALLOWED", "0") == "1"
                 if model_valid and model_dir.is_dir() and any(model_dir.iterdir()):
                     cfg = CT2Config(
                         model_dir_en_id=str(model_dir),
@@ -112,7 +121,7 @@ class TranslationEngine:
                     self.ct2.warmup()
                     self.log("[TRANSLATION] " + ("IDN-over-CT2 literal engine active" if os.environ.get("ORT_IDN_OVER_CT2", "0") == "1" and not self.strategy.fast_path and os.environ.get("ORT_LITE_CT2_ALLOWED", "0") != "1" else ("Lite CT2 efficient engine active" if os.environ.get("ORT_LITE_CT2_ALLOWED", "0") == "1" and not self.strategy.fast_path else "Fast CT2 engine active")))
                 else:
-                    self.log(f"[TRANSLATION] Fast CT2 model not found/invalid; using Argos fallback | model_dir={model_dir}")
+                    self.log(f"[TRANSLATION] Fast CT2 model not found/invalid; using Argos fallback | model_dir={model_dir} | checked=root_models+runtime_app_models")
             except Exception as exc:
                 self.ct2 = None
                 self.log(f"[TRANSLATION] Fast CT2 unavailable -> Argos fallback: {exc}")
@@ -318,7 +327,7 @@ class TranslationEngine:
     def translate(self, text: str, bridge=None) -> Tuple[str, Dict[str, object]]:
         raw_src = (text or "").strip()
         src = raw_src
-        meta: Dict[str, object] = {"engine": "", "cache": "MISS", "strategy": self.strategy.strategy_name, "version": "v8.8.1", "responsive_story": os.environ.get("ORT_RESPONSIVE_STORY_MODE", "0") == "1", "entity_span_pipeline": True, "semantic_faithfulness_gate": True, "dialogue_completeness_gate": True}
+        meta: Dict[str, object] = {"engine": "", "cache": "MISS", "strategy": self.strategy.strategy_name, "version": "v8.8.3", "responsive_story": os.environ.get("ORT_RESPONSIVE_STORY_MODE", "0") == "1", "entity_span_pipeline": True, "semantic_faithfulness_gate": True, "dialogue_completeness_gate": True}
         if not src:
             append_event("TRANSLATION_SKIPPED", {"reason": "empty"}, source_module="translation_engine")
             return "", meta
@@ -671,7 +680,7 @@ class TranslationEngine:
             return
         self._last_status_write = now
         payload: Dict[str, object] = {
-            "version": "v8.8.1",
+            "version": "v8.8.3",
             "state": state,
             "strategy": self.strategy.strategy_name,
             "model_key": self.strategy.model_key,

@@ -1,4 +1,4 @@
-"""ORT v8.8.2 dialogue stability helpers.
+"""ORT v8.8.3 dialogue stability helpers.
 
 This module is intentionally lightweight and deterministic.  It lives on the
 runtime path so Auto Story can smooth noisy/progressive OCR without adding a

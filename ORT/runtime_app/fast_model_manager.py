@@ -14,6 +14,10 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from status_manager import write_status
+try:
+    from app.runtime.ct2_path_resolver import candidate_ct2_dirs, validate_ct2_dir, resolve_ct2_model_dir
+except Exception:
+    candidate_ct2_dirs = validate_ct2_dir = resolve_ct2_model_dir = None
 
 ROOT = Path(__file__).resolve().parent
 REQUIRED_MARKERS = ("model.bin", "model.bin.index.json", "config.json", "shared_vocabulary.json", "source.spm", "target.spm")
@@ -31,12 +35,18 @@ class FastModelManager:
         self.model_dir = self._select_model_dir()
 
     def _candidate_dirs(self) -> List[Path]:
+        if candidate_ct2_dirs is not None:
+            try:
+                return candidate_ct2_dirs(self.base_dir)
+            except Exception:
+                pass
         candidates: List[Path] = []
-        for env_key in ("TITAN_CT2_EN_ID_DIR", "ORT_FAST_CT2_MODEL_DIR"):
+        for env_key in ("ORT_CT2_EN_ID_DIR", "TITAN_CT2_EN_ID_DIR", "ORT_FAST_CT2_MODEL_DIR", "ORT_LITE_CT2_MODEL_DIR"):
             value = os.environ.get(env_key)
             if value:
                 candidates.append(Path(value).expanduser())
-        for parent in (self.base_dir / "models", self.base_dir / "_runtime" / "models", self.base_dir):
+        project_root = self.base_dir.parent.parent if self.base_dir.name.lower() == "runtime_app" and self.base_dir.parent.name.upper() == "ORT" else self.base_dir
+        for parent in (self.base_dir / "models", project_root / "models", self.base_dir.parent / "_LOCAL_RUNTIME_WEB_DO_NOT_UPLOAD" / "models", self.base_dir / "_runtime" / "models", self.base_dir):
             for name in MODEL_DIR_NAMES:
                 candidates.append(parent / name)
         candidates.append(self.default_model_dir)
@@ -98,6 +108,12 @@ class FastModelManager:
     def status(self) -> Dict[str, Any]:
         ctranslate2_ok = _bool_spec("ctranslate2")
         sentencepiece_ok = _bool_spec("sentencepiece")
+        if resolve_ct2_model_dir is not None:
+            try:
+                resolved = resolve_ct2_model_dir(self.base_dir)
+                self.model_dir = resolved.path
+            except Exception:
+                pass
         validation = self.validate_model_dir()
         active = bool(ctranslate2_ok and sentencepiece_ok and validation["likely_valid"])
         if active:
@@ -115,7 +131,7 @@ class FastModelManager:
         model_dir_used = str(self.model_dir)
         spm_dir_used = str(os.environ.get("TITAN_SPM_EN_ID_DIR") or self.model_dir)
         data = {
-            "version": "v8.7.7",
+            "version": "v8.8.3",
             "state": state,
             "active": active,
             "python": sys.executable,
@@ -177,7 +193,7 @@ Catatan penting:
 
     def quick_translation_test(self, text: str = "Hello") -> Dict[str, Any]:
         data = self.status()
-        result = {"version": "v8.7.7", "input": text, "state": data.get("state"), "active": data.get("active"), "ok": False, "output": "", "reason": data.get("reason", "")}
+        result = {"version": "v8.8.3", "input": text, "state": data.get("state"), "active": data.get("active"), "ok": False, "output": "", "reason": data.get("reason", "")}
         if not data.get("active"):
             result["reason"] = "Fast CT2 is not active; runtime will use Argos fallback. Check model_dir and missing files."
             try:
@@ -208,7 +224,7 @@ Catatan penting:
     def quick_translation_report(self, text: str = "Hello") -> str:
         data = self.quick_translation_test(text)
         return "\n".join([
-            "Fast Engine Quick Translation Test v8.7.7",
+            "Fast Engine Quick Translation Test v8.8.3",
             "=====================================",
             f"state = {data.get('state')}",
             f"active = {data.get('active')}",

@@ -1,3 +1,13 @@
+# CHANGELOG — ORT Translation v8.8.3
+
+## v8.8.3 — GFL2 Recording Stability & Overlay Commit Gate
+- Added CT2 Path Resolver so root `models/ct2_opus_mt_en_id` is found without manual junction.
+- Added render-level Overlay Commit Gate to reduce flicker without delaying OCR/translation.
+- Added normalized render signature to suppress visually-identical cache/preview updates.
+- New turn clearing in Auto now keeps last good overlay until a meaningful new payload is ready.
+- Speaker-only fragments are suppressed in Auto/Recording.
+- Added lightweight recording telemetry for long GFL2 sessions.
+
 
 ## v8.8.2 — Runtime Behavior Refactor
 

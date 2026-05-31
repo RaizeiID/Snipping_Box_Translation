@@ -1,0 +1,28 @@
+ORT Translation v8.8.3 — Apply Notes
+=====================================
+
+Apply target:
+- Extract this changed-files patch over your existing ORT_Translation_v8_8_1 folder that already has v8.8.2 applied.
+- Choose Replace/Overwrite.
+
+Important:
+- v8.8.3 should automatically find CT2 in root models/ct2_opus_mt_en_id, ORT/runtime_app/models/ct2_opus_mt_en_id, or local runtime model folders.
+- The manual junction you created can remain; v8.8.3 no longer depends on it.
+- Do not upload models/, ORT_Runtime/, cache/, logs/, or backups/ to GitHub.
+
+Recommended recording preset:
+- Game: GFL2_EXILIUM
+- Mode: Auto
+- Model: ORTCore V1 / Normal V1
+- OCR: 65%
+- CT2 must be active.
+
+Expected log indicators:
+- Fast CT2 engine active OR IDN-over-CT2 literal engine active
+- engine=ct2_fast or engine=ct2_trusted_preview
+- [COMMIT v8.8.3] suppress ... for duplicate/similar/min-visible outputs
+- [REC v8.8.3] summary lines during long sessions
+
+Validation command:
+cd ORT\runtime_app
+python tools\v8_8_3_regression_test.py

@@ -834,3 +834,28 @@ ORT Translation adalah overlay OCR penerjemah dialog game real-time untuk Bahasa
 # Addendum 2026-05-30 — v8.8.2 Runtime Behavior Refactor
 
 v8.8.2 dimulai setelah v8.8.1 structural/GitHub cleanup. Fokusnya adalah Auto Smooth, Freeze OCR Override 100%, Interval Stable/Story-aware, Turn Transcript Accumulator, No-Downgrade Source Rule, Anti-Flicker Overlay Buffer, dan Speaker Prefix Sanitizer v3. Prinsip performa tetap berlaku: preview harus ringan, safety berat final-only, dan Lite tidak boleh tersendat.
+
+
+---
+
+# ADDENDUM — v8.8.3 GFL2 Recording Stability & Overlay Commit Gate
+
+Tanggal: 31 Mei 2026
+
+Keputusan terbaru:
+- v8.8.3 menjadi recording candidate untuk sesi story GFL2 1–2 jam.
+- CT2 path resolver wajib otomatis mencari model di root `models/ct2_opus_mt_en_id`, `ORT/runtime_app/models/ct2_opus_mt_en_id`, local runtime model folders, dan environment variables.
+- Flicker yang tersisa setelah CT2 aktif berasal dari render churn, bukan engine latency.
+- Solusi v8.8.3 adalah render-level Overlay Commit Gate, minimum visible time, normalized render signature, hold keep-last, speaker-only suppression, dan lightweight recording telemetry.
+- Jangan menambah semantic gate berat pada preview dan jangan membuat Auto terasa seperti Freeze.
+- Untuk rekaman GFL2 panjang, rekomendasi awal adalah Normal V1 / Auto / OCR 65% / CT2 active. Fast V1 OCR 40% tetap diagnostic/ultra-fast, bukan default recording.
+
+Event/log baru yang perlu diperiksa:
+- `[COMMIT v8.8.3] suppress | state=... | reason=...`
+- `[COMMIT v8.8.3] defer_clear | reason=new_turn_keep_last_until_next_commit`
+- `[REC v8.8.3] ...`
+- `OVERLAY_COMMIT_SUPPRESSED`
+
+Target v8.8.4 setelah pengguna mengirim log panjang:
+- Analisis telemetry sesi 1–2 jam.
+- Jika perlu, lanjutkan refactor Dialogue State Machine dan mode policy lebih resmi tanpa mengorbankan Auto responsiveness.

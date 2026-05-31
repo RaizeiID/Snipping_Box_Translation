@@ -4,6 +4,11 @@
 **Focus:** folder cleanup, launcher UX, GitHub-ready layout, and compatibility bridge.  
 **Runtime behavior:** based on v8.7.9 Responsive Faithfulness & Turn-Safe Overlay. OCR/translation behavior is intentionally not refactored yet; that is planned for v8.8.2.
 
+## v8.8.3 Recording Candidate
+
+v8.8.3 adds GFL2 recording stability features: CT2 path resolver, overlay commit gate, render signature dedupe, minimum visible time, and lightweight recording telemetry. For long GFL2 story recording, start with Normal V1 / Auto / OCR 65% and confirm the log shows CT2 active.
+
+
 ## Cara menjalankan
 
 Untuk pengguna biasa, buka:
