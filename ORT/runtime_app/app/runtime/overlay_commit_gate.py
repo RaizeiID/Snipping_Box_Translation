@@ -1,4 +1,4 @@
-"""ORT v8.8.5 Overlay Commit Gate.
+"""ORT v8.8.6 Overlay Commit Gate.
 
 v8.8.3 reduced flicker by suppressing render churn. v8.8.5 keeps that
 visual stability but gives priority to completeness and never-empty behaviour:
@@ -42,7 +42,7 @@ class OverlayCommitGate:
     def __init__(
         self,
         *,
-        min_visible_ms: int = 500,
+        min_visible_ms: int = 480,
         min_token_gain: int = 3,
         similar_threshold: float = 0.92,
         final_override: bool = True,
@@ -155,10 +155,12 @@ class OverlayCommitGate:
         same_html = dialog_html == self.last_dialog_html and speaker_html == self.last_speaker_html
         source_gain = self._source_substantial(source)
         output_gain = is_substantial_update(self.last_plain, plain, min_token_gain=max(1, self.min_token_gain - 1), min_char_gain=14)
-        complete_like = bool(final or force_complete or source_stable or state_u in {"FINAL_COMPLETE", "FINAL_READY", "INTERVAL_STABLE", "FREEZE_FINAL"} or terminal_punctuation(source))
-        source_longer_valid = bool(source_gain and len(words(source)) >= 3 and ocr_corruption_score(source) <= 0.68)
+        complete_like = bool(final or force_complete or source_stable or state_u in {"FINAL_COMPLETE", "FINAL_READY", "INTERVAL_STABLE", "FREEZE_FINAL", "MANDATORY_FINAL"} or terminal_punctuation(source))
+        source_longer_valid = bool(source_gain and len(words(source)) >= 3 and ocr_corruption_score(source) <= 0.72)
         completeness_override = bool(self.complete_source_override and (source_gain or output_gain) and (complete_like or source_longer_valid))
 
+        if force_complete:
+            return OverlayCommitDecision(True, "mandatory_final_override", "FINAL_COMPLETE", sig)
         if same_html and not completeness_override:
             return OverlayCommitDecision(False, "same_html_no_render", "DUPLICATE", sig)
         if sig and sig == self.last_signature and not completeness_override:
@@ -167,7 +169,7 @@ class OverlayCommitGate:
             return OverlayCommitDecision(False, "cache_duplicate_no_render", "DUPLICATE", sig)
 
         if new_turn:
-            # v8.8.5: do not let noisy turn-id churn dominate the overlay.
+            # v8.8.6: do not let noisy turn-id churn dominate the overlay.
             # A new-turn preview may commit only when meaningful or final-ready;
             # otherwise repaint/keep last good until this turn has enough content.
             if len(words(plain)) < 2 and len(strip_html(plain)) < 14:
@@ -183,7 +185,7 @@ class OverlayCommitGate:
             shorter = len(strip_html(plain)) + 12 < len(strip_html(self.last_plain))
             if shorter and not complete_like:
                 return OverlayCommitDecision(False, "shorter_preview_no_downgrade", "NO_DOWNGRADE", sig, force_visible=self.never_empty)
-            # v8.8.5: complete/longer source wins over min-visible.
+            # v8.8.6: complete/longer source wins over min-visible.
             if completeness_override:
                 reason = "source_longer_must_win" if source_longer_valid and not complete_like else "final_complete_override"
                 return OverlayCommitDecision(True, reason, "FINAL_COMPLETE", sig)

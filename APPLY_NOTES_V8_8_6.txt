@@ -1,0 +1,21 @@
+ORT Translation v8.8.6 Apply Notes
+
+Apply this changed-files patch over v8.8.5 or newer v8.8.5-based folder.
+
+How to apply:
+1. Extract ZIP into:
+   D:\AI TRANSLATOR\ORT_Translation_v8_8_1
+2. Choose Replace / Overwrite.
+3. Check VERSION.txt = v8.8.6.
+4. Run:
+   cd "D:\AI TRANSLATOR\ORT_Translation_v8_8_1\ORTuntime_app"
+   python tools8_8_6_regression_test.py
+
+Expected:
+   v8.8.6 regression PASS
+
+Mode Buffer:
+- Appears under/after Pilih Model.
+- Default OFF.
+- ON adds controlled recording buffer.
+- OFF resets runtime to normal.

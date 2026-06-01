@@ -61,7 +61,7 @@ SETTINGS = load_settings()
 
 
 def render_observed_review_html(game: str) -> str:
-    """Render v8.8.5 observed speaker/term/alias review without auto-activating aliases."""
+    """Render v8.8.6 observed speaker/term/alias review without auto-activating aliases."""
     if str(game or "").upper() != "GFL2_EXILIUM":
         return "<div class='smallnote'>Observed Story / Alias Review saat ini tersedia untuk profile GFL2 setelah audit v8.7.6 dan live CT2.</div>"
     path = PROJECT_ROOT / "configs" / "gfl2_observed_candidates_v8_7_8.json"
@@ -81,13 +81,18 @@ def render_observed_review_html(game: str) -> str:
     alias_rows = "".join(f"<tr><td>{html.escape(str(row.get('ocr_form','')))}</td><td>→ {html.escape(str(row.get('canonical', row.get('canonical_name',''))))}</td><td>{int(row.get('hits',0))}</td><td>{html.escape(str(row.get('status','ROI-only review')))}</td></tr>" for row in aliases[:16])
     return (
         "<div class='card'><b>Observed Recent Story — official exact speaker</b><p class='smallnote'>Nama hijau sudah berada pada katalog resmi; angka menunjukkan bukti selected audit terbaru.</p>" + official_chips +
-        "<hr><b>v8.8.5 Safe Additions — exact-only setelah migrasi</b><p class='smallnote'>Nama biru berasal dari log CT2 terbaru dan tidak memakai fuzzy body matching.</p>" + add_chips +
-        "<hr><b>Special Terms GFL2 v8.8.5 baru/retained</b><div>" + term_chips + "</div>" +
+        "<hr><b>v8.8.6 Safe Additions — exact-only setelah migrasi</b><p class='smallnote'>Nama biru berasal dari log CT2 terbaru dan tidak memakai fuzzy body matching.</p>" + add_chips +
+        "<hr><b>Special Terms GFL2 v8.8.6 baru/retained</b><div>" + term_chips + "</div>" +
         "<hr><b>Alias Candidate (ROI-only, belum aktif otomatis)</b><table style='width:100%;margin-top:6px'><tr><th>OCR</th><th>Canonical</th><th>Hits</th><th>Status</th></tr>" + alias_rows +
         "</table><p class='smallnote'>Tidak auto-map Helene. Commander profile-only yang tidak dimasukkan global: " + excluded_text + ".</p></div>"
     )
 
 CSS = """
+.mode-buffer-help { border:1px solid rgba(96,165,250,.22); background:rgba(15,23,42,.55); color:#dbeafe; border-radius:14px; padding:10px 12px; margin-top:-4px; }
+.mode-buffer-help .q { display:inline-flex; width:22px; height:22px; align-items:center; justify-content:center; border-radius:999px; background:#1d4ed8; color:white; font-weight:900; margin-left:8px; cursor:help; }
+.mode-buffer-help .tip { display:none; margin-top:8px; color:#bfdbfe; font-size:13px; }
+.mode-buffer-help:hover .tip { display:block; }
+
 .gradio-container {
   background: radial-gradient(circle at top, #0b1530 0%, #07101f 50%, #03060c 100%);
 }
@@ -483,7 +488,7 @@ def _refresh_all(game: str):
     return _status_html(status), runtime_summary_text(), log, err_md, notice_md
 
 
-def _start(model, game, mode, engine, interval_ms, ocr_resolution, settings_mode, responsive_story_mode, diagnostic_profile):
+def _start(model, game, mode, engine, interval_ms, ocr_resolution, settings_mode, responsive_story_mode, diagnostic_profile, mode_buffer_enabled):
     manual = _settings_mode_is_manual(settings_mode)
     # v8.6: restore the previous safe interval floor for Interval mode.
     # 45ms remains technically possible only in custom experiments, but the normal WebUI path
@@ -493,7 +498,7 @@ def _start(model, game, mode, engine, interval_ms, ocr_resolution, settings_mode
             interval_ms = 90
     except Exception:
         pass
-    status, log, msg, notice = start_model(model, game, mode, engine, interval_ms, ocr_resolution, "normal" if manual else "auto", manual, settings_mode, bool(responsive_story_mode), str(diagnostic_profile or "baseline"))
+    status, log, msg, notice = start_model(model, game, mode, engine, interval_ms, ocr_resolution, "normal" if manual else "auto", manual, settings_mode, bool(responsive_story_mode), str(diagnostic_profile or "baseline"), bool(mode_buffer_enabled))
     err_md = ""
     if "ERROR" in (status or ""):
         err_md = f"**Error:**\n\n```\n{msg}\n```"
@@ -684,8 +689,8 @@ seed_data = get_game_data(PREFS.get("game", "GFL2_EXILIUM"))
 INITIAL_UI_MODE = PREFS.get("ui_mode", "recommended")
 _INITIAL_VIS = _ui_mode_visibility(INITIAL_UI_MODE)
 
-with gr.Blocks(title="ORT Translation v8.8.5") as demo:
-    gr.HTML("<div class='hero'><h1>ORT Translation v8.8.5</h1><p>GFL2 Recording Stability, Overlay Commit Gate, CT2 Path Resolver, Render Signature, dan Recording Telemetry.</p></div>")
+with gr.Blocks(title="ORT Translation v8.8.6") as demo:
+    gr.HTML("<div class='hero'><h1>ORT Translation v8.8.6</h1><p>GFL2 Recording Stability, Overlay Commit Gate, CT2 Path Resolver, Render Signature, dan Recording Telemetry.</p></div>")
     with gr.Row():
         with gr.Column(scale=11):
             candidate_notice = gr.HTML("")
@@ -717,12 +722,14 @@ with gr.Blocks(title="ORT Translation v8.8.5") as demo:
                             model_dropdown = gr.Dropdown(label="Pilih model", choices=basic_choices, value=default_model)
                         model_default_msg = gr.HTML(model_user_preset_badge_html(default_model))
                         reset_model_default_btn = gr.Button("Reset Default", elem_id="reset_model_default_btn", visible=model_user_preset_is_modified(default_model))
-                        gr.HTML("<div class='smallnote'>v8.8.5: perubahan Mode / Engine / Interval / OCR disimpan otomatis per model; override OCR manual tidak diturunkan diam-diam. Badge <b style='color:#fb923c'>• Modification</b> muncul jika model sudah berbeda dari default bawaan.</div>")
+                        gr.HTML("<div class='smallnote'>v8.8.6: perubahan Mode / Engine / Interval / OCR disimpan otomatis per model; override OCR manual tidak diturunkan diam-diam. Badge <b style='color:#fb923c'>• Modification</b> muncul jika model sudah berbeda dari default bawaan.</div>")
+                        mode_buffer_checkbox = gr.Checkbox(label="Mode Buffer", value=bool(PREFS.get("mode_buffer_enabled", False)))
+                        gr.HTML("<div class='mode-buffer-help' title='Mode Buffer menambahkan jeda kecil terkontrol agar final terjemahan lebih lengkap/stabil saat rekaman. Default OFF. Saat dimatikan runtime kembali normal.'><b>☐ Mode Buffer</b><span class='q'>?</span><div class='tip'>Mode Buffer menambahkan buffer kecil terkontrol untuk membantu hasil terjemahan tampil lebih lengkap dan stabil saat rekaman story. Cocok untuk rekaman, tetapi dapat menambah sedikit latensi. Jika dimatikan, program kembali ke mode normal tanpa state tertinggal.</div></div>")
                         model_md = gr.Markdown(_model_desc(default_model))
                         with gr.Row():
                             mode_dropdown = gr.Dropdown(label="Mode", choices=[("Auto / Story Otomatis", "auto"), ("Freeze Manual / Klik User", "freeze"), ("Interval / Freeze Otomatis", "interval")], value=_initial_model_preset.get("mode", PREFS.get("mode", "auto")))
                             responsive_story_mode = gr.Checkbox(label="Mode Responsif / Story Cepat (Tanpa Voice)", value=bool(PREFS.get("responsive_story_mode", False)))
-                            gr.Markdown("Mode responsif memprioritaskan dialog terbaru dan mengurangi preview usang. Two-Pass Name ROI tetap aktif; v8.8.5 dapat menaikkan OCR sementara bila teks preset rendah rusak.")
+                            gr.Markdown("Mode responsif memprioritaskan dialog terbaru dan mengurangi preview usang. Two-Pass Name ROI tetap aktif; v8.8.6 dapat menaikkan OCR sementara bila teks preset rendah rusak.")
                             with gr.Accordion("Diagnostic A/B Test (Advanced)", open=False):
                                 diagnostic_profile = gr.Dropdown(label="Profil Uji", choices=[("Baseline Correctness", "baseline"), ("Responsive Story", "responsive_story"), ("Diagnostic No-Name-ROI (uji saja)", "diagnostic_no_name_roi")], value=str(PREFS.get("diagnostic_profile", "baseline")))
                                 gr.Markdown("⚠️ **Diagnostic No-Name-ROI** hanya untuk pengukuran performa; label KSVK/Helen/Helena dapat hilang atau salah.")
@@ -801,7 +808,7 @@ with gr.Blocks(title="ORT Translation v8.8.5") as demo:
                 gr.Markdown("### Katalog Referensi Nama — untuk proteksi ejaan/exact match, bukan auto-label speaker")
                 identity_spoiler = gr.Checkbox(label="Tampilkan / Import Karakter Cerita Lanjutan (mengandung spoiler, khusus GFL)", value=bool(SETTINGS.get("show_story_spoilers", False)))
                 identity_catalog_html = gr.HTML(render_reference_catalog_html(PREFS.get("game", "GFL2_EXILIUM"), bool(SETTINGS.get("show_story_spoilers", False))))
-                gr.Markdown("### Observed Story / Alias Review v8.8.5")
+                gr.Markdown("### Observed Story / Alias Review v8.8.6")
                 identity_observed_html = gr.HTML(render_observed_review_html(PREFS.get("game", "GFL2_EXILIUM")))
                 identity_select = gr.Radio(label="Klik nama untuk aksi Hapus / Migrasi", choices=_identity_initial[4], value=None)
                 with gr.Row():
@@ -946,7 +953,7 @@ with gr.Blocks(title="ORT Translation v8.8.5") as demo:
                 reset_box = gr.Textbox(label="Reset Settings Log", value="", interactive=False, lines=5, elem_classes=["mono"])
 
     # Dashboard events
-    start_btn.click(_start, inputs=[model_dropdown, game_dropdown, mode_dropdown, engine_dropdown, interval_slider, ocr_resolution_slider, settings_mode, responsive_story_mode, diagnostic_profile], outputs=[state_box, runtime_box, log_box, launch_msg, error_box, candidate_notice])
+    start_btn.click(_start, inputs=[model_dropdown, game_dropdown, mode_dropdown, engine_dropdown, interval_slider, ocr_resolution_slider, settings_mode, responsive_story_mode, diagnostic_profile, mode_buffer_checkbox], outputs=[state_box, runtime_box, log_box, launch_msg, error_box, candidate_notice])
     stop_btn.click(_stop, inputs=[game_dropdown], outputs=[state_box, runtime_box, log_box, launch_msg, error_box, candidate_notice, proc_msg, cand_names, cand_special, confirmed_html, names_html, special_html, blacklist_html, original_html, name_color, special_color, popup_toggle, auto_reset_toggle, preview_html, color_legend_html, remove_name_pick, remove_special_pick, remove_blacklist_pick])
     refresh_btn.click(_refresh_all, inputs=[game_dropdown], outputs=[state_box, runtime_box, log_box, error_box, candidate_notice])
     apply_rec_btn.click(_force_apply_recommendation, inputs=[game_dropdown], outputs=[game_profile_card, recommendation_box, model_group, model_dropdown, model_md, mode_dropdown, engine_dropdown, interval_slider, ocr_resolution_slider, settings_mode])

@@ -1,4 +1,4 @@
-"""ORT v8.8.5 render signature and OCR quality helpers.
+"""ORT v8.8.6 render signature and OCR quality helpers.
 
 These helpers are deterministic and cheap. They are used only for visual
 commit decisions, final-completeness checks, bad-cache shielding, and low-OCR
@@ -46,6 +46,14 @@ _REPLACEMENTS = {
     "lvn": "lviv",
     "lviy": "lviv",
     "wherent": "weren't",
+    "nlkketa": "nikketa",
+    "blig": "big",
+    "sls": "sis",
+    "hlena": "helena",
+    "helna": "helena",
+    "incldent": "incident",
+    "inltlated": "initiated",
+    "belf": "self",
 }
 
 

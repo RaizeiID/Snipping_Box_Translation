@@ -19,3 +19,12 @@ Low-OCR models such as Lite V1, Lite IDN V1, and other 40–45% OCR profiles mus
 
 ## Next likely focus
 Use v8.8.5 logs to decide v8.8.6. If issues remain, prioritize mode policy separation for Interval/Freeze and deeper turn lifecycle refactoring, not heavy semantic preview gates.
+
+
+## v8.8.6 Strategy Update
+
+- Main Commander is `Raizei`; ARVITA/ATVITA/AFVITA cluster is alternate/example profile, not main.
+- Mode Buffer is experimental checkbox under `Pilih Model`, default OFF, with hover/help tooltip.
+- Temporal OCR Consensus must not block preview; it works in final lane only.
+- Prediction/Repair Text will be guarded by confidence labels and replay-derived patterns, not blind auto-correct.
+- Offline Replay Benchmark should learn general failure patterns, not memorize old story lines.

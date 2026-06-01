@@ -112,3 +112,8 @@ Lalu upload ZIP `ORT_GITHUB_SOURCE_EXPORT.zip` ke GitHub atau gunakan Git dari r
 ## v8.8.2 Runtime Behavior Refactor
 
 Update ini menambahkan Auto Smooth, Freeze OCR Override, Interval Stable/Story-aware, Turn Transcript Accumulator, No-Downgrade Source Rule, Anti-Flicker Overlay Buffer, dan Speaker Prefix Sanitizer v3.
+
+
+## v8.8.6 — Mandatory Final Commit & Mode Buffer
+
+Adds final-lane Temporal OCR Consensus, experimental `Mode Buffer`, Mandatory Final Commit v2, Low-OCR Visual Rescue planner, and Bad Cache Shield v2.

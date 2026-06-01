@@ -1,4 +1,4 @@
-"""ORT v8.8.5 OCR Churn Rescue.
+"""ORT v8.8.6 OCR Churn Rescue.
 
 The goal is to make low-OCR profiles (40-45%) usable instead of simply saying
 "not recommended". We do that with cheap heuristics:
@@ -36,6 +36,7 @@ class OCRChurnRescue:
         self.low_ocr_threshold = int(low_ocr_threshold)
         self.corruption_hold = float(corruption_hold)
         self.corruption_cache = float(corruption_cache)
+        self._rescue_notes = []
         self._last_sig = ""
         self._last_ts = 0.0
         self._flip_count = 0

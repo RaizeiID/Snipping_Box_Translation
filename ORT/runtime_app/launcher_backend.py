@@ -219,7 +219,7 @@ def fast_engine_rebind_report():
         os.environ["ORT_CT2_PATH_REBIND"] = "1"
         test = mgr.quick_translation_test("Hello")
         return "\n".join([
-            "Repair / Rebind CT2 Model & SPM Path v8.8.5",
+            "Repair / Rebind CT2 Model & SPM Path v8.8.6",
             "==========================================",
             f"model_dir_used = {model_dir}",
             f"spm_dir_used   = {model_dir}",
@@ -321,6 +321,7 @@ def load_prefs():
         "ui_mode": "recommended",
         "responsive_story_mode": False,
         "diagnostic_profile": "baseline",
+        "mode_buffer_enabled": False,
     }
     data = _load_json(PREFS_PATH, default)
     # v8.7.1 migration: only upgrade the untouched shipped v8.7 first-run GFL preset.
@@ -339,7 +340,7 @@ def load_prefs():
     return data
 
 
-def save_prefs(model, game, mode, engine, interval_ms, model_group=None, ocr_resolution=None, performance_policy=None, normal_override=None, settings_mode=None, ui_mode=None, responsive_story_mode=None, diagnostic_profile=None):
+def save_prefs(model, game, mode, engine, interval_ms, model_group=None, ocr_resolution=None, performance_policy=None, normal_override=None, settings_mode=None, ui_mode=None, responsive_story_mode=None, diagnostic_profile=None, mode_buffer_enabled=None):
     data = load_prefs()
     data.update({
         "model": model,
@@ -364,9 +365,11 @@ def save_prefs(model, game, mode, engine, interval_ms, model_group=None, ocr_res
         data["responsive_story_mode"] = bool(responsive_story_mode)
     if diagnostic_profile is not None:
         data["diagnostic_profile"] = str(diagnostic_profile or "baseline")
+    if mode_buffer_enabled is not None:
+        data["mode_buffer_enabled"] = bool(mode_buffer_enabled)
     _save_json(PREFS_PATH, data)
     try:
-        save_state({"version": "v8.8.5", "model": model, "game": game, "mode": mode, "engine": engine, "requested_engine": engine, "requested_mode": mode, "requested_interval_ms": int(interval_ms), "interval_ms": int(interval_ms), "requested_ocr_resolution": data.get("ocr_resolution"), "ocr_resolution": data.get("ocr_resolution"), "settings_mode": data.get("settings_mode", "recommended"), "responsive_story_mode": bool(data.get("responsive_story_mode", False)), "diagnostic_profile": str(data.get("diagnostic_profile", "baseline"))}, BASE_DIR)
+        save_state({"version": "v8.8.6", "model": model, "game": game, "mode": mode, "engine": engine, "requested_engine": engine, "requested_mode": mode, "requested_interval_ms": int(interval_ms), "interval_ms": int(interval_ms), "requested_ocr_resolution": data.get("ocr_resolution"), "ocr_resolution": data.get("ocr_resolution"), "settings_mode": data.get("settings_mode", "recommended"), "responsive_story_mode": bool(data.get("responsive_story_mode", False)), "diagnostic_profile": str(data.get("diagnostic_profile", "baseline")), "mode_buffer_enabled": bool(data.get("mode_buffer_enabled", False))}, BASE_DIR)
     except Exception:
         pass
     return data
@@ -549,12 +552,16 @@ def _dialog_scheduler_env(mode: str, preset_key: str = "", game: str = "", respo
         "ORT_SEMANTIC_FIDELITY_GUARD": "1",
         "ORT_IDN_OVER_CT2": "1" if ("idn" in key or (not lite and not fast)) else "0",
         "ORT_FINAL_ONLY_SAFE_COMMIT": "1" if ("idn" in key or (not lite and not fast)) else "0",
-        "ORT_MODE_POLICY_VERSION": "v8.8.5_mode_policy_v1",
+        "ORT_MODE_POLICY_VERSION": "v8.8.6_mode_policy_v1",
         "ORT_DIALOG_STABILITY_ACCUMULATOR": "1",
         "ORT_OVERLAY_ANTI_FLICKER_BUFFER": "1",
         "ORT_OVERLAY_COMMIT_GATE": "1",
         "ORT_OVERLAY_FINAL_OVERRIDE": "1",
         "ORT_RECORDING_TELEMETRY": "1" if game_u == "GFL2_EXILIUM" else "0",
+        "ORT_TEMPORAL_OCR_CONSENSUS": "1" if game_u == "GFL2_EXILIUM" else "0",
+        "ORT_MANDATORY_FINAL_COMMIT_V2": "1" if game_u == "GFL2_EXILIUM" else "0",
+        "ORT_BAD_CACHE_SHIELD_V2": "1",
+        "ORT_STALE_OVERLAY_LIMIT": "1",
     }
     if mode_l == "freeze":
         env.update({
@@ -702,7 +709,7 @@ class ProcessManager:
         """Clear only the WebUI live-log buffer. Session files remain intact for Analyze Last Session."""
         with self.lock:
             self.lines = []
-        self._push("[WEBUI v8.8.5] Live Log tampilan direset; file session tetap disimpan untuk Analyze Last Session.")
+        self._push("[WEBUI v8.8.6] Live Log tampilan direset; file session tetap disimpan untuk Analyze Last Session.")
 
     def get_status_text(self):
         err = f"\nLAST_ERROR: {self.last_error}" if self.last_error else ""
@@ -764,14 +771,14 @@ class ProcessManager:
     def candidate_notice(self):
         return self.pending_candidate_notice
 
-    def start(self, model, game, mode, engine, interval_ms, ocr_resolution=65, performance_policy="auto", normal_override=False, settings_mode=None, responsive_story_mode=False, diagnostic_profile="baseline"):
+    def start(self, model, game, mode, engine, interval_ms, ocr_resolution=65, performance_policy="auto", normal_override=False, settings_mode=None, responsive_story_mode=False, diagnostic_profile="baseline", mode_buffer_enabled=False):
         if self.proc and self.proc.poll() is None:
             return self.get_status_text(), self.get_log(), "Model masih berjalan. Stop dulu sebelum start baru.", self.pending_candidate_notice
 
         settings_mode = (settings_mode or ("manual" if normal_override else "recommended")).lower()
         normal_override = settings_mode in {"manual", "normal"}
         performance_policy = "normal" if normal_override else "auto"
-        save_prefs(model, game, mode, engine, interval_ms, ocr_resolution=ocr_resolution, performance_policy=performance_policy, normal_override=normal_override, settings_mode=settings_mode, responsive_story_mode=responsive_story_mode, diagnostic_profile=diagnostic_profile)
+        save_prefs(model, game, mode, engine, interval_ms, ocr_resolution=ocr_resolution, performance_policy=performance_policy, normal_override=normal_override, settings_mode=settings_mode, responsive_story_mode=responsive_story_mode, diagnostic_profile=diagnostic_profile, mode_buffer_enabled=mode_buffer_enabled)
         if load_settings().get("auto_reset_candidates", False):
             try:
                 clear_candidates(game)
@@ -787,7 +794,7 @@ class ProcessManager:
 
         preset = _resolve_model(model)
         try:
-            save_prefs(model, game, mode, engine, interval_ms, model_group=preset.tier, ocr_resolution=ocr_resolution, performance_policy=performance_policy, normal_override=normal_override, settings_mode=settings_mode)
+            save_prefs(model, game, mode, engine, interval_ms, model_group=preset.tier, ocr_resolution=ocr_resolution, performance_policy=performance_policy, normal_override=normal_override, settings_mode=settings_mode, mode_buffer_enabled=mode_buffer_enabled)
         except Exception:
             pass
         script_name = preset.script
@@ -844,6 +851,10 @@ class ProcessManager:
         applied_responsive = bool(responsive_story_mode or diagnostic_profile == "responsive_story")
         env.update(_dialog_scheduler_env(requested_mode, preset.key, game, applied_responsive))
         env["ORT_DIAGNOSTIC_PROFILE"] = diagnostic_profile
+        env["ORT_MODE_BUFFER"] = "1" if bool(mode_buffer_enabled) else "0"
+        env["ORT_MODE_BUFFER_MS"] = os.environ.get("ORT_MODE_BUFFER_MS", "700")
+        if bool(mode_buffer_enabled):
+            env["ORT_GFL2_RECORDING_PROFILE"] = "1"
         if diagnostic_profile == "diagnostic_no_name_roi":
             env["ORT_GFL2_SPEAKER_ROI"] = "0"
             env["ORT_DIAGNOSTIC_WARNING"] = "Name ROI disabled for A/B measurement; speaker labels may be inaccurate."
@@ -892,7 +903,7 @@ class ProcessManager:
                 env["ORT_ALLOW_ONLINE_ASSIST"] = "1"
         except Exception:
             pass
-        # v8.8.5: Freeze is snapshot/manual accuracy mode, so it may use OCR 100%
+        # v8.8.6: Freeze is snapshot/manual accuracy mode, so it may use OCR 100%
         # even when the selected Lite/Fast model normally uses a lower OCR preset.
         if requested_mode == "freeze" and env.get("ORT_FREEZE_OCR_OVERRIDE", "1") == "1":
             try:
@@ -912,7 +923,7 @@ class ProcessManager:
         write_strategy_status(strategy, BASE_DIR, extra={"source": "launcher", "selected_model": model, "selected_game": game, "requested_engine": engine, "requested_mode": mode, "requested_interval_ms": int(interval_ms), "requested_ocr_resolution": int(ocr_resolution), "effective_ocr_resolution": applied_runtime_ocr, "preset_ocr_resolution": getattr(preset, "ocr_resolution_percent", None), "adaptive_ocr_rescue_enabled": env.get("ORT_ADAPTIVE_READABILITY_GUARD", "0") == "1", "ocr_rescue_floor": int(env.get("ORT_OCR_STORY_MIN_PERCENT", "50")), "ct2_fallback_active": env.get("ORT_CT2_FALLBACK_ACTIVE", "0") == "1"})
         try:
             save_state({
-                "version": "v8.8.5",
+                "version": "v8.8.6",
                 "status": "RUNNING",
                 "model": model,
                 "game": game,
@@ -939,6 +950,8 @@ class ProcessManager:
                 "lite_gpu_reason": env.get("ORT_LITE_GPU_REASON", "-"),
                 "responsive_story_mode": bool(applied_responsive),
                 "diagnostic_profile": diagnostic_profile,
+                "mode_buffer_enabled": bool(mode_buffer_enabled),
+                "mode_buffer_ms": int(env.get("ORT_MODE_BUFFER_MS", "0")) if bool(mode_buffer_enabled) else 0,
                 "entity_span_pipeline": True,
                 "cache_namespace": env.get("ORT_IDN_CACHE_VERSION", "v8_7_9_responsive_turn_safe_ct2"),
             }, BASE_DIR)
@@ -963,7 +976,7 @@ class ProcessManager:
         perf_reason = _performance_reason_text(strategy, fast_state, mode)
         try:
             save_state({
-                "version": "v8.8.5",
+                "version": "v8.8.6",
                 "fast_engine_status": fast_state.get("state", "unknown"),
                 "fast_engine_active": bool(fast_state.get("active")),
                 "dialog_scheduler_profile": env.get("ORT_DIALOG_SCHEDULER_PROFILE", "-"),
@@ -976,6 +989,8 @@ class ProcessManager:
                 "lite_gpu_reason": env.get("ORT_LITE_GPU_REASON", "-"),
                 "responsive_story_mode": bool(applied_responsive),
                 "diagnostic_profile": diagnostic_profile,
+                "mode_buffer_enabled": bool(mode_buffer_enabled),
+                "mode_buffer_ms": int(env.get("ORT_MODE_BUFFER_MS", "0")) if bool(mode_buffer_enabled) else 0,
                 "entity_span_pipeline": True,
                 "cache_namespace": env.get("ORT_IDN_CACHE_VERSION", "v8_7_9_responsive_turn_safe_ct2"),
             }, BASE_DIR)
@@ -984,22 +999,22 @@ class ProcessManager:
         self.status = "RUNNING"
         self.stop_requested = False
         effective_interval_msg = int(env.get("ORT_BOOT_INTERVAL_MS", interval_ms))
-        self._push(f"[WEBUI v8.8.5] START {model} | game={game} | strategy={strategy.strategy_name} | mode={str(mode).lower()} | engine={str(engine).lower()} | interval={effective_interval_msg}ms | requested_ocr={int(ocr_resolution)}% | applied_ocr={applied_runtime_ocr}% | rescue_floor={env.get('ORT_OCR_STORY_MIN_PERCENT','50')}% | adaptive_rescue={env.get('ORT_ADAPTIVE_READABILITY_GUARD','0')} | policy={performance_policy} | normal_override={normal_override}")
+        self._push(f"[WEBUI v8.8.6] START {model} | game={game} | strategy={strategy.strategy_name} | mode={str(mode).lower()} | engine={str(engine).lower()} | interval={effective_interval_msg}ms | requested_ocr={int(ocr_resolution)}% | applied_ocr={applied_runtime_ocr}% | rescue_floor={env.get('ORT_OCR_STORY_MIN_PERCENT','50')}% | adaptive_rescue={env.get('ORT_ADAPTIVE_READABILITY_GUARD','0')} | policy={performance_policy} | normal_override={normal_override} | mode_buffer={1 if bool(mode_buffer_enabled) else 0}")
         self._push("[WEBUI] strategy: " + " | ".join(strategy.summary_lines()[:5]))
-        self._push(f"[WEBUI v8.8.5] scheduler={env.get('ORT_DIALOG_SCHEDULER_PROFILE')} | fast_profile={env.get('ORT_FAST_PROFILE')} | diagnostic={diagnostic_profile} | responsive_story={env.get('ORT_RESPONSIVE_STORY_MODE')} | latest_frame_wins={env.get('ORT_LATEST_FRAME_WINS')} | image_hash_gate={env.get('ORT_IMAGE_HASH_GATE')} | fuzzy_cache={env.get('ORT_FUZZY_CACHE_KEY')} | voice_hold={env.get('ORT_DIALOG_VOICE_HOLD_MS', '-')}ms")
+        self._push(f"[WEBUI v8.8.6] scheduler={env.get('ORT_DIALOG_SCHEDULER_PROFILE')} | fast_profile={env.get('ORT_FAST_PROFILE')} | diagnostic={diagnostic_profile} | responsive_story={env.get('ORT_RESPONSIVE_STORY_MODE')} | latest_frame_wins={env.get('ORT_LATEST_FRAME_WINS')} | image_hash_gate={env.get('ORT_IMAGE_HASH_GATE')} | fuzzy_cache={env.get('ORT_FUZZY_CACHE_KEY')} | voice_hold={env.get('ORT_DIALOG_VOICE_HOLD_MS', '-')}ms | mode_buffer={env.get('ORT_MODE_BUFFER','0')}:{env.get('ORT_MODE_BUFFER_MS','0')}ms")
         if env.get("ORT_FAST_PROFILE_LABEL"):
-            self._push(f"[WEBUI v8.8.5] fast_profile_note={env.get('ORT_FAST_PROFILE_LABEL')}")
+            self._push(f"[WEBUI v8.8.6] fast_profile_note={env.get('ORT_FAST_PROFILE_LABEL')}")
         if env.get("ORT_LITE_GPU_EFFICIENT") == "1":
-            self._push(f"[WEBUI v8.8.5] lite_gpu={env.get('ORT_LITE_GPU_PROFILE')} | ct2_allowed={env.get('ORT_LITE_CT2_ALLOWED')} | requested_ocr={env.get('ORT_LITE_REQUESTED_OCR', env.get('ORT_BOOT_OCR_RESOLUTION'))}% | applied_ocr={env.get('ORT_LITE_APPLIED_OCR', env.get('ORT_BOOT_OCR_RESOLUTION'))}% | queue={env.get('ORT_LITE_APPLIED_QUEUE', env.get('TITAN_QUEUE_MAX'))} | reason={env.get('ORT_LITE_GPU_REASON')}")
+            self._push(f"[WEBUI v8.8.6] lite_gpu={env.get('ORT_LITE_GPU_PROFILE')} | ct2_allowed={env.get('ORT_LITE_CT2_ALLOWED')} | requested_ocr={env.get('ORT_LITE_REQUESTED_OCR', env.get('ORT_BOOT_OCR_RESOLUTION'))}% | applied_ocr={env.get('ORT_LITE_APPLIED_OCR', env.get('ORT_BOOT_OCR_RESOLUTION'))}% | queue={env.get('ORT_LITE_APPLIED_QUEUE', env.get('TITAN_QUEUE_MAX'))} | reason={env.get('ORT_LITE_GPU_REASON')}")
         if env.get("ORT_GFL_LAYOUT") == "1":
-            self._push("[WEBUI v8.8.5] GFL layout=GFL_DIALOG_STANDARD | name_roi=1 | body_roi=1 | footer_mask=1 | scene_guard=1 | cache_normalized=1 | speaker_quarantine=3hits")
+            self._push("[WEBUI v8.8.6] GFL layout=GFL_DIALOG_STANDARD | name_roi=1 | body_roi=1 | footer_mask=1 | scene_guard=1 | cache_normalized=1 | speaker_quarantine=3hits")
         if env.get("ORT_GFL2_SPEAKER_ROI") == "1":
-            self._push(f"[WEBUI v8.8.5] GFL2 speaker_roi=1 | trusted_registry=1 | verified_exact_catalog=1 | dual_helen_helena_guard=1 | full_backend_entity_span=1 | exact_fallback_only=1 | adaptive_readability_guard={env.get('ORT_ADAPTIVE_READABILITY_GUARD','0')} | stale_overlay_guard=1 | residual_guard=1 | critical_token_guard=1 | stable_final_cache_v2=1 | idn_eval_export=1 | faithfulness_v2=1 | strict_ct2_story=1 | qur_quarantine=1")
+            self._push(f"[WEBUI v8.8.6] GFL2 speaker_roi=1 | trusted_registry=1 | verified_exact_catalog=1 | dual_helen_helena_guard=1 | full_backend_entity_span=1 | exact_fallback_only=1 | adaptive_readability_guard={env.get('ORT_ADAPTIVE_READABILITY_GUARD','0')} | stale_overlay_guard=1 | residual_guard=1 | critical_token_guard=1 | stable_final_cache_v2=1 | idn_eval_export=1 | faithfulness_v2=1 | strict_ct2_story=1 | qur_quarantine=1")
         elif diagnostic_profile == "diagnostic_no_name_roi" and str(game).upper() == "GFL2_EXILIUM":
-            self._push("[WEBUI v8.8.5][DIAGNOSTIC WARNING] Name ROI OFF hanya untuk uji A/B; label KSVK/Helen/Helena dapat hilang atau salah.")
+            self._push("[WEBUI v8.8.6][DIAGNOSTIC WARNING] Name ROI OFF hanya untuk uji A/B; label KSVK/Helen/Helena dapat hilang atau salah.")
         if strategy.fast_path and not bool(fast_state.get("active")):
-            self._push(f"[WEBUI v8.8.5][WARN] Fast CT2 belum aktif ({fast_state.get('state')}). Model Fast akan fallback Argos sehingga masih terasa lamban. model_dir={fast_state.get('model_dir', '-')}")
-        self._push(f"[WEBUI v8.8.5] performance_reason={perf_reason}")
+            self._push(f"[WEBUI v8.8.6][WARN] Fast CT2 belum aktif ({fast_state.get('state')}). Model Fast akan fallback Argos sehingga masih terasa lamban. model_dir={fast_state.get('model_dir', '-')}")
+        self._push(f"[WEBUI v8.8.6] performance_reason={perf_reason}")
         self._push(f"[WEBUI] runtime_python={runtime_python}")
         self._push(f"[WEBUI] script={script_name}")
 
@@ -1030,7 +1045,7 @@ class ProcessManager:
             self.stop_requested = True
             self.status = "STOPPING"
             self.stop_at = time.time()
-            self._push("[WEBUI v8.8.5] Graceful STOP requested. Menunggu flush cache/log/session...")
+            self._push("[WEBUI v8.8.6] Graceful STOP requested. Menunggu flush cache/log/session...")
             try:
                 request_stop(BASE_DIR, reason="webui_stop", pid=self.proc.pid)
                 write_shutdown_status(BASE_DIR, "STOP_REQUESTED", "webui_stop", {"pid": self.proc.pid})
@@ -1058,7 +1073,7 @@ class ProcessManager:
                 self.last_error = str(e)
 
             if self.proc.poll() is None:
-                self._push("[WEBUI v8.8.5] Graceful stop timeout; fallback hard kill.")
+                self._push("[WEBUI v8.8.6] Graceful stop timeout; fallback hard kill.")
                 try:
                     if os.name == 'nt':
                         subprocess.run(['taskkill', '/PID', str(self.proc.pid), '/T', '/F'], capture_output=True, text=True, timeout=10)
@@ -1067,7 +1082,7 @@ class ProcessManager:
                 except Exception as e:
                     self.last_error = str(e)
             else:
-                self._push("[WEBUI v8.8.5] Graceful stop selesai; cache/log seharusnya sudah flush.")
+                self._push("[WEBUI v8.8.6] Graceful stop selesai; cache/log seharusnya sudah flush.")
             try:
                 close_session("webui_stop")
             except Exception:
@@ -1093,8 +1108,8 @@ class ProcessManager:
 MANAGER = ProcessManager()
 
 
-def start_model(model, game, mode, engine, interval_ms, ocr_resolution=65, performance_policy="auto", normal_override=False, settings_mode=None, responsive_story_mode=False, diagnostic_profile="baseline"):
-    return MANAGER.start(model, game, mode, engine, interval_ms, ocr_resolution, performance_policy, normal_override, settings_mode, responsive_story_mode, diagnostic_profile)
+def start_model(model, game, mode, engine, interval_ms, ocr_resolution=65, performance_policy="auto", normal_override=False, settings_mode=None, responsive_story_mode=False, diagnostic_profile="baseline", mode_buffer_enabled=False):
+    return MANAGER.start(model, game, mode, engine, interval_ms, ocr_resolution, performance_policy, normal_override, settings_mode, responsive_story_mode, diagnostic_profile, mode_buffer_enabled)
 
 
 def recommendation_summary(game, normal_override=False):

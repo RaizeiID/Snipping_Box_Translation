@@ -131,7 +131,7 @@ class FastModelManager:
         model_dir_used = str(self.model_dir)
         spm_dir_used = str(os.environ.get("TITAN_SPM_EN_ID_DIR") or self.model_dir)
         data = {
-            "version": "v8.8.5",
+            "version": "v8.8.6",
             "state": state,
             "active": active,
             "python": sys.executable,
@@ -193,7 +193,7 @@ Catatan penting:
 
     def quick_translation_test(self, text: str = "Hello") -> Dict[str, Any]:
         data = self.status()
-        result = {"version": "v8.8.5", "input": text, "state": data.get("state"), "active": data.get("active"), "ok": False, "output": "", "reason": data.get("reason", "")}
+        result = {"version": "v8.8.6", "input": text, "state": data.get("state"), "active": data.get("active"), "ok": False, "output": "", "reason": data.get("reason", "")}
         if not data.get("active"):
             result["reason"] = "Fast CT2 is not active; runtime will use Argos fallback. Check model_dir and missing files."
             try:
@@ -224,7 +224,7 @@ Catatan penting:
     def quick_translation_report(self, text: str = "Hello") -> str:
         data = self.quick_translation_test(text)
         return "\n".join([
-            "Fast Engine Quick Translation Test v8.8.5",
+            "Fast Engine Quick Translation Test v8.8.6",
             "=====================================",
             f"state = {data.get('state')}",
             f"active = {data.get('active')}",
