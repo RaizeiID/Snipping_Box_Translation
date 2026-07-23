@@ -1,0 +1,739 @@
+{
+  "version": "v8.9.1",
+  "scope": "GFL2_EXILIUM",
+  "main_commander": {
+    "canonical": "Raizei",
+    "type": "user_configured_commander_main",
+    "confidence": "green",
+    "profile_scoped": true
+  },
+  "alternate_commander_profile_candidates": [
+    "ARVITA ID",
+    "ArVITA ID",
+    "ATVITA ID",
+    "AFVITA ID",
+    "ArVITAID",
+    "ATVITA IO"
+  ],
+  "characters_exact": [
+    "Raizei",
+    "Kenny",
+    "Heli",
+    "Helen",
+    "Helena",
+    "Darture",
+    "Poludnitsa",
+    "Mayling",
+    "Groza",
+    "Krolik",
+    "Vepley",
+    "Nemesis",
+    "Colphne",
+    "Carmen",
+    "Berryfield",
+    "Cocoon",
+    "Lentine",
+    "DP-12",
+    "Bathilde",
+    "Balthilde",
+    "Nikketa",
+    "Dushevnaya",
+    "KSVK",
+    "Suomi",
+    "Anfiya Sharapova",
+    "Littara",
+    "Ullrid",
+    "Phaetusa",
+    "Sweeper",
+    "Nyxie",
+    "Klukai"
+  ],
+  "speaker_labels_exact": [
+    "Mangi Security Team Leader",
+    "Shadow Figure",
+    "Shadowy Figure"
+  ],
+  "masked_identity_labels": [
+    "Shadow Figure",
+    "Shadowy Figure"
+  ],
+  "role_titles": [
+    "Commander",
+    "Boss",
+    "Team Leader"
+  ],
+  "unique_terms": [
+    "Tlazo",
+    "Mangi Security",
+    "Conglomerate",
+    "URNC",
+    "Paradeus",
+    "Omen squad",
+    "Elmo",
+    "Relics",
+    "interfacing port",
+    "intel clearance",
+    "neural cloud",
+    "Doll Community",
+    "T-Doll",
+    "Big Sis",
+    "Green Zone",
+    "Yellow Zone",
+    "White Zone",
+    "Lviv",
+    "Lviv Incident",
+    "Griffin",
+    "Griffin's disbandment",
+    "Chlovey",
+    "Odesa",
+    "Varjagers",
+    "Sangvis Ferri",
+    "Central Army Emergency First Response",
+    "Medical Chemical Equipment",
+    "Medical Team",
+    "Sextans",
+    "Igla",
+    "STR-A"
+  ],
+  "relationship_candidates": [
+    {
+      "name": "Anfiya Sharapova",
+      "relation_to": "Colphne",
+      "relation": [
+        "older_sister",
+        "person_who_named_Colphne"
+      ],
+      "confidence": "yellow",
+      "source": "v8.8.7 recording user correction"
+    }
+  ],
+  "term_review_yellow": {
+    "Tlazo": "Likely story term/unique term from recording; do not auto-promote as NPC global unless later visual/story evidence confirms.",
+    "Anfiya Sharapova": "Name candidate from Colphne dialogue; relation to Colphne retained. Corrected from wrong prior read Alya Sharapova.",
+    "Poludnitsa": "Story entity/name candidate detected in v8.8.8 logs; treat exact as entity label and review if official classification is needed.",
+    "Igla": "Candidate Doll codename/special term from Kenny/Lentine context STR-A codename \"Igla\"; do not promote as speaker without visual proof.",
+    "STR-A": "Document/unit/codename context from Kenny evidence; keep as special term, not speaker.",
+    "Bathilde": "User-observed OCR/canonical spelling candidate. Kept as exact/alias family with Balthilde until visual evidence decides final canonical."
+  },
+  "aliases": [
+    {
+      "ocr": "Nlkketa",
+      "candidate": "Nikketa",
+      "type": "character_name",
+      "confidence": "yellow"
+    },
+    {
+      "ocr": "Balthild",
+      "candidate": "Balthilde",
+      "type": "character_name",
+      "confidence": "yellow"
+    },
+    {
+      "ocr": "Balthildes",
+      "candidate": "Balthilde's",
+      "type": "possessive_name",
+      "confidence": "yellow"
+    },
+    {
+      "ocr": "Berryfleld",
+      "candidate": "Berryfield",
+      "type": "character_name",
+      "confidence": "yellow"
+    },
+    {
+      "ocr": "Borryflold",
+      "candidate": "Berryfield",
+      "type": "character_name",
+      "confidence": "yellow"
+    },
+    {
+      "ocr": "Lontine",
+      "candidate": "Lentine",
+      "type": "character_name",
+      "confidence": "yellow"
+    },
+    {
+      "ocr": "Maylng",
+      "candidate": "Mayling",
+      "type": "character_name",
+      "confidence": "yellow"
+    },
+    {
+      "ocr": "Krollk",
+      "candidate": "Krolik",
+      "type": "character_name",
+      "confidence": "yellow"
+    },
+    {
+      "ocr": "Nemesls",
+      "candidate": "Nemesis",
+      "type": "character_name",
+      "confidence": "yellow"
+    },
+    {
+      "ocr": "Vepley",
+      "candidate": "Vepley",
+      "type": "character_name",
+      "confidence": "green"
+    },
+    {
+      "ocr": "Poludnltsa",
+      "candidate": "Poludnitsa",
+      "type": "character_name",
+      "confidence": "yellow"
+    },
+    {
+      "ocr": "Shadowy Figure",
+      "candidate": "Shadowy Figure",
+      "type": "speaker_label",
+      "confidence": "green"
+    },
+    {
+      "ocr": "Shadow Figure",
+      "candidate": "Shadow Figure",
+      "type": "speaker_label",
+      "confidence": "green"
+    },
+    {
+      "ocr": "angi Security Team Leader",
+      "candidate": "Mangi Security Team Leader",
+      "type": "speaker_label",
+      "confidence": "green"
+    },
+    {
+      "ocr": "Anfiya Sharapova",
+      "candidate": "Anfiya Sharapova",
+      "type": "character_relation_name",
+      "confidence": "yellow"
+    },
+    {
+      "ocr": "Alya Sharapova",
+      "candidate": "Anfiya Sharapova",
+      "type": "blocked_wrong_read_candidate",
+      "confidence": "red"
+    },
+    {
+      "ocr": "LvIv",
+      "candidate": "Lviv",
+      "type": "term",
+      "confidence": "yellow"
+    },
+    {
+      "ocr": "Lvh",
+      "candidate": "Lviv",
+      "type": "term",
+      "confidence": "yellow"
+    },
+    {
+      "ocr": "LvN",
+      "candidate": "Lviv",
+      "type": "term",
+      "confidence": "yellow"
+    },
+    {
+      "ocr": "Blig Sls",
+      "candidate": "Big Sis",
+      "type": "phrase",
+      "confidence": "yellow"
+    },
+    {
+      "ocr": "Belf-audit",
+      "candidate": "self-audit",
+      "type": "term",
+      "confidence": "yellow"
+    },
+    {
+      "ocr": "Inltlated",
+      "candidate": "initiated",
+      "type": "common_term",
+      "confidence": "yellow"
+    },
+    {
+      "ocr": "Incldent",
+      "candidate": "incident",
+      "type": "common_term",
+      "confidence": "yellow"
+    },
+    {
+      "ocr": "Keny",
+      "candidate": "Kenny",
+      "type": "character_name",
+      "confidence": "yellow",
+      "note": "Kenny OCR typo/punctuation alias; use as speaker only with prefix context.",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "Kennv",
+      "candidate": "Kenny",
+      "type": "character_name",
+      "confidence": "yellow",
+      "note": "Kenny OCR typo/punctuation alias; use as speaker only with prefix context.",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "Kenny.",
+      "candidate": "Kenny",
+      "type": "character_name",
+      "confidence": "yellow",
+      "note": "Kenny OCR typo/punctuation alias; use as speaker only with prefix context.",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "Kenny:",
+      "candidate": "Kenny",
+      "type": "character_name",
+      "confidence": "yellow",
+      "note": "Kenny OCR typo/punctuation alias; use as speaker only with prefix context.",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "bathildel",
+      "candidate": "Balthilde",
+      "type": "character_name",
+      "confidence": "green",
+      "note": "v8.8.9 registered OCR alias family; exact/prefix context only.",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "Bathildel",
+      "candidate": "Balthilde",
+      "type": "character_name",
+      "confidence": "green",
+      "note": "v8.8.9 registered OCR alias family; exact/prefix context only.",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "balthildel",
+      "candidate": "Balthilde",
+      "type": "character_name",
+      "confidence": "green",
+      "note": "v8.8.9 registered OCR alias family; exact/prefix context only.",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "Balthildel",
+      "candidate": "Balthilde",
+      "type": "character_name",
+      "confidence": "green",
+      "note": "v8.8.9 registered OCR alias family; exact/prefix context only.",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "Bathilde1",
+      "candidate": "Balthilde",
+      "type": "character_name",
+      "confidence": "yellow",
+      "note": "v8.8.9 registered OCR alias family; exact/prefix context only.",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "Balthilde1",
+      "candidate": "Balthilde",
+      "type": "character_name",
+      "confidence": "yellow",
+      "note": "v8.8.9 registered OCR alias family; exact/prefix context only.",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "Balthllde",
+      "candidate": "Balthilde",
+      "type": "character_name",
+      "confidence": "yellow",
+      "note": "v8.8.9 registered OCR alias family; exact/prefix context only.",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "Baithilde",
+      "candidate": "Balthilde",
+      "type": "character_name",
+      "confidence": "yellow",
+      "note": "v8.8.9 registered OCR alias family; exact/prefix context only.",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "Bathilde",
+      "candidate": "Balthilde",
+      "type": "character_name",
+      "confidence": "green",
+      "note": "v8.8.9 registered OCR alias family; exact/prefix context only.",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "bathildels",
+      "candidate": "Balthilde's",
+      "type": "possessive_name",
+      "confidence": "yellow",
+      "note": "Balthilde possessive OCR typo alias.",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "Bathildels",
+      "candidate": "Balthilde's",
+      "type": "possessive_name",
+      "confidence": "yellow",
+      "note": "Balthilde possessive OCR typo alias.",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "balthildels",
+      "candidate": "Balthilde's",
+      "type": "possessive_name",
+      "confidence": "yellow",
+      "note": "Balthilde possessive OCR typo alias.",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "Balthildels",
+      "candidate": "Balthilde's",
+      "type": "possessive_name",
+      "confidence": "yellow",
+      "note": "Balthilde possessive OCR typo alias.",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "lgla",
+      "candidate": "Igla",
+      "type": "special_term",
+      "confidence": "yellow",
+      "note": "Igla codename OCR confusion, review-only term.",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "IgIa",
+      "candidate": "Igla",
+      "type": "special_term",
+      "confidence": "yellow",
+      "note": "Igla codename OCR confusion, review-only term.",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "lqla",
+      "candidate": "Igla",
+      "type": "special_term",
+      "confidence": "yellow",
+      "note": "Igla codename OCR confusion, review-only term.",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "UIlr",
+      "candidate": "Ullrid",
+      "type": "character_name",
+      "confidence": "yellow",
+      "note": "v8.9.0 log-derived guarded alias",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "UlIrid",
+      "candidate": "Ullrid",
+      "type": "character_name",
+      "confidence": "yellow",
+      "note": "v8.9.0 log-derived guarded alias",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "Ullrld",
+      "candidate": "Ullrid",
+      "type": "character_name",
+      "confidence": "yellow",
+      "note": "v8.9.0 log-derived guarded alias",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "Ullnd",
+      "candidate": "Ullrid",
+      "type": "character_name",
+      "confidence": "yellow",
+      "note": "v8.9.0 log-derived guarded alias",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "HI Ullrid",
+      "candidate": "Ullrid",
+      "type": "character_name",
+      "confidence": "yellow",
+      "note": "v8.9.0 log-derived guarded alias",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "ul Ullrid",
+      "candidate": "Ullrid",
+      "type": "character_name",
+      "confidence": "yellow",
+      "note": "v8.9.0 log-derived guarded alias",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "rid",
+      "candidate": "Ullrid",
+      "type": "character_name",
+      "confidence": "yellow",
+      "note": "v8.9.0 short alias: only safe in prefix/context; do not global Green",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "Littam",
+      "candidate": "Littara",
+      "type": "character_name",
+      "confidence": "yellow",
+      "note": "v8.9.0 log-derived guarded alias",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "Littara.",
+      "candidate": "Littara",
+      "type": "character_name",
+      "confidence": "yellow",
+      "note": "v8.9.0 log-derived guarded alias",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "Littara:",
+      "candidate": "Littara",
+      "type": "character_name",
+      "confidence": "yellow",
+      "note": "v8.9.0 log-derived guarded alias",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "Llttara",
+      "candidate": "Littara",
+      "type": "character_name",
+      "confidence": "yellow",
+      "note": "v8.9.0 log-derived guarded alias",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "Phaetusa",
+      "candidate": "Phaetusa",
+      "type": "character_name",
+      "confidence": "yellow",
+      "note": "v8.9.0 log-derived guarded alias",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "Phaetusa.",
+      "candidate": "Phaetusa",
+      "type": "character_name",
+      "confidence": "yellow",
+      "note": "v8.9.0 log-derived guarded alias",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "Phaetvsa",
+      "candidate": "Phaetusa",
+      "type": "character_name",
+      "confidence": "yellow",
+      "note": "v8.9.0 log-derived guarded alias",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "Phaetusa feels",
+      "candidate": "Phaetusa",
+      "type": "character_name",
+      "confidence": "yellow",
+      "note": "v8.9.0 log-derived guarded alias",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "Sweepe",
+      "candidate": "Sweeper",
+      "type": "character_name",
+      "confidence": "yellow",
+      "note": "v8.9.0 log-derived guarded alias",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "Sweeper.",
+      "candidate": "Sweeper",
+      "type": "character_name",
+      "confidence": "yellow",
+      "note": "v8.9.0 log-derived guarded alias",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "Sweeper:",
+      "candidate": "Sweeper",
+      "type": "character_name",
+      "confidence": "yellow",
+      "note": "v8.9.0 log-derived guarded alias",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "Nyxie",
+      "candidate": "Nyxie",
+      "type": "character_name",
+      "confidence": "green",
+      "note": "v8.9.0 log-derived guarded alias",
+      "prefix_allowed": true
+    },
+    {
+      "ocr": "SweePer",
+      "candidate": "Sweeper",
+      "type": "character_name",
+      "confidence": "yellow"
+    },
+    {
+      "ocr": "Klukal",
+      "candidate": "Klukai",
+      "type": "character_name",
+      "confidence": "yellow"
+    },
+    {
+      "ocr": "Klulkai",
+      "candidate": "Klukai",
+      "type": "character_name",
+      "confidence": "yellow"
+    },
+    {
+      "ocr": "Nyxie:.",
+      "candidate": "Nyxie",
+      "type": "character_name",
+      "confidence": "yellow"
+    },
+    {
+      "ocr": "Nyxie..",
+      "candidate": "Nyxie",
+      "type": "character_name",
+      "confidence": "yellow"
+    }
+  ],
+  "ambiguous_blocklist": [
+    {
+      "fragments": [
+        "heln",
+        "helm",
+        "hlena",
+        "elena",
+        "helna",
+        "Hlon"
+      ],
+      "candidates": [
+        "Helen",
+        "Helena",
+        "Heli"
+      ],
+      "reason": "General Name/Term Ambiguity Guard; Heli/Helen/Helena are distinct."
+    },
+    {
+      "fragments": [
+        "heli",
+        "hell",
+        "heii"
+      ],
+      "candidates": [
+        "Heli",
+        "Helen",
+        "Helena"
+      ],
+      "reason": "Do not collapse Heli into Helen/Helena without speaker evidence."
+    }
+  ],
+  "negative_name_starts": [
+    "Loading Resources",
+    "Combat Effectiveness",
+    "Combat Start",
+    "Click anywhere",
+    "Clickanywhere",
+    "Collect",
+    "Heroic Mode",
+    "Story Supply",
+    "After finalizing",
+    "The office",
+    "According to",
+    "Only those",
+    "Turns out",
+    "Chances are",
+    "Hehe",
+    "Loadlng Resources",
+    "Coadlng Resouroes",
+    "Loadlng Resour",
+    "Challenge Mode",
+    "Part Challenge Mode",
+    "Part Supply",
+    "Supply 100%",
+    "Story 68%",
+    "Damage Stats",
+    "Continue Confirm Damage Stats",
+    "No more items will be gained for repeated Challenges",
+    "Collect more to claim rewards",
+    "Toysmith",
+    "Max Level",
+    "Commander Level",
+    "mmander Level",
+    "Dammage Stats Confirm",
+    "Clickanywhere to exit",
+    "End Action",
+    "Formation",
+    "Commissions",
+    "Platoon",
+    "Marionette Melee",
+    "10/10",
+    "3821/3821",
+    "Coading Resources",
+    "Coadlng Resources",
+    "Marionette Repair",
+    "Marlonette Repalr",
+    "Marionette Repalr",
+    "Dammage Stats",
+    "Collect more",
+    "Challenge Supply"
+  ],
+  "ui_loading_battle_patterns": [
+    "Loading Resources",
+    "LoBdlng Resources",
+    "Loadlng ResourCos",
+    "Combat Effectiveness",
+    "Combat Start",
+    "Click tile or drag to deploy",
+    "Clickanywhere to skip",
+    "Heroic Mode",
+    "Story Supply",
+    "Collect",
+    "Colect",
+    "24/54",
+    "36%",
+    "75%",
+    "99%",
+    "Loadlng Resources",
+    "Coadlng Resouroes",
+    "Loadlng Resour",
+    "Challenge Mode",
+    "Part Challenge Mode",
+    "Part Supply",
+    "Supply 100%",
+    "Story 68%",
+    "Damage Stats",
+    "Continue Confirm Damage Stats",
+    "No more items will be gained for repeated Challenges",
+    "Collect more to claim rewards",
+    "30/54",
+    "68%",
+    "100%",
+    "Toysmith",
+    "Max Level",
+    "Commander Level",
+    "mmander Level",
+    "Dammage Stats Confirm",
+    "Clickanywhere to exit",
+    "End Action",
+    "Formation",
+    "Commissions",
+    "Platoon",
+    "Marionette Melee",
+    "10/10",
+    "3821/3821"
+  ],
+  "notes": "v8.9.0 stabilization: ID-only overlay preview, contextual OCR repair, expanded low-OCR readability guard, UI filter v4, entity additions from v8.8.9 logs.",
+  "common_ocr_repair_examples_v8_9_0": {
+    "Qur": "our",
+    "healin9": "healing",
+    "healng": "healing",
+    "healln9": "healing",
+    "Ifnot": "If not",
+    "ook at": "look at",
+    "callyoU": "call you",
+    "must'ye": "must've",
+    "weve": "we've",
+    "telljust": "tell just"
+  }
+}

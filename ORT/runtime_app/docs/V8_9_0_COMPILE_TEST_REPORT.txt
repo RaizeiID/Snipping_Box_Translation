@@ -1,0 +1,23 @@
+ORT Translation v8.9.0 — Compile & Regression Test Report
+Tanggal: 2026-06-03
+
+Tujuan validasi:
+1. Memastikan modul baru v8.9.0 bisa dikompilasi.
+2. Memastikan stop English leak, OCR repair, UI filter, entity registry, dan overlay commit rule berjalan secara unit/regression.
+3. Memastikan regression v8.8.9 dan v8.8.8-r2 tetap lolos setelah perubahan v8.9.0.
+
+Perintah yang dijalankan:
+- python -m py_compile TITANMAIN.py app/runtime/overlay_commit_gate.py app/runtime/overlay_language_guard.py app/translation/ocr_text_repair.py app/runtime/prediction_guard.py app/runtime/ui_dialog_filter.py app/runtime/recording_telemetry.py tools/v8_9_0_regression_test.py
+- python tools/v8_9_0_regression_test.py
+- python tools/v8_8_9_regression_test.py
+- python tools/v8_8_8_r2_regression_test.py
+
+Hasil:
+- Compile changed modules: PASS
+- v8.9.0 regression: PASS
+- v8.8.9 regression: PASS
+- v8.8.8-r2 regression: PASS
+
+Catatan:
+- Pengujian ini bersifat static/unit regression di lingkungan sandbox, bukan live gameplay test.
+- Live gameplay tetap wajib diuji untuk melihat apakah flicker overlay, source English leak, dan final replacement sudah terasa lebih stabil di runtime aktual.

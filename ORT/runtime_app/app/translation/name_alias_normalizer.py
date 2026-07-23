@@ -42,6 +42,16 @@ _GFL2_ALIASES: dict[str, str] = {
     "Melanle": "Melanie",
     "Phaedusa": "Phaetusa",
     "Balthalde": "Balthilde",
+    # v8.8.9: guarded name/entity typo repairs. These are exact-boundary only;
+    # PredictionGuard still decides confidence/cache policy at runtime.
+    "Keny": "Kenny",
+    "Kennv": "Kenny",
+    "Bathildel": "Balthilde",
+    "bathildel": "Balthilde",
+    "Balthildel": "Balthilde",
+    "balthildel": "Balthilde",
+    "Bathilde": "Balthilde",
+    "Balthllde": "Balthilde",
 }
 
 # Lowercase/no-space token fixes are used for cache keys and OCR text where the OCR
@@ -71,6 +81,12 @@ _GFL2_TOKEN_FIXES: dict[str, str] = {
     "melanle": "Melanie",
     "phaedusa": "Phaetusa",
     "balthalde": "Balthilde",
+    "keny": "Kenny",
+    "kennv": "Kenny",
+    "bathildel": "Balthilde",
+    "balthildel": "Balthilde",
+    "bathilde": "Balthilde",
+    "balthllde": "Balthilde",
 }
 
 

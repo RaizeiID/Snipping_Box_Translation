@@ -1,3 +1,97 @@
+# ORT Translation v8.9.9 R1
+
+**Hotfix:** Live Preview & CPU Dual-Stream Performance  
+**Base required:** ORT v8.9.9
+
+## R1 changes
+
+- Preview English/source is visible by default for English, Japanese bridge, and other audio routes.
+- Japanese Specialist on CPU no longer blocks the live overlay with a 7-15 second Kotoba pass in Normal/Instant.
+- Normal/Instant uses a fast provisional multilingual preview and immediate Indonesian translation.
+- Accurate keeps the direct Kotoba path for users who prefer quality over latency.
+- Optional background Kotoba correction is disabled by default to prevent CPU contention. It can be enabled with `ORT_AUDIO_BACKGROUND_SPECIALIST_CORRECTION=1`.
+- Azure status `credential_set=False` still means cloud translation is not active; Local Live remains the effective engine.
+
+# ORT Translation v8.9.9
+
+**Jenis rilis:** Safe Language Auto-Correct & Japanese Specialist Reliability  
+**Basis pembaruan:** ORT Translation v8.9.8 lengkap  
+**Mode awal yang disarankan:** Live Media · Local Live · Balanced · Smart Auto/Japanese Specialist
+
+v8.9.9 memperbaiki hasil pengujian v8.9.8 ketika Kotoba sempat dimuat di GPU, tetapi inferensi pertama gagal karena `cublas64_12.dll` lalu sistem menggantinya dengan Faster-Whisper Base CPU. Sekarang model dipertahankan saat failover:
+
+```text
+Kotoba CUDA
+→ CUDA preflight gagal
+→ Kotoba CPU
+→ rolling partial tetap berjalan
+```
+
+## Safe Language Auto-Correct
+
+Mode default **Balanced** mengamati bahasa melalui Language Watchdog ringan yang berjalan terpisah dari ASR utama. Pergantian global membutuhkan bukti dominan sekitar delapan detik. Dialog asing pendek diproses sebagai `TEMPORARY_CODE_SWITCH` tanpa mengganti bahasa utama sesi.
+
+Pilihan WebUI:
+
+- Off
+- Conservative · 12 detik
+- Balanced · 8 detik · rekomendasi
+- Aggressive · 5 detik
+- Kunci bahasa utama; code-switch sementara tetap dapat dideteksi
+
+## Japanese Specialist
+
+Gunakan installer baru yang tidak terikat versi:
+
+```text
+INSTALL_JAPANESE_SPECIALIST.bat
+```
+
+Installer sekarang:
+
+1. melanjutkan unduhan Kotoba yang terputus;
+2. memeriksa file repository resmi;
+3. menyalin `tokenizer.json` dari model Whisper lokal atau mengunduh hanya tokenizer;
+4. memuat model Kotoba CPU secara offline;
+5. baru melaporkan `passed=true` setelah model benar-benar dapat digunakan.
+
+File lama `SETUP_JAPANESE_SPECIALIST_V8_9_8.bat` menjadi redirect kompatibilitas dan akan dihapus saat struktur Plugin v9.0.0 diterapkan.
+
+## Perlindungan halusinasi
+
+Output berulang seperti `チーズ` puluhan kali, frasa yang sama terus-menerus, rasio output tidak wajar, dan Japanese bridge yang gagal menjadi English diblokir sebelum diterjemahkan atau ditampilkan. Glosarium GFL2 tidak lagi dipakai sebagai prompt keras pada setiap snapshot; koreksi istilah dilakukan secara lunak setelah ASR.
+
+## Tampilan overlay
+
+Subtitle Indonesia menjadi tampilan utama. Teks sumber/English bridge disembunyikan secara default, tetapi tetap dicatat pada log untuk diagnosis.
+
+## Pemeriksaan
+
+```text
+VERIFY_ORT_V8_9_9.bat
+CHECK_AUDIO_GPU_V8_9_9.bat
+```
+
+Untuk memasang patch, baca `README_APPLY_PATCH_V8_9_9.txt`.
+
+---
+
+
+
+## v8.8.8 R2
+
+Hotfix for v8.8.8 roadmap activation: fixes Prediction Guard false positives, activates exact entity labels/visible confidence badges, merges registry into runtime memory, activates mode policy telemetry, and connects Interval Fast-Skip Safety.
+
+
+## v8.8.8-r2
+
+Offline Replay Benchmark, Long Session Analyzer, registry expansion from v8.8.7 recording, and mode policy refactor foundation. Preserves low-OCR 40% gains while preparing Auto/Interval/Freeze separation.
+
+
+## v8.8.8-r2
+
+Name/Term Prediction Guard & Dialogue Safety. Adds guarded prediction/repair text, UI text filtering, emergency commit, and safer speaker/term handling while preserving v8.8.6 low-OCR improvements.
+
 # ORT Translation v8.8.2
 
 **Release type:** Full project folder / structural refactor  
@@ -114,6 +208,6 @@ Lalu upload ZIP `ORT_GITHUB_SOURCE_EXPORT.zip` ke GitHub atau gunakan Git dari r
 Update ini menambahkan Auto Smooth, Freeze OCR Override, Interval Stable/Story-aware, Turn Transcript Accumulator, No-Downgrade Source Rule, Anti-Flicker Overlay Buffer, dan Speaker Prefix Sanitizer v3.
 
 
-## v8.8.6 — Mandatory Final Commit & Mode Buffer
+## v8.8.8-r2 — Mandatory Final Commit & Mode Buffer
 
 Adds final-lane Temporal OCR Consensus, experimental `Mode Buffer`, Mandatory Final Commit v2, Low-OCR Visual Rescue planner, and Bad Cache Shield v2.

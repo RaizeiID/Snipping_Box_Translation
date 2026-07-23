@@ -1,4 +1,4 @@
-"""ORT v8.8.5 dialogue stability helpers.
+"""ORT v8.9.1 dialogue stability helpers.
 
 This module is intentionally lightweight and deterministic. It lives on the
 runtime path so Auto Story can smooth noisy/progressive OCR without adding a
@@ -169,12 +169,15 @@ class DialogueTurnAccumulator:
             if mode_u == "FREEZE":
                 self._mark_emit(body, now)
                 return DialogueStabilityDecision(True, body, "freeze_new_turn_final", state, True, True, self._turn_id)
-            # New Auto/Interval turn: show only if meaningful enough; otherwise keep last visual overlay.
-            min_words = 2 if mode_u == "STABLE" else 3
+            # v8.9.1 Manual Burst Detection: when the user clicks story quickly,
+            # a new line may arrive almost complete in one frame. Do not wait as
+            # if it were a slow typewriter frame; let the translator start.
+            min_words = 2 if mode_u in {"STABLE", "INTERVAL"} else 3
+            manual_burst = bool(len(_words(body)) >= 6 or len(body) >= 42 or _TERMINAL_RE.search(body))
             if len(_words(body)) >= min_words or len(body) >= 14:
                 self._mark_emit(body, now)
-                return DialogueStabilityDecision(True, body, "new_turn_meaningful", state, True, False, self._turn_id)
-            return DialogueStabilityDecision(False, body, "new_turn_too_short_keep_last", "TYPING", True, False, self._turn_id)
+                return DialogueStabilityDecision(True, body, "manual_burst_new_turn" if manual_burst else "new_turn_meaningful", state, True, manual_burst, self._turn_id)
+            return DialogueStabilityDecision(False, body, "new_turn_too_short_wait_source", "TYPING", True, False, self._turn_id)
 
         cmp = _norm(body)
         if cmp and cmp == self._last_seen_norm:
@@ -213,9 +216,10 @@ class DialogueTurnAccumulator:
             return DialogueStabilityDecision(True, best, "freeze_final_best_source", "FREEZE_FINAL", best_changed, True, self._turn_id)
 
         if mode_u == "INTERVAL":
-            if source_stable or has_tail or age_ms >= max(self.interval_stable_ms, 520) or token_gain >= self.interval_min_token_gain:
+            manual_burst = bool(token_gain >= max(3, self.interval_min_token_gain - 2) or len(_words(best)) >= 7 or len(best) >= 48)
+            if source_stable or has_tail or manual_burst or age_ms >= max(self.interval_stable_ms, 520) or token_gain >= self.interval_min_token_gain:
                 self._mark_emit(best, now)
-                return DialogueStabilityDecision(True, best, "interval_stable_best_source", "INTERVAL_STABLE", best_changed, source_stable, self._turn_id)
+                return DialogueStabilityDecision(True, best, "interval_manual_burst_best_source" if manual_burst else "interval_stable_best_source", "INTERVAL_STABLE", best_changed, bool(source_stable or manual_burst), self._turn_id)
             return DialogueStabilityDecision(False, best, "interval_wait_stable_keep_overlay", "INTERVAL_WAIT", best_changed, False, self._turn_id)
 
         # Auto/STABLE: allow progressive updates, but coalesce tiny OCR changes.

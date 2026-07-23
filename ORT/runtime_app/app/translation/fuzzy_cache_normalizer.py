@@ -14,6 +14,7 @@ _WORD_FIXES = {
     "allthe": "All the", "wellfind": "We'll find", "ifthe": "If the", "ifwe": "If we",
     "donttalk": "Don't talk", "isnt": "isn't", "cant": "can't", "willeventually": "will eventually",
     "vaymastina": "Voymastina", "voymastlna": "Voymastina", "voymastiha": "Voymastina", "ralzel": "Raizei", "ralzei": "Raizei", "raizel": "Raizei", "ralizei": "Raizei",
+    "keny": "Kenny", "kennv": "Kenny", "bathildel": "Balthilde", "balthildel": "Balthilde", "bathilde": "Balthilde", "balthllde": "Balthilde",
     "thearmor": "The armor", "feelas": "feel as", "ltsll2": "", "ltsil2": "", "ltfail2": "",
     "ifshe": "if she", "isan": "is an", "ofthe": "of the", "ofit": "of it",
     "iike": "like", "apologles": "apologies", "recelved": "received", "ksvkis": "KSVK is",

@@ -1,0 +1,4 @@
+faster-whisper==1.2.1
+ctranslate2>=4.6,<5
+numpy>=1.23,<3
+PyAudioWPatch==0.2.12.8; sys_platform == "win32"

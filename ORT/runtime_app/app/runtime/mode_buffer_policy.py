@@ -1,4 +1,4 @@
-"""ORT v8.8.6 Mode Buffer policy.
+"""ORT v8.8.7 Mode Buffer policy.
 
 Experimental recording buffer. Default OFF. When enabled from WebUI checkbox,
 it gives final-lane commit a small controlled buffer while keeping preview fast.

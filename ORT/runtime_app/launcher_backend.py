@@ -27,6 +27,36 @@ from app.diagnostics.conflict_detector import detect_conflicts_text
 from app.diagnostics.gpu_cuda_diagnostic import gpu_cuda_diagnostic_text
 from app.runtime.lite_gpu_guard import apply_lite_gpu_env, write_lite_gpu_status, lite_gpu_status_text
 from app.diagnostics.diagnose_repair_center import diagnose_text as diagnose_repair_center_text
+from build_info import APP_DISPLAY_NAME, APP_VERSION_TAG, RELEASE_NAME
+from audio_runtime_backend import (
+    audio_device_choices,
+    audio_model_ready,
+    audio_model_status,
+    audio_runtime_paths,
+    audio_runtime_summary_text,
+    probe_audio_runtime,
+    resolve_effective_audio_mode,
+    setup_audio_runtime,
+)
+from audio_cloud_backend import (
+    cloud_config_values,
+    cloud_device_choices,
+    cloud_runtime_paths,
+    cloud_runtime_summary_text,
+    clear_cloud_credentials,
+    probe_cloud_runtime,
+    resolve_audio_delivery,
+    save_cloud_config,
+    setup_cloud_runtime,
+)
+from app.audio.cloud_streaming import (
+    normalize_audio_engine,
+    normalize_audio_usage,
+    normalize_source_locale,
+    resolve_live_media_policy,
+)
+from app.audio.profiles import get_audio_profile
+from app.audio.runtime_modes import normalize_audio_mode, resolve_audio_plan
 
 BASE_DIR = Path(__file__).resolve().parent
 RUNTIME_CFG = BASE_DIR / "runtime_paths.json"
@@ -36,6 +66,33 @@ try:
 except Exception:
     pass
 
+
+
+
+def runtime_version_contract() -> dict:
+    root = BASE_DIR.parent.parent
+    expected = str(APP_VERSION_TAG).strip()
+    paths = {
+        "root": root / "VERSION.txt",
+        "ortcore": BASE_DIR / "ORTCORE_VERSION.txt",
+        "titancore": BASE_DIR / "TITANCORE_VERSION.txt",
+    }
+    values = {}
+    errors = []
+    for key, path in paths.items():
+        try:
+            values[key] = path.read_text(encoding="utf-8-sig").strip()
+        except Exception as exc:
+            values[key] = ""
+            errors.append(f"{key}: {exc}")
+    mismatches = {key: value for key, value in values.items() if value != expected}
+    return {
+        "ready": not errors and not mismatches,
+        "expected": expected,
+        "values": values,
+        "mismatches": mismatches,
+        "errors": errors,
+    }
 
 def _load_json(path: Path, default):
     try:
@@ -95,7 +152,7 @@ def diagnostic_text():
         ("session_log", "SESSION LOG"),
         ("benchmark", "BENCHMARK"),
     ]
-    lines = ["ORT Translation v8.4 Diagnostic Dashboard", f"status_dir = {BASE_DIR / 'status'}"]
+    lines = [f"{APP_DISPLAY_NAME} Diagnostic Dashboard", f"release = {RELEASE_NAME}", f"status_dir = {BASE_DIR / 'status'}"]
     for key, title in sections:
         data = read_status(key, BASE_DIR, {"missing": True})
         lines.append("")
@@ -219,7 +276,7 @@ def fast_engine_rebind_report():
         os.environ["ORT_CT2_PATH_REBIND"] = "1"
         test = mgr.quick_translation_test("Hello")
         return "\n".join([
-            "Repair / Rebind CT2 Model & SPM Path v8.8.6",
+            f"Repair / Rebind CT2 Model & SPM Path {APP_VERSION_TAG}",
             "==========================================",
             f"model_dir_used = {model_dir}",
             f"spm_dir_used   = {model_dir}",
@@ -319,6 +376,15 @@ def load_prefs():
         "normal_override": False,
         "settings_mode": "recommended",
         "ui_mode": "recommended",
+        "translation_source": "ocr",
+        "audio_input_mode": "loopback",
+        "audio_device_index": "-1",
+        "audio_language": "auto",
+        "audio_processing": "vad",
+        "audio_profile": "normal",
+        "audio_mode": "hybrid",
+        "audio_usage": "live_media",
+        "audio_engine": "azure_fallback",
         "responsive_story_mode": False,
         "diagnostic_profile": "baseline",
         "mode_buffer_enabled": False,
@@ -340,7 +406,7 @@ def load_prefs():
     return data
 
 
-def save_prefs(model, game, mode, engine, interval_ms, model_group=None, ocr_resolution=None, performance_policy=None, normal_override=None, settings_mode=None, ui_mode=None, responsive_story_mode=None, diagnostic_profile=None, mode_buffer_enabled=None):
+def save_prefs(model, game, mode, engine, interval_ms, model_group=None, ocr_resolution=None, performance_policy=None, normal_override=None, settings_mode=None, ui_mode=None, responsive_story_mode=None, diagnostic_profile=None, mode_buffer_enabled=None, translation_source=None, audio_input_mode=None, audio_device_index=None, audio_language=None, audio_processing=None, audio_profile=None, audio_mode=None, audio_usage=None, audio_engine=None):
     data = load_prefs()
     data.update({
         "model": model,
@@ -367,9 +433,27 @@ def save_prefs(model, game, mode, engine, interval_ms, model_group=None, ocr_res
         data["diagnostic_profile"] = str(diagnostic_profile or "baseline")
     if mode_buffer_enabled is not None:
         data["mode_buffer_enabled"] = bool(mode_buffer_enabled)
+    if translation_source is not None:
+        data["translation_source"] = str(translation_source or "ocr")
+    if audio_input_mode is not None:
+        data["audio_input_mode"] = str(audio_input_mode or "loopback")
+    if audio_device_index is not None:
+        data["audio_device_index"] = str(audio_device_index)
+    if audio_language is not None:
+        data["audio_language"] = str(audio_language or "auto")
+    if audio_processing is not None:
+        data["audio_processing"] = str(audio_processing or "vad")
+    if audio_profile is not None:
+        data["audio_profile"] = str(audio_profile or "normal")
+    if audio_mode is not None:
+        data["audio_mode"] = normalize_audio_mode(audio_mode)
+    if audio_usage is not None:
+        data["audio_usage"] = normalize_audio_usage(audio_usage)
+    if audio_engine is not None:
+        data["audio_engine"] = normalize_audio_engine(audio_engine)
     _save_json(PREFS_PATH, data)
     try:
-        save_state({"version": "v8.8.6", "model": model, "game": game, "mode": mode, "engine": engine, "requested_engine": engine, "requested_mode": mode, "requested_interval_ms": int(interval_ms), "interval_ms": int(interval_ms), "requested_ocr_resolution": data.get("ocr_resolution"), "ocr_resolution": data.get("ocr_resolution"), "settings_mode": data.get("settings_mode", "recommended"), "responsive_story_mode": bool(data.get("responsive_story_mode", False)), "diagnostic_profile": str(data.get("diagnostic_profile", "baseline")), "mode_buffer_enabled": bool(data.get("mode_buffer_enabled", False))}, BASE_DIR)
+        save_state({"version": APP_VERSION_TAG, "model": model, "game": game, "mode": mode, "engine": engine, "requested_engine": engine, "requested_mode": mode, "requested_interval_ms": int(interval_ms), "interval_ms": int(interval_ms), "requested_ocr_resolution": data.get("ocr_resolution"), "ocr_resolution": data.get("ocr_resolution"), "settings_mode": data.get("settings_mode", "recommended"), "translation_source": data.get("translation_source", "ocr"), "audio_input_mode": data.get("audio_input_mode", "loopback"), "audio_device_index": data.get("audio_device_index", "-1"), "audio_language": data.get("audio_language", "auto"), "audio_processing": data.get("audio_processing", "vad"), "audio_profile": data.get("audio_profile", "normal"), "audio_requested_mode": data.get("audio_mode", "hybrid"), "audio_usage": data.get("audio_usage", "live_media"), "audio_engine_requested": data.get("audio_engine", "azure_fallback"), "responsive_story_mode": bool(data.get("responsive_story_mode", False)), "diagnostic_profile": str(data.get("diagnostic_profile", "baseline")), "mode_buffer_enabled": bool(data.get("mode_buffer_enabled", False))}, BASE_DIR)
     except Exception:
         pass
     return data
@@ -505,6 +589,15 @@ def _dialog_scheduler_env(mode: str, preset_key: str = "", game: str = "", respo
     env = {
         "ORT_STORY_DIALOGUE_SCHEDULER": "1",
         "ORT_IMAGE_HASH_GATE": "1",
+        "ORT_TEXT_ROI_CHANGE_GATE": "1",
+        "ORT_TEXT_ROI_CHANGE_THRESHOLD": "0.018",
+        "ORT_TEXT_ROI_MIN_RUN_GAP_MS": "90",
+        "ORT_TEXT_ROI_CONFIRM_DELAY_MS": "450",
+        "ORT_PROGRESSIVE_QUEUE_COALESCE": "1",
+        "ORT_TURN_STATE_MACHINE": "1",
+        "ORT_DIALOG_CLEAR_MISSES": "2",
+        "ORT_DIALOG_CLEAR_MIN_MS": "550",
+        "ORT_TRANSACTIONAL_OVERLAY": "1",
         "ORT_FUZZY_CACHE_KEY": "1",
         "ORT_SPEAKER_GATE_V2": "1",
         "ORT_NUMERIC_DUAL_PASS": "1",
@@ -552,7 +645,7 @@ def _dialog_scheduler_env(mode: str, preset_key: str = "", game: str = "", respo
         "ORT_SEMANTIC_FIDELITY_GUARD": "1",
         "ORT_IDN_OVER_CT2": "1" if ("idn" in key or (not lite and not fast)) else "0",
         "ORT_FINAL_ONLY_SAFE_COMMIT": "1" if ("idn" in key or (not lite and not fast)) else "0",
-        "ORT_MODE_POLICY_VERSION": "v8.8.6_mode_policy_v1",
+        "ORT_MODE_POLICY_VERSION": f"{APP_VERSION_TAG}_mode_policy_v2",
         "ORT_DIALOG_STABILITY_ACCUMULATOR": "1",
         "ORT_OVERLAY_ANTI_FLICKER_BUFFER": "1",
         "ORT_OVERLAY_COMMIT_GATE": "1",
@@ -570,6 +663,7 @@ def _dialog_scheduler_env(mode: str, preset_key: str = "", game: str = "", respo
             "ORT_DIALOG_STABLE_REPEATS": prof.get("stable_repeats", "1"),
             "ORT_IMAGE_HASH_MAX_HOLD_MS": "900",
             "ORT_IMAGE_HASH_THRESHOLD": "5",
+            "ORT_TEXT_ROI_MAX_HOLD_MS": "900",
             "ORT_STABLE_COMMIT_MS": "0",
             "ORT_STABLE_COMMIT_REPEATS": "1",
             "ORT_FREEZE_OCR_OVERRIDE": "1",
@@ -597,9 +691,10 @@ def _dialog_scheduler_env(mode: str, preset_key: str = "", game: str = "", respo
             "ORT_OVERLAY_SIMILARITY_THRESHOLD": "0.92",
             "ORT_DIALOG_QUICK_PUNCT_COMMIT": prof.get("quick_punct", "1"),
             "ORT_STABLE_TEXT_COMMIT": "0",
-            "ORT_IMAGE_HASH_GATE": "0",
-            "ORT_IMAGE_HASH_MAX_HOLD_MS": "70" if key == "fast_v1" else ("110" if key == "fast_v2" else ("130" if key == "fast_idn" else ("150" if lite else "160"))),
-            "ORT_IMAGE_HASH_THRESHOLD": "2",
+            "ORT_IMAGE_HASH_GATE": "1",
+            "ORT_IMAGE_HASH_MAX_HOLD_MS": "15000",
+            "ORT_IMAGE_HASH_THRESHOLD": "4",
+            "ORT_TEXT_ROI_MAX_HOLD_MS": "15000",
             "ORT_STABLE_COMMIT_MS": "0",
             "ORT_STABLE_COMMIT_REPEATS": "1",
             "TITAN_AUTO_SNAPSHOT_MIN_MS": "45" if key == "fast_v1" else ("60" if key == "fast_v2" else ("75" if key == "fast_idn" else "90")),
@@ -628,6 +723,7 @@ def _dialog_scheduler_env(mode: str, preset_key: str = "", game: str = "", respo
             "ORT_DIALOG_QUICK_PUNCT_COMMIT": prof.get("quick_punct", "1"),
             "ORT_IMAGE_HASH_MAX_HOLD_MS": "90" if key == "fast_v1" else ("130" if key == "fast_v2" else ("160" if key == "fast_idn" else ("190" if lite else ("220" if game_u == "GFL2_EXILIUM" else "260")))),
             "ORT_IMAGE_HASH_THRESHOLD": "2",
+            "ORT_TEXT_ROI_MAX_HOLD_MS": "8000",
             "ORT_STABLE_COMMIT_MS": "0",
             "ORT_STABLE_COMMIT_REPEATS": "1",
             "TITAN_AUTO_SNAPSHOT_MIN_MS": "45" if key == "fast_v1" else ("60" if key == "fast_v2" else ("75" if key == "fast_idn" else "90")),
@@ -641,7 +737,7 @@ def _dialog_scheduler_env(mode: str, preset_key: str = "", game: str = "", respo
             "ORT_AUTO_SMOOTH_MIN_MS": "260",
             "ORT_AUTO_SMOOTH_MIN_TOKEN_GAIN": "3",
             "ORT_OVERLAY_MIN_VISIBLE_MS": "500",
-            "ORT_RESPONSIVE_QUEUE_TARGET": "1",
+            "ORT_RESPONSIVE_QUEUE_TARGET": "0",
         })
     return env
 
@@ -661,7 +757,7 @@ def _performance_reason_text(strategy, fast_state: dict, mode: str) -> str:
             bits.append("Interval = Freeze otomatis klasik; v8.4 commit cepat pada snapshot baru dan tidak menahan teks terlalu lama.")
         else:
             bits.append("Auto = story otomatis ala visual novel; v8.4 menerjemahkan teks bertahap mengikuti kemunculan dialog.")
-        bits.append("Image Hash Gate disesuaikan profil: Auto dibuat relaxed agar teks bertahap tidak tertahan, Interval/Freeze tetap hemat scan saat cocok.")
+        bits.append("Text-aware ROI Change Gate aktif: frame dialog statis tidak memanggil EasyOCR ulang, sedangkan perubahan teks tetap diproses segera.")
         bits.append("Fuzzy Cache Key aktif: typo OCR kecil diarahkan ke cache yang sama.")
         if getattr(strategy, "idn_enabled", False):
             bits.append(f"IDN Quality Layer v8.7 aktif (fondasi v8.6): mode={getattr(strategy, 'idn_quality_mode', lambda: 'balanced')()} + terminology consistency.")
@@ -678,6 +774,8 @@ class ProcessManager:
         self.last_error = ""
         self.lock = threading.Lock()
         self.current_game = "GFL2_EXILIUM"
+        self.current_source = "ocr"
+        self.source_switching = False
         self.stop_requested = False
         self.stop_at = 0.0
         self.pending_candidate_notice = ""
@@ -709,7 +807,7 @@ class ProcessManager:
         """Clear only the WebUI live-log buffer. Session files remain intact for Analyze Last Session."""
         with self.lock:
             self.lines = []
-        self._push("[WEBUI v8.8.6] Live Log tampilan direset; file session tetap disimpan untuk Analyze Last Session.")
+        self._push(f"[WEBUI {APP_VERSION_TAG}] Live Log tampilan direset; file session tetap disimpan untuk Analyze Last Session.")
 
     def get_status_text(self):
         err = f"\nLAST_ERROR: {self.last_error}" if self.last_error else ""
@@ -756,6 +854,9 @@ class ProcessManager:
             self._push(f"[WEBUI] Process selesai dengan code {code}")
 
     def _prepare_candidate_notice(self):
+        if self.current_source != "ocr":
+            self.pending_candidate_notice = ""
+            return
         settings = load_settings()
         items, counts = get_candidates(self.current_game)
         items = [x for x in items if counts.get(x, 0) >= 1][:20]
@@ -772,13 +873,15 @@ class ProcessManager:
         return self.pending_candidate_notice
 
     def start(self, model, game, mode, engine, interval_ms, ocr_resolution=65, performance_policy="auto", normal_override=False, settings_mode=None, responsive_story_mode=False, diagnostic_profile="baseline", mode_buffer_enabled=False):
+        if self.source_switching:
+            return self.get_status_text(), self.get_log(), "Pergantian sumber masih menghentikan runtime sebelumnya. Tunggu status Stop, lalu mulai kembali.", self.pending_candidate_notice
         if self.proc and self.proc.poll() is None:
             return self.get_status_text(), self.get_log(), "Model masih berjalan. Stop dulu sebelum start baru.", self.pending_candidate_notice
 
         settings_mode = (settings_mode or ("manual" if normal_override else "recommended")).lower()
         normal_override = settings_mode in {"manual", "normal"}
         performance_policy = "normal" if normal_override else "auto"
-        save_prefs(model, game, mode, engine, interval_ms, ocr_resolution=ocr_resolution, performance_policy=performance_policy, normal_override=normal_override, settings_mode=settings_mode, responsive_story_mode=responsive_story_mode, diagnostic_profile=diagnostic_profile, mode_buffer_enabled=mode_buffer_enabled)
+        save_prefs(model, game, mode, engine, interval_ms, ocr_resolution=ocr_resolution, performance_policy=performance_policy, normal_override=normal_override, settings_mode=settings_mode, responsive_story_mode=responsive_story_mode, diagnostic_profile=diagnostic_profile, mode_buffer_enabled=mode_buffer_enabled, translation_source="ocr")
         if load_settings().get("auto_reset_candidates", False):
             try:
                 clear_candidates(game)
@@ -794,7 +897,7 @@ class ProcessManager:
 
         preset = _resolve_model(model)
         try:
-            save_prefs(model, game, mode, engine, interval_ms, model_group=preset.tier, ocr_resolution=ocr_resolution, performance_policy=performance_policy, normal_override=normal_override, settings_mode=settings_mode, mode_buffer_enabled=mode_buffer_enabled)
+            save_prefs(model, game, mode, engine, interval_ms, model_group=preset.tier, ocr_resolution=ocr_resolution, performance_policy=performance_policy, normal_override=normal_override, settings_mode=settings_mode, mode_buffer_enabled=mode_buffer_enabled, translation_source="ocr")
         except Exception:
             pass
         script_name = preset.script
@@ -903,7 +1006,7 @@ class ProcessManager:
                 env["ORT_ALLOW_ONLINE_ASSIST"] = "1"
         except Exception:
             pass
-        # v8.8.6: Freeze is snapshot/manual accuracy mode, so it may use OCR 100%
+        # v8.9.1: Freeze is snapshot/manual accuracy mode, so it may use OCR 100%
         # even when the selected Lite/Fast model normally uses a lower OCR preset.
         if requested_mode == "freeze" and env.get("ORT_FREEZE_OCR_OVERRIDE", "1") == "1":
             try:
@@ -923,8 +1026,9 @@ class ProcessManager:
         write_strategy_status(strategy, BASE_DIR, extra={"source": "launcher", "selected_model": model, "selected_game": game, "requested_engine": engine, "requested_mode": mode, "requested_interval_ms": int(interval_ms), "requested_ocr_resolution": int(ocr_resolution), "effective_ocr_resolution": applied_runtime_ocr, "preset_ocr_resolution": getattr(preset, "ocr_resolution_percent", None), "adaptive_ocr_rescue_enabled": env.get("ORT_ADAPTIVE_READABILITY_GUARD", "0") == "1", "ocr_rescue_floor": int(env.get("ORT_OCR_STORY_MIN_PERCENT", "50")), "ct2_fallback_active": env.get("ORT_CT2_FALLBACK_ACTIVE", "0") == "1"})
         try:
             save_state({
-                "version": "v8.8.6",
+                "version": APP_VERSION_TAG,
                 "status": "RUNNING",
+                "translation_source": "ocr",
                 "model": model,
                 "game": game,
                 "settings_mode": settings_mode,
@@ -962,6 +1066,7 @@ class ProcessManager:
         self.last_error = ""
         self.pending_candidate_notice = ""
         self.current_game = str(game)
+        self.current_source = "ocr"
         self.session = start_session(BASE_DIR, str(game))
         try:
             env["ORT_SESSION_ID"] = self.session.session_id
@@ -976,11 +1081,13 @@ class ProcessManager:
         perf_reason = _performance_reason_text(strategy, fast_state, mode)
         try:
             save_state({
-                "version": "v8.8.6",
+                "version": APP_VERSION_TAG,
                 "fast_engine_status": fast_state.get("state", "unknown"),
                 "fast_engine_active": bool(fast_state.get("active")),
                 "dialog_scheduler_profile": env.get("ORT_DIALOG_SCHEDULER_PROFILE", "-"),
-                "image_hash_gate": env.get("ORT_IMAGE_HASH_GATE", "1") == "1",
+                "text_roi_change_gate": env.get("ORT_TEXT_ROI_CHANGE_GATE", "1") == "1",
+                "text_roi_max_hold_ms": int(env.get("ORT_TEXT_ROI_MAX_HOLD_MS", "0")),
+                "image_hash_gate_fallback": env.get("ORT_IMAGE_HASH_GATE", "1") == "1",
                 "fuzzy_cache_key": env.get("ORT_FUZZY_CACHE_KEY", "1") == "1",
                 "performance_reason": perf_reason,
                 "fast_profile": env.get("ORT_FAST_PROFILE", "standard"),
@@ -999,22 +1106,22 @@ class ProcessManager:
         self.status = "RUNNING"
         self.stop_requested = False
         effective_interval_msg = int(env.get("ORT_BOOT_INTERVAL_MS", interval_ms))
-        self._push(f"[WEBUI v8.8.6] START {model} | game={game} | strategy={strategy.strategy_name} | mode={str(mode).lower()} | engine={str(engine).lower()} | interval={effective_interval_msg}ms | requested_ocr={int(ocr_resolution)}% | applied_ocr={applied_runtime_ocr}% | rescue_floor={env.get('ORT_OCR_STORY_MIN_PERCENT','50')}% | adaptive_rescue={env.get('ORT_ADAPTIVE_READABILITY_GUARD','0')} | policy={performance_policy} | normal_override={normal_override} | mode_buffer={1 if bool(mode_buffer_enabled) else 0}")
+        self._push(f"[WEBUI {APP_VERSION_TAG}] START {model} | game={game} | strategy={strategy.strategy_name} | mode={str(mode).lower()} | engine={str(engine).lower()} | interval={effective_interval_msg}ms | requested_ocr={int(ocr_resolution)}% | applied_ocr={applied_runtime_ocr}% | rescue_floor={env.get('ORT_OCR_STORY_MIN_PERCENT','50')}% | adaptive_rescue={env.get('ORT_ADAPTIVE_READABILITY_GUARD','0')} | policy={performance_policy} | normal_override={normal_override} | mode_buffer={1 if bool(mode_buffer_enabled) else 0}")
         self._push("[WEBUI] strategy: " + " | ".join(strategy.summary_lines()[:5]))
-        self._push(f"[WEBUI v8.8.6] scheduler={env.get('ORT_DIALOG_SCHEDULER_PROFILE')} | fast_profile={env.get('ORT_FAST_PROFILE')} | diagnostic={diagnostic_profile} | responsive_story={env.get('ORT_RESPONSIVE_STORY_MODE')} | latest_frame_wins={env.get('ORT_LATEST_FRAME_WINS')} | image_hash_gate={env.get('ORT_IMAGE_HASH_GATE')} | fuzzy_cache={env.get('ORT_FUZZY_CACHE_KEY')} | voice_hold={env.get('ORT_DIALOG_VOICE_HOLD_MS', '-')}ms | mode_buffer={env.get('ORT_MODE_BUFFER','0')}:{env.get('ORT_MODE_BUFFER_MS','0')}ms")
+        self._push(f"[WEBUI {APP_VERSION_TAG}] scheduler={env.get('ORT_DIALOG_SCHEDULER_PROFILE')} | fast_profile={env.get('ORT_FAST_PROFILE')} | diagnostic={diagnostic_profile} | responsive_story={env.get('ORT_RESPONSIVE_STORY_MODE')} | latest_frame_wins={env.get('ORT_LATEST_FRAME_WINS')} | text_roi_gate={env.get('ORT_TEXT_ROI_CHANGE_GATE')}:{env.get('ORT_TEXT_ROI_MAX_HOLD_MS')}ms | turn_state={env.get('ORT_TURN_STATE_MACHINE')} | atomic_overlay={env.get('ORT_TRANSACTIONAL_OVERLAY')} | fuzzy_cache={env.get('ORT_FUZZY_CACHE_KEY')} | voice_hold={env.get('ORT_DIALOG_VOICE_HOLD_MS', '-')}ms | mode_buffer={env.get('ORT_MODE_BUFFER','0')}:{env.get('ORT_MODE_BUFFER_MS','0')}ms")
         if env.get("ORT_FAST_PROFILE_LABEL"):
-            self._push(f"[WEBUI v8.8.6] fast_profile_note={env.get('ORT_FAST_PROFILE_LABEL')}")
+            self._push(f"[WEBUI {APP_VERSION_TAG}] fast_profile_note={env.get('ORT_FAST_PROFILE_LABEL')}")
         if env.get("ORT_LITE_GPU_EFFICIENT") == "1":
-            self._push(f"[WEBUI v8.8.6] lite_gpu={env.get('ORT_LITE_GPU_PROFILE')} | ct2_allowed={env.get('ORT_LITE_CT2_ALLOWED')} | requested_ocr={env.get('ORT_LITE_REQUESTED_OCR', env.get('ORT_BOOT_OCR_RESOLUTION'))}% | applied_ocr={env.get('ORT_LITE_APPLIED_OCR', env.get('ORT_BOOT_OCR_RESOLUTION'))}% | queue={env.get('ORT_LITE_APPLIED_QUEUE', env.get('TITAN_QUEUE_MAX'))} | reason={env.get('ORT_LITE_GPU_REASON')}")
+            self._push(f"[WEBUI {APP_VERSION_TAG}] lite_gpu={env.get('ORT_LITE_GPU_PROFILE')} | ct2_allowed={env.get('ORT_LITE_CT2_ALLOWED')} | requested_ocr={env.get('ORT_LITE_REQUESTED_OCR', env.get('ORT_BOOT_OCR_RESOLUTION'))}% | applied_ocr={env.get('ORT_LITE_APPLIED_OCR', env.get('ORT_BOOT_OCR_RESOLUTION'))}% | queue={env.get('ORT_LITE_APPLIED_QUEUE', env.get('TITAN_QUEUE_MAX'))} | reason={env.get('ORT_LITE_GPU_REASON')}")
         if env.get("ORT_GFL_LAYOUT") == "1":
-            self._push("[WEBUI v8.8.6] GFL layout=GFL_DIALOG_STANDARD | name_roi=1 | body_roi=1 | footer_mask=1 | scene_guard=1 | cache_normalized=1 | speaker_quarantine=3hits")
+            self._push(f"[WEBUI {APP_VERSION_TAG}] GFL layout=GFL_DIALOG_STANDARD | name_roi=1 | body_roi=1 | footer_mask=1 | scene_guard=1 | cache_normalized=1 | speaker_quarantine=3hits")
         if env.get("ORT_GFL2_SPEAKER_ROI") == "1":
-            self._push(f"[WEBUI v8.8.6] GFL2 speaker_roi=1 | trusted_registry=1 | verified_exact_catalog=1 | dual_helen_helena_guard=1 | full_backend_entity_span=1 | exact_fallback_only=1 | adaptive_readability_guard={env.get('ORT_ADAPTIVE_READABILITY_GUARD','0')} | stale_overlay_guard=1 | residual_guard=1 | critical_token_guard=1 | stable_final_cache_v2=1 | idn_eval_export=1 | faithfulness_v2=1 | strict_ct2_story=1 | qur_quarantine=1")
+            self._push(f"[WEBUI {APP_VERSION_TAG}] GFL2 speaker_roi=1 | trusted_registry=1 | verified_exact_catalog=1 | dual_helen_helena_guard=1 | full_backend_entity_span=1 | exact_fallback_only=1 | adaptive_readability_guard={env.get('ORT_ADAPTIVE_READABILITY_GUARD','0')} | stale_result_guard=1 | transactional_overlay=1 | single_final_per_turn=1 | explicit_clear=1 | critical_token_guard=1 | stable_final_cache_v2=1 | idn_eval_export=1 | faithfulness_v2=1 | strict_ct2_story=1 | qur_quarantine=1")
         elif diagnostic_profile == "diagnostic_no_name_roi" and str(game).upper() == "GFL2_EXILIUM":
-            self._push("[WEBUI v8.8.6][DIAGNOSTIC WARNING] Name ROI OFF hanya untuk uji A/B; label KSVK/Helen/Helena dapat hilang atau salah.")
+            self._push(f"[WEBUI {APP_VERSION_TAG}][DIAGNOSTIC WARNING] Name ROI OFF hanya untuk uji A/B; label KSVK/Helen/Helena dapat hilang atau salah.")
         if strategy.fast_path and not bool(fast_state.get("active")):
-            self._push(f"[WEBUI v8.8.6][WARN] Fast CT2 belum aktif ({fast_state.get('state')}). Model Fast akan fallback Argos sehingga masih terasa lamban. model_dir={fast_state.get('model_dir', '-')}")
-        self._push(f"[WEBUI v8.8.6] performance_reason={perf_reason}")
+            self._push(f"[WEBUI {APP_VERSION_TAG}][WARN] Fast CT2 belum aktif ({fast_state.get('state')}). Model Fast akan fallback Argos sehingga masih terasa lamban. model_dir={fast_state.get('model_dir', '-')}")
+        self._push(f"[WEBUI {APP_VERSION_TAG}] performance_reason={perf_reason}")
         self._push(f"[WEBUI] runtime_python={runtime_python}")
         self._push(f"[WEBUI] script={script_name}")
 
@@ -1040,12 +1147,458 @@ class ProcessManager:
         threading.Thread(target=self._reader, daemon=True).start()
         return self.get_status_text(), self.get_log(), f"Menjalankan {model}...", self.pending_candidate_notice
 
+    def start_audio(self, model, game, input_mode="loopback", device_index="-1", language="auto", processing="vad", profile_key="normal", test_file="", audio_mode="hybrid", audio_usage="live_media", audio_engine="azure_fallback", language_correction="balanced", language_lock=False):
+        if self.source_switching:
+            return self.get_status_text(), self.get_log(), "Pergantian sumber masih menghentikan runtime sebelumnya. Tunggu status Stop, lalu mulai Audio.", self.pending_candidate_notice
+        if self.proc and self.proc.poll() is None:
+            return self.get_status_text(), self.get_log(), "Sesi lain masih berjalan. Stop terlebih dahulu sebelum memulai Audio.", self.pending_candidate_notice
+
+        version_contract = runtime_version_contract()
+        if not version_contract.get("ready"):
+            self.status = "ERROR"
+            self.last_error = (
+                "INSTALASI ORT TERCAMPUR DAN AUDIO DIBLOKIR.\n"
+                f"Versi proses ini: {version_contract.get('expected')}. "
+                f"Versi file: {version_contract.get('values')}.\n"
+                "Tutup seluruh WebUI/Audio ORT, ekstrak ulang patch ke folder instalasi yang sama, pilih Replace/Timpa, lalu jalankan VERIFY_ORT_V8_9_9.bat."
+            )
+            self._push(f"[WEBUI {APP_VERSION_TAG}][VERSION CONTRACT FAILED] {version_contract}")
+            return self.get_status_text(), self.get_log(), self.last_error, ""
+
+        input_mode = str(input_mode or "loopback").strip().lower()
+        processing = str(processing or "vad").strip().lower()
+        language = str(language or "auto").strip().lower()
+        language_correction = str(language_correction or "balanced").strip().lower()
+        if language_correction not in {"off", "conservative", "balanced", "aggressive"}:
+            language_correction = "balanced"
+        language_lock = bool(language_lock)
+        requested_audio_mode = normalize_audio_mode(audio_mode)
+        requested_audio_usage = normalize_audio_usage(audio_usage)
+        requested_audio_engine = normalize_audio_engine(audio_engine)
+        profile = get_audio_profile(profile_key)
+        plan = resolve_audio_plan(requested_audio_mode, profile.key)
+        if input_mode not in {"loopback", "file"}:
+            input_mode = "loopback"
+        if processing not in {"normal", "vad"}:
+            self.status = "ERROR"
+            self.last_error = "Isolasi Suara belum diaktifkan pada uji pertama. Gunakan Normal atau VAD."
+            return self.get_status_text(), self.get_log(), self.last_error, ""
+
+        local_resolution = (
+            resolve_effective_audio_mode(requested_audio_mode, profile.key, BASE_DIR, force=True)
+            if requested_audio_engine != "azure"
+            else {
+                "ready": False,
+                "requested_mode": requested_audio_mode,
+                "effective_mode": requested_audio_mode,
+                "reason": "LOCAL_NOT_REQUESTED",
+                "runtime": {},
+            }
+        )
+        probe_realtime_cloud = bool(
+            requested_audio_usage == "live_media"
+            and requested_audio_engine in {"azure", "azure_fallback"}
+        )
+        strict_realtime_cloud = bool(
+            requested_audio_usage == "live_media"
+            and requested_audio_engine == "azure"
+        )
+        delivery = resolve_audio_delivery(
+            requested_audio_engine,
+            bool(local_resolution.get("ready")),
+            BASE_DIR,
+            force=True,
+            network_test=probe_realtime_cloud,
+        )
+        effective_audio_engine = str(delivery.get("effective") or "unavailable")
+        cloud_probe = delivery.get("cloud") or {}
+        probe = local_resolution.get("runtime") or {}
+        if strict_realtime_cloud and effective_audio_engine != "azure":
+            missing = []
+            if not cloud_probe.get("installed"):
+                missing.append("runtime Azure belum dipasang")
+            if not cloud_probe.get("sdk"):
+                missing.append("Azure Speech SDK belum siap")
+            if os.name == "nt" and not cloud_probe.get("wasapi"):
+                missing.append("WASAPI loopback cloud belum siap")
+            if not cloud_probe.get("credential_set"):
+                missing.append("API key Azure belum tersimpan")
+            if not str(cloud_probe.get("region") or "").strip():
+                missing.append("region Azure belum tersimpan")
+            if cloud_probe.get("network_tested") and not cloud_probe.get("cloud_connected"):
+                missing.append("uji koneksi Azure gagal")
+            detail = ", ".join(missing) or str(cloud_probe.get("message") or delivery.get("reason") or "Azure belum siap")
+            errors = " | ".join(str(item) for item in (cloud_probe.get("errors") or []) if str(item).strip())
+            self.status = "ERROR"
+            self.last_error = (
+                "MODE LIVE MEDIA REAL-TIME TIDAK DIMULAI.\n"
+                "Mode Azure murni memerlukan sesi cloud yang benar-benar terhubung. Untuk tetap bekerja tanpa Azure, pilih Local Live atau Azure + Local Live Fallback.\n"
+                f"Penyebab: {detail}.\n\n"
+                "Buka Pengaturan Audio → Siapkan Runtime Azure → Simpan & Uji Azure sampai cloud_connected=True, "
+                "atau pilih Local Live untuk rolling-partial offline yang mulai menerjemahkan selama ucapan berlangsung."
+                + (("\n\nDetail Azure: " + errors[-1600:]) if errors else "")
+            )
+            self._push(
+                f"[WEBUI {APP_VERSION_TAG}][REALTIME BLOCKED] requested_engine={requested_audio_engine} | "
+                f"effective_engine={effective_audio_engine} | cloud_ready={int(bool(cloud_probe.get('ready')))} | "
+                f"cloud_connected={int(bool(cloud_probe.get('cloud_connected')))} | reason={delivery.get('reason', 'AZURE_NOT_READY')}"
+            )
+            return self.get_status_text(), self.get_log(), self.last_error, ""
+        if not delivery.get("ready"):
+            self.status = "ERROR"
+            self.last_error = (
+                f"Mesin Audio {requested_audio_engine.upper()} belum siap ({delivery.get('reason', 'SETUP_REQUIRED')}).\n"
+                + cloud_runtime_summary_text(BASE_DIR)
+                + "\n\n"
+                + audio_runtime_summary_text(profile.key, BASE_DIR, requested_audio_mode)
+            )
+            return self.get_status_text(), self.get_log(), self.last_error, ""
+        loopback_ready = bool(cloud_probe.get("wasapi")) if effective_audio_engine == "azure" else bool(probe.get("live_loopback"))
+        if input_mode == "loopback" and not loopback_ready:
+            self.status = "ERROR"
+            self.last_error = "Audio internal langsung memerlukan Windows WASAPI. Pilih 'File audio uji' untuk pengujian tanpa loopback."
+            return self.get_status_text(), self.get_log(), self.last_error, ""
+
+        test_path = None
+        if input_mode == "file":
+            test_path = Path(str(test_file or "")).expanduser() if str(test_file or "").strip() else None
+            if test_path is None or not test_path.exists() or not test_path.is_file():
+                self.status = "ERROR"
+                self.last_error = "Pilih file audio yang valid sebelum memulai uji file."
+                return self.get_status_text(), self.get_log(), self.last_error, ""
+            test_path = test_path.resolve()
+            if effective_audio_engine == "azure" and test_path.suffix.lower() != ".wav":
+                self.status = "ERROR"
+                self.last_error = "Uji Azure Live Media memerlukan file WAV PCM 16-bit."
+                return self.get_status_text(), self.get_log(), self.last_error, ""
+            if requested_audio_usage == "live_media" and effective_audio_engine != "azure" and test_path.suffix.lower() != ".wav":
+                self.status = "ERROR"
+                self.last_error = "Uji Local Live rolling-partial saat ini memerlukan WAV PCM 16-bit agar timing 20 ms dapat dipertahankan."
+                return self.get_status_text(), self.get_log(), self.last_error, ""
+
+        cfg = get_runtime_config()
+        runtime_python = Path(cfg["runtime_python"])
+        if not runtime_python.exists():
+            self.status = "ERROR"
+            self.last_error = f"Runtime Python utama ORT tidak ditemukan: {runtime_python}"
+            return self.get_status_text(), self.get_log(), self.last_error, ""
+
+        prefs = load_prefs()
+        selected_model = model or prefs.get("model") or "ORTCore Lite IDN V3"
+        selected_game = str(game or prefs.get("game") or "GFL")
+        requested_language = language
+        japanese_specialist = language in {"ja_specialist", "ja-specialist", "japanese_specialist", "japanese-specialist"}
+        if japanese_specialist:
+            language = "ja"
+        # v8.9.9: keep the user's selected language as the initial primary language.
+        # A balanced watchdog corrects a real mismatch only after repeated evidence,
+        # while short foreign dialogue is treated as a temporary code switch.
+        language_guard = "LOCKED" if language_lock else f"WATCHDOG_{language_correction.upper()}"
+        japanese_specialist_enabled = bool(
+            japanese_specialist
+            or language in {"ja", "auto"}
+            or language_correction != "off"
+        )
+        cloud_source_locale = normalize_source_locale(language)
+        realtime_policy = resolve_live_media_policy(requested_audio_usage, cloud_source_locale, profile.key)
+        if effective_audio_engine == "azure" and cloud_source_locale.lower() in {"", "auto", "auto_detect"}:
+            self.status = "ERROR"
+            self.last_error = "Azure Live Media memerlukan bahasa suara tetap agar subtitle interim tersedia. Untuk GFL2 pilih Japanese."
+            return self.get_status_text(), self.get_log(), self.last_error, ""
+        effective_audio_mode = str(local_resolution.get("effective_mode") or requested_audio_mode)
+        active_spec = plan.primary if effective_audio_mode in {"gpu", "hybrid"} else (plan.fallback or plan.primary)
+        preset = _resolve_model(selected_model)
+        requested_interval = int(prefs.get("interval_ms", 240) or 240)
+        requested_ocr = int(prefs.get("ocr_resolution", 55) or 55)
+        settings_mode = str(prefs.get("settings_mode", "recommended") or "recommended")
+        save_prefs(
+            selected_model,
+            selected_game,
+            prefs.get("mode", "auto"),
+            prefs.get("engine", "hybrid"),
+            requested_interval,
+            model_group=preset.tier,
+            ocr_resolution=requested_ocr,
+            settings_mode=settings_mode,
+            translation_source="audio",
+            audio_input_mode=input_mode,
+            audio_device_index=str(device_index),
+            audio_language=language,
+            audio_processing=processing,
+            audio_profile=profile.key,
+            audio_mode=requested_audio_mode,
+            audio_usage=requested_audio_usage,
+            audio_engine=requested_audio_engine,
+        )
+
+        env = os.environ.copy()
+        env["PYTHONIOENCODING"] = "utf-8"
+        env["PYTHONUTF8"] = "1"
+        env["ORT_RUNTIME_ROOT"] = cfg["runtime_root"]
+        env["ORT_TRANSLATION_SOURCE"] = "audio"
+        env["ORT_AUDIO_SOURCE"] = "1"
+        env["ORT_LAUNCHER_VERSION"] = APP_VERSION_TAG
+        env["ORT_AUDIO_PIPELINE_CONTRACT"] = "rolling-partial-v2"
+        env["ORT_AUDIO_INPUT_MODE"] = input_mode
+        env["ORT_AUDIO_DEVICE_INDEX"] = str(device_index or "-1")
+        env["ORT_AUDIO_LANGUAGE"] = language
+        env["ORT_AUDIO_LANGUAGE_REQUESTED"] = requested_language
+        env["ORT_AUDIO_LANGUAGE_GUARD"] = language_guard
+        env["ORT_AUDIO_LANGUAGE_AUTOCORRECT"] = language_correction
+        env["ORT_AUDIO_LANGUAGE_LOCK"] = "1" if language_lock else "0"
+        env["ORT_AUDIO_SHOW_SOURCE"] = "1"
+        env["ORT_AUDIO_JA_SPECIALIST"] = "1" if japanese_specialist_enabled else "0"
+        env["ORT_AUDIO_ASR_BRIDGE_LANGUAGE"] = "en"
+        env["ORT_AUDIO_PROCESSING"] = processing
+        env["ORT_AUDIO_PROFILE"] = profile.key
+        audio_paths = audio_runtime_paths(BASE_DIR)
+        cloud_paths = cloud_runtime_paths(BASE_DIR)
+        env["ORT_AUDIO_REQUESTED_MODE"] = requested_audio_mode
+        env["ORT_AUDIO_EFFECTIVE_MODE"] = effective_audio_mode
+        env["ORT_AUDIO_USAGE"] = requested_audio_usage
+        env["ORT_AUDIO_ENGINE_REQUESTED"] = requested_audio_engine
+        env["ORT_AUDIO_ENGINE_EFFECTIVE"] = effective_audio_engine
+        env["ORT_AUDIO_LOCAL_FALLBACK_READY"] = "1" if local_resolution.get("ready") else "0"
+        env["ORT_AUDIO_CLOUD_PYTHON"] = str(cloud_paths["cloud_python"])
+        env["ORT_AUDIO_CLOUD_CONFIG"] = str(cloud_paths["config"])
+        env["ORT_AUDIO_CLOUD_SOURCE_LOCALE"] = cloud_source_locale
+        env["ORT_AUDIO_CLOUD_TARGET_LANGUAGE"] = "id"
+        env["ORT_AUDIO_REALTIME_PROFILE"] = realtime_policy.profile
+        env["ORT_AUDIO_ASR_DEVICE"] = active_spec.device
+        env["ORT_AUDIO_ASR_COMPUTE_TYPE"] = active_spec.compute_type
+        env["ORT_AUDIO_PRIMARY_MODEL"] = plan.primary.model_size
+        env["ORT_AUDIO_FALLBACK_MODEL"] = plan.fallback.model_size if plan.fallback else ""
+        env["ORT_AUDIO_CPU_PYTHON"] = str(audio_paths["cpu_python"])
+        env["ORT_AUDIO_GPU_PYTHON"] = str(audio_paths["gpu_python"])
+        env["ORT_AUDIO_CAPTURE_PYTHON"] = str(probe.get("capture_python") or audio_paths["cpu_python"])
+        env["ORT_AUDIO_RUNTIME_PYTHON"] = env["ORT_AUDIO_CAPTURE_PYTHON"]
+        env["ORT_AUDIO_MODEL_ROOT"] = str(audio_paths["model_root"])
+        env["ORT_AUDIO_SPOOL_ROOT"] = str(audio_paths["spool_root"])
+        env["ORT_AUDIO_TEST_FILE"] = str(test_path) if test_path is not None else ""
+        env["ORT_GAME_OVERRIDE"] = selected_game
+        env["ORT_GAME_PROFILE"] = selected_game
+        env["TITAN_MODEL_LABEL"] = preset.title
+        env["ORT_MODEL_KEY"] = preset.key
+        env["ORT_MODEL_GROUP"] = preset.tier
+        env["ORT_SETTINGS_MODE"] = settings_mode
+        env["ORT_DIALOGUE_COMPLETENESS_GATE"] = "0"
+        env["ORT_FINAL_ONLY_SAFE_COMMIT"] = "0"
+        env["ORT_RESPONSIVE_STORY_MODE"] = "0"
+        env["ORT_STRICT_CT2_STORY"] = "0"
+        env["ORT_HARD_STRICT_CT2_STORY"] = "0"
+        env["ORT_LITE_CT2_ALLOWED"] = "1"
+        env["ORT_IDN_OVER_CT2"] = "1"
+        env["TITAN_CT2_DEVICE"] = "cpu"
+        env["TITAN_CT2_COMPUTE_TYPE"] = "int8"
+        env["TITAN_CT2_BEAM"] = str(1 if profile.key == "speed" else (2 if profile.key == "normal" else 4))
+        env["OMP_NUM_THREADS"] = str(active_spec.cpu_threads)
+        env["ORT_CPU_THREADS"] = str(active_spec.cpu_threads)
+        stop_path = BASE_DIR / "runtime_stop_request.json"
+        env["ORT_STOP_REQUEST_FILE"] = str(stop_path)
+        clear_stop_request(BASE_DIR)
+        try:
+            env.update(preset.env_map())
+            env.update(env_from_settings(selected_game, model_key=preset.key, policy_override="normal", ocr_resolution=requested_ocr))
+        except Exception:
+            pass
+        env.update({
+            "ORT_TRANSLATION_SOURCE": "audio",
+            "ORT_AUDIO_SOURCE": "1",
+            "ORT_LAUNCHER_VERSION": APP_VERSION_TAG,
+            "ORT_AUDIO_PIPELINE_CONTRACT": "rolling-partial-v2",
+            "ORT_AUDIO_INPUT_MODE": input_mode,
+            "ORT_AUDIO_DEVICE_INDEX": str(device_index or "-1"),
+            "ORT_AUDIO_LANGUAGE": language,
+            "ORT_AUDIO_LANGUAGE_REQUESTED": requested_language,
+            "ORT_AUDIO_LANGUAGE_GUARD": language_guard,
+            "ORT_AUDIO_LANGUAGE_AUTOCORRECT": language_correction,
+            "ORT_AUDIO_LANGUAGE_LOCK": "1" if language_lock else "0",
+            "ORT_AUDIO_SHOW_SOURCE": "1",
+            "ORT_AUDIO_JA_SPECIALIST": "1" if japanese_specialist_enabled else "0",
+            "ORT_AUDIO_ASR_BRIDGE_LANGUAGE": "en",
+            "ORT_AUDIO_PROCESSING": processing,
+            "ORT_AUDIO_PROFILE": profile.key,
+            "ORT_AUDIO_REQUESTED_MODE": requested_audio_mode,
+            "ORT_AUDIO_EFFECTIVE_MODE": effective_audio_mode,
+            "ORT_AUDIO_USAGE": requested_audio_usage,
+            "ORT_AUDIO_ENGINE_REQUESTED": requested_audio_engine,
+            "ORT_AUDIO_ENGINE_EFFECTIVE": effective_audio_engine,
+            "ORT_AUDIO_LOCAL_FALLBACK_READY": "1" if local_resolution.get("ready") else "0",
+            "ORT_AUDIO_CLOUD_PYTHON": str(cloud_paths["cloud_python"]),
+            "ORT_AUDIO_CLOUD_CONFIG": str(cloud_paths["config"]),
+            "ORT_AUDIO_CLOUD_SOURCE_LOCALE": cloud_source_locale,
+            "ORT_AUDIO_CLOUD_TARGET_LANGUAGE": "id",
+            "ORT_AUDIO_REALTIME_PROFILE": realtime_policy.profile,
+            "ORT_AUDIO_ASR_DEVICE": active_spec.device,
+            "ORT_AUDIO_ASR_COMPUTE_TYPE": active_spec.compute_type,
+            "ORT_AUDIO_PRIMARY_MODEL": plan.primary.model_size,
+            "ORT_AUDIO_FALLBACK_MODEL": plan.fallback.model_size if plan.fallback else "",
+            "ORT_AUDIO_CPU_PYTHON": str(audio_paths["cpu_python"]),
+            "ORT_AUDIO_GPU_PYTHON": str(audio_paths["gpu_python"]),
+            "ORT_AUDIO_CAPTURE_PYTHON": str(probe.get("capture_python") or audio_paths["cpu_python"]),
+            "ORT_AUDIO_MODEL_ROOT": str(audio_paths["model_root"]),
+            "ORT_AUDIO_SPOOL_ROOT": str(audio_paths["spool_root"]),
+            "ORT_DIALOGUE_COMPLETENESS_GATE": "0",
+            "ORT_FINAL_ONLY_SAFE_COMMIT": "0",
+            "ORT_RESPONSIVE_STORY_MODE": "0",
+            "ORT_STRICT_CT2_STORY": "0",
+            "ORT_HARD_STRICT_CT2_STORY": "0",
+            "ORT_LITE_CT2_ALLOWED": "1",
+            "ORT_IDN_OVER_CT2": "1",
+            "TITAN_CT2_DEVICE": "cpu",
+            "TITAN_CT2_COMPUTE_TYPE": "int8",
+            "TITAN_CT2_BEAM": str(1 if profile.key == "speed" else (2 if profile.key == "normal" else 4)),
+            "OMP_NUM_THREADS": str(active_spec.cpu_threads),
+            "ORT_CPU_THREADS": str(active_spec.cpu_threads),
+        })
+        try:
+            fast_manager = FastModelManager(BASE_DIR)
+            fast_state = fast_manager.status()
+            model_dir = str(fast_state.get("model_dir") or fast_manager.model_dir)
+            env["ORT_FAST_CT2_MODEL_DIR"] = model_dir
+            env["ORT_LITE_CT2_MODEL_DIR"] = model_dir
+            env["TITAN_CT2_EN_ID_DIR"] = model_dir
+            env["TITAN_SPM_EN_ID_DIR"] = model_dir
+            env["ORT_CT2_MODEL_DIR_USED"] = model_dir
+            env["ORT_CT2_SPM_DIR_USED"] = model_dir
+            env["ORT_CT2_PATH_REBIND"] = "1"
+        except Exception:
+            fast_state = {"state": "UNKNOWN", "active": False}
+
+        self.lines = []
+        self.last_error = ""
+        self.pending_candidate_notice = ""
+        self.current_game = selected_game
+        self.current_source = "audio"
+        self.session = start_session(BASE_DIR, selected_game)
+        try:
+            env["ORT_SESSION_ID"] = self.session.session_id
+            env["ORT_SESSION_FULL_LOG_PATH"] = str(self.session.full_log_path)
+            env["ORT_SESSION_JSONL_PATH"] = str(self.session.jsonl_path)
+        except Exception:
+            pass
+        active_engine_label = (
+            "audio_azure_live_media"
+            if effective_audio_engine == "azure"
+            else (
+                "audio_local_realtime_rolling_partial"
+                if requested_audio_usage == "live_media"
+                else f"audio_{effective_audio_mode}_{active_spec.device}_{active_spec.compute_type}"
+            )
+        )
+        active_asr_model = "azure_speech_translation" if effective_audio_engine == "azure" else active_spec.model_size
+        active_asr_device = "cloud" if effective_audio_engine == "azure" else active_spec.device
+        active_compute = "streaming" if effective_audio_engine == "azure" else active_spec.compute_type
+        try:
+            save_state({
+                "version": APP_VERSION_TAG,
+                "status": "RUNNING",
+                "translation_source": "audio",
+                "model": selected_model,
+                "game": selected_game,
+                "mode": "audio",
+                "active_mode": "audio",
+                "engine": effective_audio_engine,
+                "requested_engine": requested_audio_engine,
+                "active_engine": active_engine_label,
+                "audio_usage": requested_audio_usage,
+                "audio_engine_requested": requested_audio_engine,
+                "audio_engine_effective": effective_audio_engine,
+                "audio_cloud_provider": "azure",
+                "audio_cloud_connected": False,
+                "audio_local_fallback_ready": bool(local_resolution.get("ready")),
+                "audio_profile": profile.key,
+                "audio_realtime_policy": realtime_policy.as_dict(),
+                "audio_requested_mode": requested_audio_mode,
+                "audio_effective_mode": effective_audio_mode,
+                "audio_asr_model": active_asr_model,
+                "audio_primary_model": plan.primary.model_size,
+                "audio_fallback_model": plan.fallback.model_size if plan.fallback else "",
+                "audio_asr_device": active_asr_device,
+                "audio_asr_compute_type": active_compute,
+                "audio_processing": processing,
+                "audio_input_mode": input_mode,
+                "audio_device_index": str(device_index or "-1"),
+                "audio_language_requested": requested_language,
+                "audio_language": language,
+                "audio_language_guard": language_guard,
+                "audio_asr_bridge_language": "en",
+                "audio_japanese_specialist_requested": bool(japanese_specialist or language == "ja"),
+                "audio_cpu_threads": active_spec.cpu_threads,
+                "performance_reason": (
+                    f"Audio {requested_audio_usage}: requested_engine={requested_audio_engine}, effective_engine={effective_audio_engine}; "
+                    + (
+                        f"Azure Speech {cloud_source_locale}->id 20ms streaming; endpoint={realtime_policy.segmentation_silence_ms}ms; max_phrase={realtime_policy.segmentation_maximum_ms}ms; local_fallback_ready={bool(local_resolution.get('ready'))}."
+                        if effective_audio_engine == "azure"
+                        else (
+                            f"faster-whisper rolling-partial {active_spec.model_size} {active_spec.device}:{active_spec.compute_type}; "
+                            f"multilingual ASR uses source-aware decoding and an English bridge before instant ID translation; endpoint only commits final."
+                            if requested_audio_usage == "live_media"
+                            else f"faster-whisper segmented {active_spec.model_size} {active_spec.device}:{active_spec.compute_type}."
+                        )
+                    )
+                    + " OCR process disabled."
+                ),
+            }, BASE_DIR)
+        except Exception:
+            pass
+
+        self.status = "RUNNING"
+        self.stop_requested = False
+        self._push(
+            f"[WEBUI {APP_VERSION_TAG}] START AUDIO | game={selected_game} | usage={requested_audio_usage} | "
+            f"requested_engine={requested_audio_engine} | effective_engine={effective_audio_engine} | profile={profile.key} | "
+            f"requested_mode={requested_audio_mode} | effective_mode={effective_audio_mode} | "
+            f"asr={active_asr_model}:{active_asr_device}:{active_compute} | local_fallback={active_spec.model_size}:{active_spec.device}:{active_spec.compute_type} | "
+            f"threads={active_spec.cpu_threads} | processing={processing} | "
+            f"input={input_mode} | requested_language={requested_language} | language={language} | language_guard={language_guard or '-'} | "
+            f"auto_correct={language_correction} | language_lock={int(language_lock)} | asr_bridge=en | ja_specialist={int(japanese_specialist_enabled)} | endpoint_ms={realtime_policy.segmentation_silence_ms} | "
+            f"max_phrase_ms={realtime_policy.segmentation_maximum_ms} | chunk_ms={realtime_policy.audio_chunk_ms} | ocr_process=disabled"
+        )
+        self._push(
+            f"[WEBUI {APP_VERSION_TAG}] capture_runtime={env['ORT_AUDIO_CAPTURE_PYTHON']} | "
+            f"cpu_runtime={audio_paths['cpu_python']} | gpu_runtime={audio_paths['gpu_python']} | "
+            f"cloud_runtime={cloud_paths['cloud_python']} | model_root={audio_paths['model_root']}"
+        )
+        self._push(
+            f"[WEBUI {APP_VERSION_TAG}] translation_model={selected_model} | "
+            f"cloud={cloud_source_locale}->id | cloud_ready={int(bool(cloud_probe.get('ready')))} | "
+            f"local_fallback_ready={int(bool(local_resolution.get('ready')))} | "
+            f"fast_ct2={fast_state.get('state', 'UNKNOWN')} | ct2_device=cpu:int8"
+        )
+
+        script_path = BASE_DIR / "audio_main.py"
+        creationflags = 0
+        if os.name == "nt":
+            creationflags = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+            creationflags |= getattr(subprocess, "BELOW_NORMAL_PRIORITY_CLASS", 0x00004000)
+        self.proc = subprocess.Popen(
+            [str(runtime_python), str(script_path)],
+            cwd=str(BASE_DIR),
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            bufsize=1,
+            creationflags=creationflags,
+        )
+        threading.Thread(target=self._reader, daemon=True).start()
+        return (
+            self.get_status_text(),
+            self.get_log(),
+            f"Menjalankan Audio {requested_audio_usage.replace('_', ' ').title()} · "
+            f"{requested_audio_engine.upper()} (efektif: {effective_audio_engine})...",
+            "",
+        )
+
     def stop(self):
         if self.proc and self.proc.poll() is None:
             self.stop_requested = True
             self.status = "STOPPING"
             self.stop_at = time.time()
-            self._push("[WEBUI v8.8.6] Graceful STOP requested. Menunggu flush cache/log/session...")
+            self._push(f"[WEBUI {APP_VERSION_TAG}] Graceful STOP requested. Menunggu flush cache/log/session...")
             try:
                 request_stop(BASE_DIR, reason="webui_stop", pid=self.proc.pid)
                 write_shutdown_status(BASE_DIR, "STOP_REQUESTED", "webui_stop", {"pid": self.proc.pid})
@@ -1073,7 +1626,7 @@ class ProcessManager:
                 self.last_error = str(e)
 
             if self.proc.poll() is None:
-                self._push("[WEBUI v8.8.6] Graceful stop timeout; fallback hard kill.")
+                self._push(f"[WEBUI {APP_VERSION_TAG}] Graceful stop timeout; fallback hard kill.")
                 try:
                     if os.name == 'nt':
                         subprocess.run(['taskkill', '/PID', str(self.proc.pid), '/T', '/F'], capture_output=True, text=True, timeout=10)
@@ -1082,7 +1635,7 @@ class ProcessManager:
                 except Exception as e:
                     self.last_error = str(e)
             else:
-                self._push("[WEBUI v8.8.6] Graceful stop selesai; cache/log seharusnya sudah flush.")
+                self._push(f"[WEBUI {APP_VERSION_TAG}] Graceful stop selesai; cache/log seharusnya sudah flush.")
             try:
                 close_session("webui_stop")
             except Exception:
@@ -1098,6 +1651,16 @@ class ProcessManager:
             self.status = "IDLE"
         return self.get_status_text(), self.get_log(), "Stop selesai.", self.pending_candidate_notice
 
+    def prepare_source_switch(self) -> bool:
+        proc = self.proc
+        if proc is None or proc.poll() is not None:
+            return False
+        self.source_switching = True
+        return True
+
+    def finish_source_switch(self) -> None:
+        self.source_switching = False
+
     def refresh(self):
         if self.status == "STOP" and (not self.proc or self.proc.poll() is not None):
             if time.time() - self.stop_at > 1.2:
@@ -1110,6 +1673,94 @@ MANAGER = ProcessManager()
 
 def start_model(model, game, mode, engine, interval_ms, ocr_resolution=65, performance_policy="auto", normal_override=False, settings_mode=None, responsive_story_mode=False, diagnostic_profile="baseline", mode_buffer_enabled=False):
     return MANAGER.start(model, game, mode, engine, interval_ms, ocr_resolution, performance_policy, normal_override, settings_mode, responsive_story_mode, diagnostic_profile, mode_buffer_enabled)
+
+
+def start_audio_model(model, game, input_mode="loopback", device_index="-1", language="auto", processing="vad", profile_key="normal", test_file="", audio_mode="hybrid", audio_usage="live_media", audio_engine="azure_fallback", language_correction="balanced", language_lock=False):
+    return MANAGER.start_audio(model, game, input_mode, device_index, language, processing, profile_key, test_file, audio_mode, audio_usage, audio_engine, language_correction, language_lock)
+
+
+def setup_audio_runtime_text(profile_key="normal", audio_mode="hybrid"):
+    return setup_audio_runtime(profile_key, BASE_DIR, audio_mode)
+
+
+def audio_runtime_status_text(profile_key="normal", audio_mode="hybrid", audio_engine="local", audio_usage="live_media"):
+    engine = normalize_audio_engine(audio_engine)
+    local_text = audio_runtime_summary_text(profile_key, BASE_DIR, audio_mode)
+    if engine == "local":
+        return f"usage = {normalize_audio_usage(audio_usage)}\naudio_engine = local\n\n{local_text}"
+    return (
+        f"usage = {normalize_audio_usage(audio_usage)}\n"
+        f"audio_engine = {engine}\n\n"
+        + cloud_runtime_summary_text(BASE_DIR)
+        + "\n\nLOCAL FALLBACK\n"
+        + local_text
+    )
+
+
+def audio_devices_for_ui(force=False, audio_mode="hybrid", audio_engine="local"):
+    engine = normalize_audio_engine(audio_engine)
+    if engine != "local":
+        cloud_probe = probe_cloud_runtime(bool(force), BASE_DIR, False)
+        if cloud_probe.get("dependency_ready"):
+            return cloud_device_choices(BASE_DIR, bool(force))
+    return audio_device_choices(BASE_DIR, bool(force), audio_mode)
+
+
+def audio_runtime_probe(force=False, profile_key="normal", audio_mode="hybrid", audio_engine="local", audio_usage="live_media"):
+    resolution = resolve_effective_audio_mode(audio_mode, profile_key, BASE_DIR, force=bool(force))
+    probe = resolution.get("runtime") or {}
+    model_status = resolution.get("models") or {}
+    dependencies_ready = bool(probe.get("ready"))
+    model_ready = bool(model_status.get("ready"))
+    engine = normalize_audio_engine(audio_engine)
+    strict_realtime_cloud = bool(normalize_audio_usage(audio_usage) == "live_media" and engine in {"azure", "azure_fallback"})
+    delivery = resolve_audio_delivery(
+        engine,
+        bool(resolution.get("ready")),
+        BASE_DIR,
+        force=bool(force),
+        network_test=bool(force and strict_realtime_cloud),
+    )
+    return {
+        **probe,
+        **resolution,
+        "dependencies_ready": dependencies_ready,
+        "model_ready": model_ready,
+        "model_status": model_status,
+        "ready": bool(delivery.get("ready")),
+        "audio_engine_requested": engine,
+        "audio_engine_effective": delivery.get("effective"),
+        "audio_engine_reason": delivery.get("reason"),
+        "cloud": delivery.get("cloud") or {},
+    }
+
+
+def setup_audio_cloud_runtime_text():
+    return setup_cloud_runtime(BASE_DIR)
+
+
+def audio_cloud_runtime_status_text():
+    return cloud_runtime_summary_text(BASE_DIR)
+
+
+def audio_cloud_config_values():
+    return cloud_config_values(BASE_DIR)
+
+
+def save_audio_cloud_config_from_ui(region, api_key, source_locale="ja-JP", target_language="id"):
+    return save_cloud_config(region, api_key, source_locale, target_language, BASE_DIR, True)
+
+
+def clear_audio_cloud_credentials_text():
+    return clear_cloud_credentials(BASE_DIR)
+
+
+def prepare_source_switch_stop():
+    return MANAGER.prepare_source_switch()
+
+
+def finish_source_switch_stop():
+    MANAGER.finish_source_switch()
 
 
 def recommendation_summary(game, normal_override=False):
@@ -1180,6 +1831,48 @@ def runtime_effective_status_html() -> str:
             + "</div>"
         )
 
+    if str(state.get("translation_source", "ocr")).lower() == "audio":
+        audio = read_status("audio_runtime", BASE_DIR, {})
+        audio_profile = audio.get("profile") or state.get("audio_profile") or "normal"
+        asr_model = audio.get("asr_model") or state.get("audio_asr_model") or "-"
+        processing = audio.get("processing") or state.get("audio_processing") or "vad"
+        input_mode = audio.get("input_mode") or state.get("audio_input_mode") or "loopback"
+        device = audio.get("device") or ("File audio uji" if input_mode == "file" else "Default WASAPI")
+        audio_state = audio.get("audio_state") or state.get("audio_state") or state.get("status") or "idle"
+        asr_ms = audio.get("asr_ms", "-")
+        translation_ms = audio.get("translation_ms", "-")
+        total_ms = audio.get("total_ms", "-")
+        translation_backend = audio.get("translation_engine") or "menunggu terjemahan pertama"
+        last_translation = str(audio.get("last_translation") or "Belum ada hasil")
+        requested_audio_mode = audio.get("requested_mode") or state.get("audio_requested_mode") or "hybrid"
+        effective_audio_mode = audio.get("effective_mode") or state.get("audio_effective_mode") or requested_audio_mode
+        audio_usage = audio.get("audio_usage") or state.get("audio_usage") or "live_media"
+        requested_audio_engine = audio.get("audio_engine_requested") or state.get("audio_engine_requested") or "azure_fallback"
+        effective_audio_engine = audio.get("audio_engine_effective") or state.get("audio_engine_effective") or requested_audio_engine
+        cloud_connected = bool(audio.get("cloud_connected") or state.get("audio_cloud_connected"))
+        cloud_result_state = audio.get("cloud_result_state") or "-"
+        cloud_ms = audio.get("cloud_ms", "-")
+        asr_device = audio.get("asr_device") or state.get("audio_asr_device") or "-"
+        asr_compute = audio.get("asr_compute_type") or state.get("audio_asr_compute_type") or "-"
+        fallback_model = audio.get("fallback_model") or state.get("audio_fallback_model") or "disabled"
+        if len(last_translation) > 92:
+            last_translation = last_translation[:89] + "..."
+        cloud_active = str(effective_audio_engine).lower() == "azure"
+        return "<div class='status-grid'>" + "".join([
+            card("Source", f"Audio · {_short(audio_usage)}", "one-way system audio"),
+            card("Engine", f"{_short(requested_audio_engine)} → {_short(effective_audio_engine)}", "requested → effective"),
+            card("Local Device", f"{_short(requested_audio_mode)} → {_short(effective_audio_mode)}", "fallback execution mode"),
+            card("ASR Profile", f"{_short(audio_profile)} · {_short(asr_model)}", f"{asr_device}:{asr_compute}"),
+            card("Audio Processing", "PCM streaming" if cloud_active else _short(processing), "interim/final" if cloud_active else "adaptive energy + Silero VAD"),
+            card("Input", _short(input_mode), str(device)),
+            card("Translation Backend", "Azure Speech ja-JP → id" if cloud_active else _short(translation_backend), f"connected={cloud_connected}" if cloud_active else "English transcript → Indonesian"),
+            card("Latency", f"{_short(cloud_ms)} ms" if cloud_active else f"{_short(asr_ms)} + {_short(translation_ms)} = {_short(total_ms)} ms", f"cloud {cloud_result_state}" if cloud_active else "ASR + translation = total"),
+            card("Health", _short(audio_state), "audio sidecar / overlay state"),
+            card("CPU Threads", _short(audio.get("cpu_threads") or state.get("audio_cpu_threads") or "-"), "profile-controlled budget"),
+            card("CPU Fallback", _short(fallback_model), "Hybrid only; GPU mode stays strict"),
+            card("Last Output", _short(last_translation), "hasil overlay terakhir"),
+        ]) + "</div>"
+
     return "<div class='status-grid'>" + "".join([
         card("Profile", _short(profile), str(selected)),
         card("Translation Backend", f"{_short(req_engine)} → {_short(applied_translation)}", "requested → applied nyata"),
@@ -1211,3 +1904,36 @@ def read_full_session_log_for_recap(fallback_text: str = "") -> str:
         pass
     return fallback_text or ""
 
+
+
+# v8.9.1 safety defaults injected for subprocess environments.
+# If launcher_backend has its own env builder, these are safe fallbacks.
+os.environ.setdefault("ORT_PREDICTION_GUARD", "1")
+os.environ.setdefault("ORT_UI_DIALOG_FILTER", "1")
+os.environ.setdefault("ORT_DIALOGUE_TIMEOUT_SAFETY", "1")
+os.environ.setdefault("ORT_DIALOGUE_TIMEOUT_MS", "850")
+os.environ.setdefault("ORT_STALE_LAST_GOOD_MAX_REPAINTS", "7")
+os.environ.setdefault("ORT_TEXT_ROI_CHANGE_GATE", "1")
+os.environ.setdefault("ORT_TEXT_ROI_CHANGE_THRESHOLD", "0.018")
+os.environ.setdefault("ORT_TEXT_ROI_MAX_HOLD_MS", "15000")
+os.environ.setdefault("ORT_TEXT_ROI_CONFIRM_DELAY_MS", "450")
+os.environ.setdefault("ORT_PROGRESSIVE_QUEUE_COALESCE", "1")
+os.environ.setdefault("ORT_TURN_STATE_MACHINE", "1")
+os.environ.setdefault("ORT_DIALOG_CLEAR_MISSES", "2")
+os.environ.setdefault("ORT_DIALOG_CLEAR_MIN_MS", "550")
+os.environ.setdefault("ORT_TRANSACTIONAL_OVERLAY", "1")
+
+
+# v8.9.1 safety defaults.
+os.environ.setdefault("ORT_MODE_POLICY_MANAGER", "1")
+os.environ.setdefault("ORT_INTERVAL_FAST_SKIP_SAFETY", "1")
+
+# v8.9.1 visible entity badges and policy activation defaults.
+os.environ.setdefault("ORT_ENTITY_CONFIDENCE_BADGES", "1")
+os.environ.setdefault("ORT_GFL2_ENTITY_REGISTRY", os.path.join(os.path.dirname(os.path.abspath(__file__)), "configs", "gfl2_entity_registry_v8_9_1.json"))
+os.environ.setdefault("ORT_MODE_POLICY_MANAGER", "1")
+os.environ.setdefault("ORT_INTERVAL_FAST_SKIP_SAFETY", "1")
+
+# v8.9.1 hotfix: silence generic ID waiting placeholders by default.
+os.environ.setdefault("ORT_OVERLAY_SILENCE_ENGLISH_PREVIEW", "1")
+os.environ.setdefault("ORT_OVERLAY_SHOW_ID_WAITING_PREVIEW", "0")

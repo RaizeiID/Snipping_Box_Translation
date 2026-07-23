@@ -1,0 +1,48 @@
+ORT Translation v8.9.0 — Changed Files Manifest
+Tanggal: 2026-06-03
+Baseline: v8.8.9 full project / v8.8.9 changed-files patch
+
+Fokus update:
+- Stop English/source OCR leak di overlay user-facing: source fallback kini menjadi Indonesian waiting preview default.
+- Overlay stability hardening: legacy repaint_last_good v8.8.8-r2 diblokir default agar dialog lama tidak menimpa turn baru.
+- Prediction/Repair Text v3: perbaikan OCR kata umum seperti Qur->our, healin9/healng/healln9->healing, Ifnot->If not, ook at->look at, callyoU->call you, must'ye->must've, weve->we've.
+- OCR Readability Enhancement v2: contrast/sharpen ringan default untuk OCR <=55%, budgeted dan bisa dipakai model lain tanpa menaikkan global OCR threshold.
+- UI Filter v4: filter UI/battle/menu tambahan seperti Toysmith, Max Level, Dammage Stats Confirm, Clickanywhere to exit, End Action, Formation, Commission, Platoon, Marionette Melee.
+- Entity registry v8.9.0: menambah Littara, Ullrid, Phaetusa, Sweeper, Nyxie dan alias OCR guarded.
+- Telemetry v8.9.0: label REC diperbaiki, counter baru untuk contextual_ocr_repaired, english_source_overlay_blocked, id_preview_visible, legacy_repaint_blocked.
+
+Changed/added files:
+- TITANMAIN.py
+- ORTCORE_VERSION.txt
+- TITANCORE_VERSION.txt
+- CHANGED_FILES_MANIFEST_V8_9_0.txt
+- app/runtime/overlay_language_guard.py
+- app/runtime/overlay_commit_gate.py
+- app/runtime/prediction_guard.py
+- app/runtime/recording_telemetry.py
+- app/runtime/ui_dialog_filter.py
+- app/translation/ocr_text_repair.py
+- configs/gfl2_entity_registry_v8_9_0.json
+- tools/v8_9_0_regression_test.py
+- docs/V8_9_0_COMPILE_TEST_REPORT.txt
+- docs/changelog/CHANGELOG_V8_9_0.md
+- docs/handoff/ORT_MASTER_PROJECT_MEMORY_HANDOFF_V8_9_0.md
+- docs/test_reports/ORT_V8_9_0_STABILITY_TEST_REPORT.md
+
+Validation:
+- python -m py_compile on changed Python modules: PASS
+- python tools/v8_9_0_regression_test.py: PASS
+- python tools/v8_8_9_regression_test.py: PASS
+- python tools/v8_8_8_r2_regression_test.py: PASS
+
+UI Version Label Hotfix added files:
+- webui.py
+- launcher_backend.py
+- translation_engine.py
+- fast_model_manager.py
+- configs/app_state.json
+- status/fast_engine.json
+- status/strategy.json
+- status/translation_engine.json
+
+Validation rule added: global user-facing version labels must be searched before packaging every update.

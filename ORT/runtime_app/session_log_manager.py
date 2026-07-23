@@ -13,6 +13,8 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from status_manager import write_status as _write_status
+from app.telemetry.atomic_jsonl import append_jsonl
+from build_info import version_payload
 
 ROOT = Path(__file__).resolve().parent
 
@@ -57,17 +59,13 @@ class SessionLogManager:
 
     def append_event(self, event_type: str, payload: Dict[str, Any], source_module: str = "") -> None:
         payload = dict(payload or {})
-        item = {"ts": time.time(), "session_id": self.session_id, "type": event_type, "source_module": source_module or payload.pop("source_module", ""), "payload": payload}
+        item = {"ts": time.time(), "session_id": self.session_id, "type": event_type, "source_module": source_module or payload.pop("source_module", ""), "writer_pid": os.getpid(), "payload": payload}
         try:
             from session_event_paths import make_event_id
             item["event_id"] = payload.get("event_id") or make_event_id(event_type, payload, item.get("source_module", ""))
         except Exception:
             pass
-        try:
-            with self.jsonl_path.open("a", encoding="utf-8") as f:
-                f.write(json.dumps(item, ensure_ascii=False) + "\n")
-        except Exception:
-            pass
+        append_jsonl(self.jsonl_path, item)
 
     def read_full_text(self, max_chars: int = 300000) -> str:
         try:
@@ -98,15 +96,15 @@ class SessionLogManager:
         self.write_status(state="CLOSED", reason=reason)
 
     def write_status(self, state: str = "ACTIVE", reason: str = "") -> None:
-        data = {
-            "version": "v7.9",
+        data = version_payload(**{
             "state": state,
             "reason": reason,
             "session_id": self.session_id,
             "game": self.game,
             "full_log_path": str(self.full_log_path),
             "jsonl_path": str(self.jsonl_path),
-        }
+            "event_writer": "atomic_cross_process_jsonl_v2",
+        })
         try:
             _write_status("session_log", data, self.base_dir)
         except Exception:

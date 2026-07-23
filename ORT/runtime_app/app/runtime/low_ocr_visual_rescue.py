@@ -1,4 +1,4 @@
-"""ORT v8.8.6 Low-OCR Visual Rescue planner.
+"""ORT v8.8.7 Low-OCR Visual Rescue planner.
 
 This module does not run OCR by itself. It decides when low-OCR frames look
 muddy enough that runtime should prefer consensus/final-lane rescue and avoid

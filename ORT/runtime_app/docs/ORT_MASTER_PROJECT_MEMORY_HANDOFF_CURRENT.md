@@ -834,3 +834,27 @@ ORT Translation adalah overlay OCR penerjemah dialog game real-time untuk Bahasa
 # Addendum 2026-05-30 — v8.8.2 Runtime Behavior Refactor
 
 v8.8.2 dimulai setelah v8.8.1 structural/GitHub cleanup. Fokusnya adalah Auto Smooth, Freeze OCR Override 100%, Interval Stable/Story-aware, Turn Transcript Accumulator, No-Downgrade Source Rule, Anti-Flicker Overlay Buffer, dan Speaker Prefix Sanitizer v3. Prinsip performa tetap berlaku: preview harus ringan, safety berat final-only, dan Lite tidak boleh tersendat.
+
+
+---
+
+# v8.8.9 Continuity Addendum — Prediction Guard Activation, Full Output Guard, Anti-Stale Overlay
+
+Tanggal: 2026-06-02
+
+## User-confirmed constraints
+- OCR readability at 40–50% is currently sufficiently improved; do not retune OCR aggressively or raise all low profiles to 55/60.
+- v8.8.9 must fix issues above OCR: entity repair, full translation output, new-dialog commit, and stale overlay.
+
+## Implemented direction
+- `Kenny` added as exact Green named story speaker.
+- `bathildel`/`Bathildel`/`balthildel`/`Balthildel` handled as guarded alias family toward existing canonical `Balthilde`; `Bathilde` retained as exact/alias evidence until visual confirmation.
+- PredictionGuard supports registered alias prefix repair and body alias repair.
+- PredictionGuard metadata now propagates to overlay metadata for visible badge/logging.
+- New dialogue source preview replaces stale previous last-good while final translation is pending.
+- FullOutputGuard prevents incomplete output coverage from creating long overlay holds.
+- UI filter v3 handles fuzzy OCR menu/loading/reward/progress leakage.
+- Manual Burst Detection improves Auto/Interval when story is clicked quickly.
+
+## Follow-up after live testing
+If user still sees stale old subtitles, inspect `dialog_new_turn`, `new_turn_source_preview`, `translation_hold_source_preview`, `FULL_OUTPUT_GUARD_PREVIEW_USED`, and `OVERLAY_COMMIT_SUPPRESSED` logs before changing OCR.

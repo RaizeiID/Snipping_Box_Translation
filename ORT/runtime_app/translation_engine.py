@@ -1,4 +1,4 @@
-"""ORT Translation v8.8.6 translation engine layer.
+"""ORT Translation engine layer for the active build.
 
 TITANMAIN owns OCR and UI.  This module owns translation routing:
 - scoped cache first
@@ -35,7 +35,9 @@ from app.identity.entity_span import process_entity_safe, spans_metadata, residu
 from app.translation.critical_token_guard import safe_normalize as normalize_critical_tokens
 from app.translation.faithfulness_gate import assess_translation, safe_fallback_text, quarantine_qur_corruption
 from app.translation.dialogue_completeness_gate import hold_incomplete_source, assess_output_coverage
+from app.translation.full_output_guard import FullOutputGuard
 from app.translation.semantic_fidelity_guard import assess_semantic_fidelity
+from build_info import APP_VERSION_TAG
 
 _CJK_RE = re.compile(r"[\u4e00-\u9fff]")
 
@@ -60,6 +62,7 @@ class TranslationEngine:
         self._last_status_write = 0.0
         self.legacy_vault_enabled = os.environ.get("ORT_ENABLE_LEGACY_VAULT", "0") == "1"
         self.final_cache = StableFinalCachePolicy()
+        self.full_output_guard = FullOutputGuard.from_env()
         self.idn_exporter = IDNEvaluationExporter(self.base_dir)
         self._warmup_done = False
         self._request_backend_engines: list[str] = []
@@ -77,7 +80,7 @@ class TranslationEngine:
             "ct2": bool(self.ct2),
             "fast_status": self.fast_status,
             "online_router": bool(self.online_router),
-            "translation_engine": "v8.8.6",
+            "translation_engine": APP_VERSION_TAG,
         })
 
 
@@ -99,7 +102,8 @@ class TranslationEngine:
             self.log(f"[TRANSLATION] Naturalized IDN cache unavailable: {exc}")
 
     def _init_optional_engines(self) -> None:
-        if self.strategy.fast_path or self.strategy.engine_policy == "fast" or os.environ.get("ORT_LITE_CT2_ALLOWED", "0") == "1" or os.environ.get("ORT_IDN_OVER_CT2", "0") == "1":
+        ct2_disabled = os.environ.get("ORT_DISABLE_CT2", "0") == "1"
+        if not ct2_disabled and (self.strategy.fast_path or self.strategy.engine_policy == "fast" or os.environ.get("ORT_LITE_CT2_ALLOWED", "0") == "1" or os.environ.get("ORT_IDN_OVER_CT2", "0") == "1"):
             try:
                 from fast_mt_core_ct2 import CT2Config, FastCT2Translator
                 if resolve_ct2_model_dir is not None:
@@ -125,6 +129,8 @@ class TranslationEngine:
             except Exception as exc:
                 self.ct2 = None
                 self.log(f"[TRANSLATION] Fast CT2 unavailable -> Argos fallback: {exc}")
+        elif ct2_disabled:
+            self.log("[TRANSLATION] CT2 disabled for isolated Audio recovery; using Argos fallback.")
 
         online_allowed = os.environ.get("ORT_ALLOW_ONLINE_ASSIST", "0") == "1" and self.strategy.level == 4 and not self.strategy.fast_path
         if online_allowed and self.strategy.online_policy in {"hybrid", "timeout_assist", "online_assist"} and os.environ.get("TITAN_ONLINE_ASSIST", "0") == "1":
@@ -327,7 +333,7 @@ class TranslationEngine:
     def translate(self, text: str, bridge=None) -> Tuple[str, Dict[str, object]]:
         raw_src = (text or "").strip()
         src = raw_src
-        meta: Dict[str, object] = {"engine": "", "cache": "MISS", "strategy": self.strategy.strategy_name, "version": "v8.8.6", "responsive_story": os.environ.get("ORT_RESPONSIVE_STORY_MODE", "0") == "1", "entity_span_pipeline": True, "semantic_faithfulness_gate": True, "dialogue_completeness_gate": True}
+        meta: Dict[str, object] = {"engine": "", "cache": "MISS", "strategy": self.strategy.strategy_name, "version": APP_VERSION_TAG, "responsive_story": os.environ.get("ORT_RESPONSIVE_STORY_MODE", "0") == "1", "entity_span_pipeline": True, "semantic_faithfulness_gate": True, "dialogue_completeness_gate": True}
         if not src:
             append_event("TRANSLATION_SKIPPED", {"reason": "empty"}, source_module="translation_engine")
             return "", meta
@@ -464,7 +470,8 @@ class TranslationEngine:
         meta["protected_entities"] = [row["display_name"] for row in spans_metadata(source_spans)]
         meta["entity_match_ms"] = int((time.time() - entity_t0) * 1000)
         backend_t0 = time.time()
-        request_progressive = plan.relation in {"new", "progressive"} and not src.rstrip().endswith((".", "!", "?", "…"))
+        audio_final_source = os.environ.get("ORT_TRANSLATION_SOURCE", "ocr").strip().lower() == "audio"
+        request_progressive = (not audio_final_source) and plan.relation in {"new", "progressive"} and not src.rstrip().endswith((".", "!", "?", "…"))
         hard_story = bool(self.ct2 and game_profile.upper() == "GFL2_EXILIUM" and os.environ.get("ORT_HARD_STRICT_CT2_STORY", "1") == "1")
         self._strict_ct2_request = bool(self.ct2 and os.environ.get("ORT_STRICT_CT2_STORY", "1") == "1" and (hard_story or request_progressive or meta.get("qur_quarantine") == "ambiguous"))
         meta["strict_ct2_story"] = self._strict_ct2_request
@@ -509,7 +516,7 @@ class TranslationEngine:
             append_event("ENTITY_RESIDUAL_BLOCKED", {"stage": "backend_restore", "source": src[:240], "unsafe": post_backend_out[:240]}, source_module="translation_engine")
             post_backend_out = src
             meta["entity_fallback"] = "source_after_backend_restore_failure"
-        progressive = plan.relation in {"new", "progressive"} and not src.rstrip().endswith((".", "!", "?", "…"))
+        progressive = (not audio_final_source) and plan.relation in {"new", "progressive"} and not src.rstrip().endswith((".", "!", "?", "…"))
         backend_faith = assess_translation(src, post_backend_out, progressive=progressive)
         meta["backend_faithfulness_allowed"] = bool(backend_faith.allowed)
         meta["backend_faithfulness_reason"] = backend_faith.reason
@@ -594,10 +601,25 @@ class TranslationEngine:
         coverage = assess_output_coverage(src, out, plan.relation, accuracy_first=accuracy_first)
         meta["coverage_score"] = coverage.output_coverage
         if faith.allowed and not coverage.allowed:
+            # v8.8.9: do not let an incomplete final trigger stale last-good forever.
+            # Prefer a current-source/anchor preview, block cache/training, and allow
+            # overlay replacement so the new dialogue is visible immediately.
+            fg = self.full_output_guard.assess(src, out, anchor_output=post_backend_out, relation=plan.relation) if getattr(self, "full_output_guard", None) is not None else None
             meta["cache_blocked"] = "output_coverage_low"
-            meta["overlay_hold"] = True
             meta["hold_reason"] = coverage.reason
             append_event("OMISSION_SUSPECTED", {"source": src[:300], "output": str(out)[:300], "reason": coverage.reason}, source_module="translation_engine")
+            if fg is not None and not fg.allow_final:
+                out = fg.output
+                meta["overlay_hold"] = False
+                meta["trusted_preview"] = bool(fg.trusted_preview)
+                meta["cache_blocked"] = fg.cache_blocked or "full_output_guard_no_cache"
+                meta["cache_store"] = "SKIP_FULL_OUTPUT_GUARD_PREVIEW"
+                meta["engine"] = str(meta.get("engine") or "ct2_fast") + "+full_output_guard"
+                meta["full_output_guard_reason"] = fg.reason
+                meta["coverage_score"] = fg.coverage
+                append_event("FULL_OUTPUT_GUARD_PREVIEW_USED", {"source": src[:300], "preview": str(out)[:400], "reason": fg.reason, "coverage": fg.coverage}, source_module="translation_engine")
+            else:
+                meta["overlay_hold"] = True
         if not meta.get("cache_blocked"):
             self.final_cache.observe_translation(src, out, str(meta.get("engine") or ""))
         if out and not number_gap_reason and not meta.get("cache_blocked"):
@@ -680,7 +702,7 @@ class TranslationEngine:
             return
         self._last_status_write = now
         payload: Dict[str, object] = {
-            "version": "v8.8.6",
+            "version": APP_VERSION_TAG,
             "state": state,
             "strategy": self.strategy.strategy_name,
             "model_key": self.strategy.model_key,

@@ -1,0 +1,51 @@
+ORT Translation v8.9.9 — Changed Files Manifest
+
+Basis: ORT Translation v8.9.8 lengkap
+Jenis paket: changed files only
+
+ROOT
+- VERSION.txt
+- README.md
+- CHANGELOG.md
+- README_APPLY_PATCH_V8_9_9.txt
+- CHANGED_FILES_MANIFEST_V8_9_9.txt
+- SHA256SUMS_V8_9_9.txt
+- INSTALL_JAPANESE_SPECIALIST.bat
+- SETUP_JAPANESE_SPECIALIST_V8_9_8.bat (compatibility redirect)
+- VERIFY_ORT_V8_9_9.bat
+- CHECK_AUDIO_GPU_V8_9_9.bat
+
+RUNTIME
+- ORT/runtime_app/ORTCORE_VERSION.txt
+- ORT/runtime_app/TITANCORE_VERSION.txt
+- ORT/runtime_app/build_info.py
+- ORT/runtime_app/audio_main.py
+- ORT/runtime_app/audio_realtime_local_sidecar.py
+- ORT/runtime_app/launcher_backend.py
+- ORT/runtime_app/webui.py
+
+TOOLS
+- ORT/runtime_app/tools/install_japanese_specialist_v8_9_9.py
+- ORT/runtime_app/tools/check_audio_gpu_v8_9_9.py
+- ORT/runtime_app/tools/v8_9_9_safe_language_integration_test.py
+- ORT/runtime_app/tools/verify_v8_9_9_install.py
+
+DOCUMENTATION
+- ORT/runtime_app/docs/changelog/CHANGELOG_V8_9_9.md
+- ORT/runtime_app/docs/test_reports/ORT_V8_9_9_SAFE_LANGUAGE_VALIDATION_REPORT.md
+
+Fokus perubahan
+1. Kotoba CUDA preflight sebelum streaming.
+2. Model-preserving failover: Kotoba CUDA -> Kotoba CPU.
+3. Language Watchdog asynchronous dengan safe auto-correct.
+4. Temporary code-switch guard, confidence/dominance confirmation, cooldown, hysteresis, dan language lock.
+5. Repetition/hallucination gate dan English bridge validation.
+6. Soft glossary tanpa hard prompt pada setiap rolling snapshot.
+7. Installer Japanese Specialist dengan tokenizer repair dan CPU offline load test.
+8. Subtitle Indonesia menjadi tampilan utama.
+9. Pipeline contract rolling-partial-v2.
+
+Ditunda ke v9.0.0
+- Relokasi installer ke Plugin/.
+- Relokasi log ke Log/.
+- Perapihan struktur root dan source penuh GitHub.

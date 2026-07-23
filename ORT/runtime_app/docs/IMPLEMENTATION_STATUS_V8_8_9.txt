@@ -1,0 +1,21 @@
+ORT v8.8.9 Implementation Status
+
+Status: IMPLEMENTED as changed-files patch.
+
+Implemented:
+- gfl2_entity_registry_v8_8_9.json with Kenny, Bathilde/Balthilde alias family, Igla/STR-A term review, expanded UI negative patterns.
+- PredictionGuard v2 default registry loader and alias-prefix speaker repair.
+- Confidence metadata propagation from PredictionGuard into TITANMAIN renderer metadata.
+- New-turn source preview path to prevent stale last-good from covering a new dialogue.
+- FullOutputGuard module and integration in translation_engine coverage failure path.
+- UI Dialog Filter v3 fuzzy patterns.
+- Dialogue timeout repaint defaults tightened for Stale Last-Good Limit v3.
+- OverlayCommitGate new-turn commit threshold made more responsive.
+- DialogueTurnAccumulator manual-burst handling for Auto/Interval.
+- v8_8_9_regression_test.py.
+
+Not changed intentionally:
+- OCR 40/45/50 tuning and low-OCR rescue thresholds.
+- Mode Buffer UI placement.
+- CT2 model path resolution.
+- Overlay base layout/design.

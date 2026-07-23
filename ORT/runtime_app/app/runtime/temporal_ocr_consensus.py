@@ -1,4 +1,4 @@
-"""ORT v8.8.6 Temporal OCR Consensus.
+"""ORT v8.8.7 Temporal OCR Consensus.
 
 Final-lane only consensus for story subtitles. It does not block fast preview.
 It keeps a small window of recent OCR strings for each turn and builds a

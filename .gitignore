@@ -102,3 +102,5 @@ desktop.ini
 # Keep checksums/docs if manually added
 !*_SHA256.txt
 !docs/**/*.md
+/ORT/runtime_app/runtime_stop_request.json
+/ORT/runtime_app/configs/prediction_review_queue.json

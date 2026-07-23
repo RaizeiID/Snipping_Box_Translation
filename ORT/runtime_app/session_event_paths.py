@@ -9,6 +9,8 @@ import os, time, json, hashlib
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from app.telemetry.atomic_jsonl import append_jsonl
+
 ROOT = Path(__file__).resolve().parent
 
 def _env_path(key: str) -> Optional[Path]:
@@ -52,15 +54,11 @@ def append_jsonl_event(event_type: str, payload: Optional[Dict[str, Any]] = None
         "session_id": session_id(),
         "type": event_type,
         "source_module": source_module or payload.pop("source_module", ""),
+        "writer_pid": os.getpid(),
         "payload": payload,
     }
     item["event_id"] = payload.get("event_id") or make_event_id(event_type, payload, item["source_module"])
-    try:
-        with p.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(item, ensure_ascii=False) + "\n")
-        return True
-    except Exception:
-        return False
+    return append_jsonl(p, item)
 
 def append_full_log_line(line: str) -> bool:
     p = full_log_path()

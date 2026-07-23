@@ -1,0 +1,41 @@
+{
+  "version": "v8.8.7",
+  "note": "Reviewable candidates generated from v8.8.6 logs. Yellow/Red candidates must not be promoted into final cache without guard.",
+  "green": [
+    {
+      "ocr": "angi Security Team Leader",
+      "candidate": "Mangi Security Team Leader",
+      "type": "speaker_label",
+      "scope": "story_context"
+    }
+  ],
+  "yellow": [
+    {
+      "ocr": "Nlkketa",
+      "candidate": "Nikketa",
+      "type": "character_name"
+    },
+    {
+      "ocr": "Blig Sls",
+      "candidate": "Big Sis",
+      "type": "phrase"
+    },
+    {
+      "ocr": "Tlazo",
+      "candidate": "Tlazo",
+      "type": "unique_term_not_npc"
+    },
+    {
+      "ocr": "LvIv/Lvh/LvN",
+      "candidate": "Lviv",
+      "type": "term"
+    }
+  ],
+  "red_blocked": [
+    {
+      "ocr": "Hlon/heln/helm/hlena/elena/helna",
+      "candidate": "Helen or Helena",
+      "type": "ambiguous_name_collision"
+    }
+  ]
+}

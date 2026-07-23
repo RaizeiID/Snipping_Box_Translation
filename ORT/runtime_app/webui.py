@@ -10,7 +10,7 @@ from pathlib import Path
 
 import gradio as gr
 
-from launcher_backend import load_prefs, runtime_summary_text, core_summary_text, diagnostic_text, read_full_session_log_for_recap, start_model, stop_model, refresh_state, recommendation_summary, fast_setup_text, fast_engine_status_text, online_status_text, online_test_text, save_online_config_from_ui, online_config_values, dependency_check_text, fast_engine_test_report, fast_engine_rebind_report, analyze_last_session_text, reset_settings_text, reset_live_log_text, profile_resolver_text, conflict_detector_text, gpu_cuda_text, runtime_effective_status_html, npc_cleanup_text, lite_gpu_guard_text, diagnose_repair_text, export_diagnostic_report_text
+from launcher_backend import load_prefs, runtime_summary_text, core_summary_text, diagnostic_text, read_full_session_log_for_recap, start_model, start_audio_model, stop_model, refresh_state, recommendation_summary, fast_setup_text, fast_engine_status_text, online_status_text, online_test_text, save_online_config_from_ui, online_config_values, dependency_check_text, fast_engine_test_report, fast_engine_rebind_report, analyze_last_session_text, reset_settings_text, reset_live_log_text, profile_resolver_text, conflict_detector_text, gpu_cuda_text, runtime_effective_status_html, npc_cleanup_text, lite_gpu_guard_text, diagnose_repair_text, export_diagnostic_report_text, setup_audio_runtime_text, audio_runtime_status_text, audio_devices_for_ui, audio_runtime_probe, setup_audio_cloud_runtime_text, audio_cloud_runtime_status_text, audio_cloud_config_values, save_audio_cloud_config_from_ui, clear_audio_cloud_credentials_text, prepare_source_switch_stop, finish_source_switch_stop
 from data_processing_backend import (
     load_settings,
     save_settings,
@@ -54,6 +54,7 @@ from app.runtime.model_user_presets import (
     model_user_preset_is_modified,
     model_user_preset_badge_html,
 )
+from build_info import APP_DISPLAY_NAME, APP_VERSION_TAG, RELEASE_NAME
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 PREFS = load_prefs()
@@ -61,7 +62,7 @@ SETTINGS = load_settings()
 
 
 def render_observed_review_html(game: str) -> str:
-    """Render v8.8.6 observed speaker/term/alias review without auto-activating aliases."""
+    """Render observed speaker/term/alias review without auto-activating aliases."""
     if str(game or "").upper() != "GFL2_EXILIUM":
         return "<div class='smallnote'>Observed Story / Alias Review saat ini tersedia untuk profile GFL2 setelah audit v8.7.6 dan live CT2.</div>"
     path = PROJECT_ROOT / "configs" / "gfl2_observed_candidates_v8_7_8.json"
@@ -81,8 +82,8 @@ def render_observed_review_html(game: str) -> str:
     alias_rows = "".join(f"<tr><td>{html.escape(str(row.get('ocr_form','')))}</td><td>→ {html.escape(str(row.get('canonical', row.get('canonical_name',''))))}</td><td>{int(row.get('hits',0))}</td><td>{html.escape(str(row.get('status','ROI-only review')))}</td></tr>" for row in aliases[:16])
     return (
         "<div class='card'><b>Observed Recent Story — official exact speaker</b><p class='smallnote'>Nama hijau sudah berada pada katalog resmi; angka menunjukkan bukti selected audit terbaru.</p>" + official_chips +
-        "<hr><b>v8.8.6 Safe Additions — exact-only setelah migrasi</b><p class='smallnote'>Nama biru berasal dari log CT2 terbaru dan tidak memakai fuzzy body matching.</p>" + add_chips +
-        "<hr><b>Special Terms GFL2 v8.8.6 baru/retained</b><div>" + term_chips + "</div>" +
+        "<hr><b>Safe Additions — dipertahankan dari data v8.9.1</b><p class='smallnote'>Nama biru berasal dari log CT2 terbaru dan tidak memakai fuzzy body matching.</p>" + add_chips +
+        "<hr><b>Special Terms GFL2 — data v8.9.1 dipertahankan</b><div>" + term_chips + "</div>" +
         "<hr><b>Alias Candidate (ROI-only, belum aktif otomatis)</b><table style='width:100%;margin-top:6px'><tr><th>OCR</th><th>Canonical</th><th>Hits</th><th>Status</th></tr>" + alias_rows +
         "</table><p class='smallnote'>Tidak auto-map Helene. Commander profile-only yang tidak dimasukkan global: " + excluded_text + ".</p></div>"
     )
@@ -94,17 +95,33 @@ CSS = """
 .mode-buffer-help:hover .tip { display:block; }
 
 .gradio-container {
-  background: radial-gradient(circle at top, #0b1530 0%, #07101f 50%, #03060c 100%);
+  max-width: 1520px !important;
+  margin: 0 auto !important;
+  padding: 22px 26px 44px !important;
+  background:
+    radial-gradient(circle at 12% -5%, rgba(37,99,235,.22), transparent 34%),
+    radial-gradient(circle at 90% 4%, rgba(14,165,233,.13), transparent 28%),
+    linear-gradient(180deg, #07101f 0%, #030711 100%);
+  min-height: 100vh;
 }
 .hero {
   border: 1px solid rgba(96,165,250,.25);
-  background: linear-gradient(145deg, rgba(10,20,46,.95), rgba(8,16,31,.88));
+  background: linear-gradient(145deg, rgba(13,28,58,.97), rgba(7,15,29,.92));
   border-radius: 24px;
-  padding: 22px 24px;
+  padding: 24px 26px;
   box-shadow: 0 18px 60px rgba(0,0,0,.35);
 }
-.hero h1 { margin: 0; font-size: 34px; }
+.hero h1 { margin: 7px 0 0; font-size: 34px; letter-spacing:-.7px; }
 .hero p { margin: 8px 0 0; color: #dbeafe; }
+.hero-topline { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.release-badge, .release-channel {
+  display:inline-flex; align-items:center; min-height:25px; padding:4px 9px;
+  border-radius:999px; font-size:11px; font-weight:800; letter-spacing:.55px;
+  text-transform:uppercase;
+}
+.release-badge { color:#dbeafe; border:1px solid rgba(96,165,250,.3); background:rgba(30,64,175,.24); }
+.release-channel { color:#a7f3d0; border:1px solid rgba(52,211,153,.25); background:rgba(6,78,59,.24); }
+.hero-subtitle { max-width:920px; line-height:1.55; }
 .card {
   border: 1px solid rgba(56,189,248,.18);
   border-radius: 18px;
@@ -190,14 +207,143 @@ CSS = """
 .status-card small { display:block; color:#94a3b8; margin-top:6px; font-size:11px; }
 .mode-guide { border:1px solid rgba(56,189,248,.22); background:rgba(8,47,73,.22); border-radius:16px; padding:12px 14px; color:#dbeafe; }
 
+/* v8.9.2-R4 information architecture */
+@keyframes ort-panel-in {
+  from { opacity:0; transform:translateY(7px); }
+  to { opacity:1; transform:translateY(0); }
+}
+.transition-panel { animation:ort-panel-in .22s ease-out both; }
+.workspace-card {
+  border:1px solid rgba(100,116,139,.2) !important;
+  background:linear-gradient(155deg, rgba(15,23,42,.82), rgba(8,15,29,.7)) !important;
+  border-radius:20px !important;
+  padding:16px !important;
+  box-shadow:0 14px 36px rgba(0,0,0,.14);
+}
+.setup-header {
+  display:flex; align-items:flex-start; justify-content:space-between; gap:16px;
+  margin:4px 0 12px;
+}
+.section-kicker {
+  color:#60a5fa; font-size:11px; font-weight:900; letter-spacing:1px;
+  text-transform:uppercase; margin-bottom:5px;
+}
+.section-title { color:#f8fafc; font-size:19px; font-weight:850; letter-spacing:-.25px; }
+.section-copy { color:#94a3b8; font-size:13px; line-height:1.55; margin-top:5px; }
+.step-badge {
+  flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center;
+  width:30px; height:30px; border-radius:10px; color:#dbeafe; font-size:12px;
+  font-weight:900; border:1px solid rgba(96,165,250,.25); background:rgba(30,64,175,.2);
+}
+.source-stage {
+  border:1px solid rgba(56,189,248,.24) !important;
+  background:linear-gradient(135deg, rgba(8,47,73,.28), rgba(15,23,42,.64)) !important;
+  border-radius:22px !important;
+  padding:17px 18px 14px !important;
+  margin:12px 0 16px !important;
+}
+#translation_source [role='radiogroup'], #ui_level [role='radiogroup'] {
+  display:grid !important; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:9px !important;
+}
+#ui_level [role='radiogroup'] { grid-template-columns:repeat(3, minmax(0, 1fr)); }
+#translation_source label, #ui_level label {
+  position:relative; border:1px solid rgba(148,163,184,.2) !important;
+  background:rgba(15,23,42,.7) !important; border-radius:14px !important;
+  padding:11px 13px !important; min-height:46px; transition:all .2s ease;
+}
+#translation_source label:hover, #ui_level label:hover {
+  border-color:rgba(96,165,250,.55) !important; transform:translateY(-1px);
+}
+#translation_source label:has(input:checked), #ui_level label:has(input:checked) {
+  border-color:#38bdf8 !important;
+  background:linear-gradient(135deg, rgba(2,132,199,.3), rgba(30,64,175,.28)) !important;
+  box-shadow:0 0 0 1px rgba(56,189,248,.14), 0 9px 24px rgba(2,132,199,.12);
+}
+.source-state {
+  display:flex; align-items:flex-start; gap:11px; padding:12px 14px; margin-top:8px;
+  border-radius:14px; border:1px solid rgba(52,211,153,.2); background:rgba(6,78,59,.17);
+}
+.source-state.audio { border-color:rgba(251,191,36,.28); background:rgba(120,53,15,.17); }
+.source-state.audio.ready { border-color:rgba(52,211,153,.28); background:rgba(6,78,59,.17); }
+.source-dot { width:9px; height:9px; margin-top:5px; border-radius:50%; background:#34d399; box-shadow:0 0 13px rgba(52,211,153,.8); }
+.source-state.audio .source-dot { background:#fbbf24; box-shadow:0 0 13px rgba(251,191,36,.65); }
+.source-state.audio.ready .source-dot { background:#34d399; box-shadow:0 0 13px rgba(52,211,153,.8); }
+.source-state b { color:#f8fafc; display:block; font-size:13px; }
+.source-state small { color:#cbd5e1; display:block; margin-top:3px; line-height:1.45; }
+.guided-banner, .expert-banner {
+  border-radius:18px; padding:13px 15px; margin:2px 0 14px;
+  border:1px solid rgba(96,165,250,.2); background:rgba(30,64,175,.11);
+}
+.guided-banner b, .expert-banner b { color:#eff6ff; }
+.guided-banner span, .expert-banner span { color:#bfdbfe; font-size:13px; margin-left:5px; }
+.expert-banner {
+  border-color:rgba(167,139,250,.32);
+  background:linear-gradient(135deg, rgba(76,29,149,.24), rgba(30,41,59,.38));
+  box-shadow:inset 3px 0 0 #8b5cf6;
+}
+.expert-banner .expert-tag {
+  display:inline-flex; padding:3px 8px; border-radius:999px; margin-right:7px;
+  color:#ede9fe; background:rgba(109,40,217,.35); font-size:10px; font-weight:900;
+  letter-spacing:.7px; text-transform:uppercase;
+}
+.audio-preview {
+  border:1px solid rgba(251,191,36,.24) !important;
+  background:linear-gradient(145deg, rgba(69,26,3,.23), rgba(15,23,42,.72)) !important;
+  border-radius:20px !important; padding:16px !important;
+}
+.availability-card {
+  border:1px solid rgba(251,191,36,.26); border-radius:15px; padding:13px 14px;
+  background:rgba(120,53,15,.16); color:#fde68a; line-height:1.55;
+}
+.availability-card strong { color:#fef3c7; }
+.availability-card small { display:block; color:#d6d3d1; margin-top:5px; }
+.audio-flow-grid {
+  display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:9px; margin:12px 0 4px;
+}
+.audio-flow-item { border:1px solid rgba(148,163,184,.18); border-radius:13px; padding:10px; background:rgba(15,23,42,.5); }
+.audio-flow-item.pending { border-style:dashed; opacity:.78; }
+.audio-flow-item b { color:#f8fafc; font-size:12px; display:block; }
+.audio-flow-item small { color:#94a3b8; font-size:11px; line-height:1.4; display:block; margin-top:4px; }
+.control-divider { height:1px; background:linear-gradient(90deg, transparent, rgba(148,163,184,.24), transparent); margin:11px 0 13px; }
+#start_primary button {
+  background:linear-gradient(135deg, #0284c7, #2563eb) !important;
+  color:white !important; border:1px solid rgba(125,211,252,.35) !important;
+  box-shadow:0 10px 25px rgba(37,99,235,.22); font-weight:850 !important;
+}
+#audio_start_primary button {
+  background:linear-gradient(135deg, #0f766e, #0284c7) !important;
+  color:white !important; border:1px solid rgba(103,232,249,.35) !important;
+  box-shadow:0 10px 25px rgba(8,145,178,.2); font-weight:850 !important;
+}
+.action-row { margin-top:10px; }
+.expert-controls {
+  border-left:3px solid rgba(139,92,246,.65) !important;
+  padding-left:14px !important;
+}
+.log-accordion { margin-top:14px !important; }
+@media (max-width: 820px) {
+  .gradio-container { padding:14px 12px 30px !important; }
+  .hero { padding:19px 18px; border-radius:19px; }
+  .hero h1 { font-size:27px; }
+  #translation_source [role='radiogroup'], #ui_level [role='radiogroup'] { grid-template-columns:1fr; }
+  .audio-flow-grid { grid-template-columns:1fr; }
+}
+
 """
 
-USER_NOTE = """**Catatan v8.7**
+USER_NOTE = """**Catatan Audio Tri-Mode · Japanese Quality Update**
 
-- Fokus update: profil khusus **GFL**, mask footer `GFsystem`/ikon kanan bawah, pemisahan Name/Body ROI, Scene Guard, serta normalized cache sebelum terjemahan.
-- Untuk Girls' Frontline seri pertama, pilih game **GFL** agar footer UI tidak mencemari OCR/cache/NPC learning. **Freeze**, **Interval**, dan **Auto** tetap mempertahankan semantik lama.
-- Jika Fast CT2 belum aktif, WebUI memberi warning karena model Fast akan fallback ke Argos dan belum valid untuk perbandingan performa Fast/Lite.
-- Runtime cards dan Analyze Last Session menampilkan artifact GFL, frame non-dialog yang ditahan, cache, serta requested vs applied engine.
+- **OCR** dan **Audio** tetap saling eksklusif. Pergantian sumber menghentikan proses lama sebelum proses baru dijalankan.
+- CPU memakai ASR CPU INT8 tanpa memeriksa CUDA. GPU memakai ASR CUDA secara ketat dan tidak berpindah diam-diam ke CPU.
+- Hybrid memakai GPU sebagai utama dan CPU sebagai pemulihan; segmen aktif diputar ulang dengan ID yang sama jika worker CUDA gagal.
+- Mode bawaan untuk GFL2 dub Jepang adalah **Hybrid + VAD + Normal + Japanese**.
+- Quality gate menolak no-speech, pengulangan, kepadatan token tidak wajar, probabilitas rendah, dan frasa halusinasi sebelum diterjemahkan.
+- Uji **File audio** tersedia untuk validasi pertama; Audio internal langsung memakai WASAPI loopback pada Windows.
+- Basic menjaga alur tetap ringkas, Terpandu menampilkan pilihan yang relevan, dan Expert membuka kontrol serta diagnostik lengkap.
+- Untuk Girls' Frontline seri pertama, pilih game **GFL** agar footer `GFsystem` dan ikon kanan bawah tidak mencemari OCR, cache, atau NPC learning.
+- **Freeze**, **Interval**, dan **Auto** mempertahankan perilaku runtime v8.9.2; Mode Buffer tetap OFF secara default.
+- Jika Fast CT2 belum aktif, model Fast akan fallback dan belum valid untuk perbandingan performa Fast/Lite.
+- Runtime cards dan Analyze Last Session membedakan requested vs effective settings.
 """
 
 GAME_CHOICES = game_choices()
@@ -332,11 +478,14 @@ def _save_ui_pref(**updates):
 def _ui_mode_visibility(mode: str):
     mode = str(mode or "recommended").lower()
     return {
+        "guided_header": mode != "expert",
+        "expert_header": mode == "expert",
         "recommendation": mode in {"recommended", "expert"},
         "diagnostic": mode == "expert",
         "model_controls": mode in {"recommended", "expert"},
-        "runtime_summary": mode != "basic",
-        "hardware": mode in {"recommended", "expert"},
+        "advanced_controls": mode == "expert",
+        "runtime_summary": mode == "expert",
+        "hardware": mode == "expert",
         "policy": mode == "expert",
     }
 
@@ -345,13 +494,218 @@ def _ui_mode_updates(mode: str):
     _save_ui_pref(ui_mode=str(mode or "recommended"))
     v = _ui_mode_visibility(mode)
     return (
+        gr.update(visible=v["guided_header"]),
+        gr.update(visible=v["expert_header"]),
         gr.update(visible=v["recommendation"]),
         gr.update(visible=v["diagnostic"]),
         gr.update(visible=v["model_controls"]),
+        gr.update(visible=v["advanced_controls"]),
         gr.update(visible=v["runtime_summary"]),
         gr.update(visible=v["hardware"]),
         gr.update(visible=v["policy"]),
     )
+
+
+def _translation_source_status_html(source: str, profile: str = "normal", audio_mode: str = "hybrid", audio_engine: str = "azure_fallback", audio_usage: str = "live_media") -> str:
+    source = str(source or "ocr").strip().lower()
+    if source == "audio":
+        probe = audio_runtime_probe(False, profile, audio_mode, audio_engine, audio_usage)
+        ready = bool(probe.get("ready"))
+        dependencies_ready = bool(probe.get("dependencies_ready"))
+        model_ready = bool(probe.get("model_ready"))
+        file_ready = bool(probe.get("file_test"))
+        loopback_ready = bool(probe.get("live_loopback"))
+        requested_mode = str(probe.get("requested_mode") or audio_mode).upper()
+        effective_mode = str(probe.get("effective_mode") or audio_mode).upper()
+        requested_engine = str(probe.get("audio_engine_requested") or audio_engine).upper()
+        effective_engine = str(probe.get("audio_engine_effective") or audio_engine).upper()
+        engine_reason = str(probe.get("audio_engine_reason") or "")
+        cloud_probe = probe.get("cloud") or {}
+        if effective_engine == "AZURE":
+            loopback_ready = bool(cloud_probe.get("wasapi"))
+            file_ready = True
+        if ready:
+            title = f"Audio · {str(audio_usage).replace('_', ' ').title()} · {requested_engine} siap"
+            detail = (
+                f"Mesin efektif={effective_engine}; perangkat lokal={effective_mode}. "
+                f"WASAPI loopback={'siap' if loopback_ready else 'belum'}. "
+                + (
+                    "Azure menampilkan interim selama karakter berbicara; hasil final menguncinya."
+                    if effective_engine == "AZURE"
+                    else (
+                        "Local Live memakai rolling-partial ASR: subtitle mulai diperbarui selama ucapan berlangsung. "
+                        "Jeda hanya mengunci final; GPU mempercepat pembaruan dan Hybrid beralih ke CPU bila CUDA gagal."
+                    )
+                )
+            )
+        elif requested_engine != "LOCAL" and not bool(cloud_probe.get("ready")):
+            title = "Azure Live Media · Perlu setup"
+            detail = (
+                f"{str(cloud_probe.get('message') or 'Siapkan runtime dan kredensial Azure.')} "
+                f"Status={engine_reason or 'AZURE_NOT_READY'}. API key tidak pernah ditulis ke ZIP atau log."
+            )
+        elif dependencies_ready and not model_ready:
+            model_status = probe.get("model_status") or {}
+            problem_state = model_status.get("fallback") if str(audio_mode).lower() == "hybrid" else model_status.get("primary")
+            problem_state = problem_state or model_status
+            problems = list(problem_state.get("missing_files") or []) + list(problem_state.get("invalid_files") or [])
+            title = "Audio Translate · Unduhan model belum lengkap"
+            detail = (
+                f"Tekan Siapkan Audio {requested_mode} lagi untuk melanjutkan unduhan cache. "
+                + (("Berkas yang belum siap: " + ", ".join(problems) + ". ") if problems else "")
+                + "Mulai Audio tetap dikunci sampai validasi lengkap lulus."
+            )
+        else:
+            title = "Audio Translate · Perlu setup satu kali"
+            detail = f"Tekan Siapkan Audio {requested_mode} pada panel di bawah. Runtime Audio dipasang terisolasi sehingga runtime OCR tidak diubah."
+        return (
+            f"<div class='source-state audio{' ready' if ready else ''}'><span class='source-dot'></span><div>"
+            f"<b>{html.escape(title)}</b>"
+            f"<small>{html.escape(detail)}</small>"
+            "</div></div>"
+        )
+    return (
+        "<div class='source-state'><span class='source-dot'></span><div>"
+        "<b>OCR Translate · Siap digunakan</b>"
+        "<small>Membaca dialog dari area tangkapan dan menerjemahkannya ke overlay. "
+        "Ini adalah sumber runtime aktif pada rilis saat ini.</small>"
+        "</div></div>"
+    )
+
+
+def _stop_runtime_for_source_switch() -> None:
+    try:
+        stop_model()
+    except Exception:
+        pass
+    finally:
+        finish_source_switch_stop()
+
+
+def _translation_source_updates(source: str, profile: str = "normal", audio_mode: str = "hybrid", audio_engine: str = "azure_fallback", audio_usage: str = "live_media"):
+    source = str(source or "ocr").strip().lower()
+    if source not in {"ocr", "audio"}:
+        source = "ocr"
+    _save_ui_pref(translation_source=source)
+    is_ocr = source == "ocr"
+    if prepare_source_switch_stop():
+        threading.Thread(target=_stop_runtime_for_source_switch, daemon=True, name="ort-source-switch-stop").start()
+    return (
+        _translation_source_status_html(source, profile, audio_mode, audio_engine, audio_usage),
+        gr.update(visible=is_ocr),
+        gr.update(visible=not is_ocr),
+        gr.update(visible=is_ocr),
+        gr.update(visible=not is_ocr),
+    )
+
+
+def _audio_profile_description(profile: str, audio_mode: str = "hybrid") -> str:
+    mode = str(audio_mode or "hybrid").lower()
+    mapping = {
+        "speed": {"cpu": "base CPU INT8", "gpu": "small GPU INT8-FP16", "hybrid": "small GPU → base CPU"},
+        "normal": {"cpu": "small CPU INT8", "gpu": "small GPU INT8-FP16", "hybrid": "small GPU → base CPU"},
+        "accurate": {"cpu": "small CPU INT8", "gpu": "medium GPU INT8-FP16", "hybrid": "medium GPU → small CPU"},
+    }
+    key = str(profile or "normal").lower()
+    label = mapping.get(key, mapping["normal"]).get(mode, mapping["normal"]["hybrid"])
+    detail = {
+        "speed": "Azure memakai endpoint Jepang sekitar 280 ms, partial paling awal, dan frame 20 ms. Fallback lokal memakai potongan responsif.",
+        "normal": "Azure memakai endpoint Jepang sekitar 350 ms dengan keseimbangan stabilitas dan kecepatan. Ini pilihan rekomendasi.",
+        "accurate": "Azure memberi jeda sekitar 480 ms agar frasa lebih lengkap; fallback lokal memakai model dan beam lebih besar.",
+    }.get(key, "")
+    return f"**{key.title()} · {label}** — {detail}"
+
+
+def _audio_input_updates(input_mode: str):
+    file_mode = str(input_mode or "loopback").lower() == "file"
+    return gr.update(visible=file_mode), gr.update(interactive=not file_mode)
+
+
+def _audio_language_for_game(game: str, current_language: str):
+    current = str(current_language or "auto").lower()
+    if str(game or "").upper() == "GFL2_EXILIUM" and current in {"", "auto", "auto_detect"}:
+        _save_ui_pref(audio_language="ja")
+        return "ja"
+    return current
+
+
+def _refresh_audio_devices_ui(audio_mode: str, profile: str, audio_engine: str, audio_usage: str):
+    choices, value, message = audio_devices_for_ui(True, audio_mode, audio_engine)
+    return gr.update(choices=choices, value=value), message, _translation_source_status_html("audio", profile, audio_mode, audio_engine, audio_usage)
+
+
+def _setup_audio_ui(audio_mode: str, profile: str, audio_engine: str, audio_usage: str):
+    message = setup_audio_runtime_text(profile, audio_mode)
+    choices, value, device_message = audio_devices_for_ui(True, audio_mode, audio_engine)
+    combined = message + "\n\n" + device_message + "\n\n" + audio_runtime_status_text(profile, audio_mode, audio_engine, audio_usage)
+    status_html = _translation_source_status_html("audio", profile, audio_mode, audio_engine, audio_usage)
+    return combined, gr.update(choices=choices, value=value), status_html, status_html
+
+
+def _audio_mode_updates(audio_mode: str, profile: str, audio_engine: str, audio_usage: str):
+    mode = str(audio_mode or "hybrid").lower()
+    choices, value, _ = audio_devices_for_ui(False, mode, audio_engine)
+    return (
+        _audio_profile_description(profile, mode),
+        gr.update(value=f"Siapkan Fallback Lokal {mode.upper()}" if str(audio_engine) != "local" else f"Siapkan Audio {mode.upper()}"),
+        _translation_source_status_html("audio", profile, mode, audio_engine, audio_usage),
+        audio_runtime_status_text(profile, mode, audio_engine, audio_usage),
+        gr.update(choices=choices, value=value),
+    )
+
+
+def _audio_engine_updates(audio_engine: str, audio_mode: str, profile: str, audio_usage: str):
+    engine = str(audio_engine or "azure_fallback").lower()
+    _save_ui_pref(audio_engine=engine)
+    choices, value, message = audio_devices_for_ui(False, audio_mode, engine)
+    setup_label = f"Siapkan Audio {str(audio_mode).upper()}" if engine == "local" else f"Siapkan Fallback Lokal {str(audio_mode).upper()}"
+    return (
+        _translation_source_status_html("audio", profile, audio_mode, engine, audio_usage),
+        audio_runtime_status_text(profile, audio_mode, engine, audio_usage),
+        gr.update(choices=choices, value=value),
+        message,
+        gr.update(value=setup_label),
+    )
+
+
+def _audio_usage_updates(audio_usage: str, profile: str, audio_mode: str, audio_engine: str):
+    usage = str(audio_usage or "live_media").lower()
+    _save_ui_pref(audio_usage=usage)
+    return _translation_source_status_html("audio", profile, audio_mode, audio_engine, usage)
+
+
+def _setup_audio_cloud_ui(audio_engine: str, profile: str, audio_mode: str, audio_usage: str):
+    message = setup_audio_cloud_runtime_text()
+    combined = message + "\n\n" + audio_cloud_runtime_status_text()
+    return combined, _translation_source_status_html("audio", profile, audio_mode, audio_engine, audio_usage)
+
+
+def _save_audio_cloud_ui(region: str, api_key: str, language: str, audio_engine: str, profile: str, audio_mode: str, audio_usage: str):
+    source_locale = {
+        "ja": "ja-JP",
+        "en": "en-US",
+        "zh": "zh-CN",
+        "ko": "ko-KR",
+    }.get(str(language or "").lower(), str(language or "ja-JP"))
+    message = save_audio_cloud_config_from_ui(region, api_key, source_locale, "id")
+    combined = message + "\n\n" + audio_cloud_runtime_status_text()
+    return combined, gr.update(value=""), _translation_source_status_html("audio", profile, audio_mode, audio_engine, audio_usage)
+
+
+def _clear_audio_cloud_ui(audio_engine: str, profile: str, audio_mode: str, audio_usage: str):
+    message = clear_audio_cloud_credentials_text()
+    combined = message + "\n\n" + audio_cloud_runtime_status_text()
+    return combined, _translation_source_status_html("audio", profile, audio_mode, audio_engine, audio_usage)
+
+
+def _upload_path(value) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, dict):
+        return str(value.get("path") or value.get("name") or "")
+    return str(getattr(value, "name", "") or value)
 
 
 def _apply_recommendation(game: str, settings_mode: str = "recommended"):
@@ -488,7 +842,14 @@ def _refresh_all(game: str):
     return _status_html(status), runtime_summary_text(), log, err_md, notice_md
 
 
-def _start(model, game, mode, engine, interval_ms, ocr_resolution, settings_mode, responsive_story_mode, diagnostic_profile, mode_buffer_enabled):
+def _start(model, game, mode, engine, interval_ms, ocr_resolution, settings_mode, responsive_story_mode, diagnostic_profile, mode_buffer_enabled, translation_source="ocr"):
+    if str(translation_source or "ocr").strip().lower() != "ocr":
+        _, log, _, notice = refresh_state()
+        msg = (
+            "Sumber aktif adalah Audio. Gunakan tombol 'Mulai Audio' agar konfigurasi WASAPI/ASR yang dipilih diterapkan."
+        )
+        notice_md = f"<div class='notice'>{html.escape(notice)}</div>" if notice else ""
+        return _status_html("STATUS: AUDIO READY"), runtime_summary_text(), log, msg, "", notice_md
     manual = _settings_mode_is_manual(settings_mode)
     # v8.6: restore the previous safe interval floor for Interval mode.
     # 45ms remains technically possible only in custom experiments, but the normal WebUI path
@@ -504,6 +865,43 @@ def _start(model, game, mode, engine, interval_ms, ocr_resolution, settings_mode
         err_md = f"**Error:**\n\n```\n{msg}\n```"
     notice_md = f"<div class='notice'>{html.escape(notice)}</div>" if notice else ""
     return _status_html(status), runtime_summary_text(), log, msg, err_md, notice_md
+
+
+def _start_audio(model, game, input_mode, device_index, language, language_correction, language_lock, processing, audio_usage, audio_engine, audio_mode, profile, test_file):
+    file_path = _upload_path(test_file)
+    _save_ui_pref(
+        translation_source="audio",
+        audio_input_mode=str(input_mode or "loopback"),
+        audio_device_index=str(device_index or "-1"),
+        audio_language=str(language or "auto"),
+        audio_language_correction=str(language_correction or "balanced"),
+        audio_language_lock=bool(language_lock),
+        audio_processing=str(processing or "vad"),
+        audio_profile=str(profile or "normal"),
+        audio_mode=str(audio_mode or "hybrid"),
+        audio_usage=str(audio_usage or "live_media"),
+        audio_engine=str(audio_engine or "azure_fallback"),
+    )
+    status, log, msg, notice = start_audio_model(
+        model,
+        game,
+        input_mode,
+        device_index,
+        language,
+        processing,
+        profile,
+        file_path,
+        audio_mode,
+        audio_usage,
+        audio_engine,
+        language_correction,
+        language_lock,
+    )
+    err_md = ""
+    if "ERROR" in (status or ""):
+        err_md = f"**Audio Error:**\n\n```\n{msg}\n```"
+    notice_md = f"<div class='notice'>{html.escape(notice)}</div>" if notice else ""
+    return _status_html(status), audio_runtime_status_text(profile, audio_mode, audio_engine, audio_usage), log, msg, err_md, notice_md
 
 
 def _stop(game):
@@ -688,9 +1086,50 @@ init_proc = _proc_payload(PREFS.get("game", "GFL2_EXILIUM"))
 seed_data = get_game_data(PREFS.get("game", "GFL2_EXILIUM"))
 INITIAL_UI_MODE = PREFS.get("ui_mode", "recommended")
 _INITIAL_VIS = _ui_mode_visibility(INITIAL_UI_MODE)
+INITIAL_TRANSLATION_SOURCE = str(PREFS.get("translation_source", "ocr") or "ocr").lower()
+if INITIAL_TRANSLATION_SOURCE not in {"ocr", "audio"}:
+    INITIAL_TRANSLATION_SOURCE = "ocr"
+INITIAL_AUDIO_INPUT = str(PREFS.get("audio_input_mode", "loopback") or "loopback").lower()
+if INITIAL_AUDIO_INPUT not in {"loopback", "file"}:
+    INITIAL_AUDIO_INPUT = "loopback"
+INITIAL_AUDIO_PROCESSING = str(PREFS.get("audio_processing", "vad") or "vad").lower()
+if INITIAL_AUDIO_PROCESSING not in {"normal", "vad"}:
+    INITIAL_AUDIO_PROCESSING = "vad"
+INITIAL_AUDIO_PROFILE = str(PREFS.get("audio_profile", "normal") or "normal").lower()
+if INITIAL_AUDIO_PROFILE not in {"speed", "normal", "accurate"}:
+    INITIAL_AUDIO_PROFILE = "normal"
+INITIAL_AUDIO_LANGUAGE = str(PREFS.get("audio_language", "auto") or "auto").lower()
+if str(PREFS.get("game", "")).upper() == "GFL2_EXILIUM" and INITIAL_AUDIO_LANGUAGE in {"auto", "auto_detect", ""}:
+    INITIAL_AUDIO_LANGUAGE = "ja"
+INITIAL_AUDIO_LANGUAGE_CORRECTION = str(PREFS.get("audio_language_correction", "balanced") or "balanced").lower()
+if INITIAL_AUDIO_LANGUAGE_CORRECTION not in {"off", "conservative", "balanced", "aggressive"}:
+    INITIAL_AUDIO_LANGUAGE_CORRECTION = "balanced"
+INITIAL_AUDIO_LANGUAGE_LOCK = bool(PREFS.get("audio_language_lock", False))
+INITIAL_AUDIO_MODE = str(PREFS.get("audio_mode", "hybrid") or "hybrid").lower()
+if INITIAL_AUDIO_MODE not in {"cpu", "gpu", "hybrid"}:
+    INITIAL_AUDIO_MODE = "hybrid"
+INITIAL_AUDIO_USAGE = str(PREFS.get("audio_usage", "live_media") or "live_media").lower()
+if INITIAL_AUDIO_USAGE not in {"live_media", "conversation"}:
+    INITIAL_AUDIO_USAGE = "live_media"
+INITIAL_AUDIO_ENGINE = str(PREFS.get("audio_engine", "azure_fallback") or "azure_fallback").lower()
+if INITIAL_AUDIO_ENGINE not in {"local", "azure", "azure_fallback"}:
+    INITIAL_AUDIO_ENGINE = "azure_fallback"
+INITIAL_CLOUD_CONFIG = audio_cloud_config_values()
+INITIAL_AZURE_REGION = str(INITIAL_CLOUD_CONFIG.get("region") or "")
+_AUDIO_DEVICE_CHOICES, _AUDIO_DEVICE_DEFAULT, _AUDIO_DEVICE_MESSAGE = audio_devices_for_ui(False, INITIAL_AUDIO_MODE, INITIAL_AUDIO_ENGINE)
+_saved_audio_device = str(PREFS.get("audio_device_index", _AUDIO_DEVICE_DEFAULT) or _AUDIO_DEVICE_DEFAULT)
+_available_audio_values = {str(value) for _, value in _AUDIO_DEVICE_CHOICES}
+INITIAL_AUDIO_DEVICE = _saved_audio_device if _saved_audio_device in _available_audio_values else _AUDIO_DEVICE_DEFAULT
 
-with gr.Blocks(title="ORT Translation v8.8.6") as demo:
-    gr.HTML("<div class='hero'><h1>ORT Translation v8.8.6</h1><p>GFL2 Recording Stability, Overlay Commit Gate, CT2 Path Resolver, Render Signature, dan Recording Telemetry.</p></div>")
+with gr.Blocks(title=APP_DISPLAY_NAME) as demo:
+    gr.HTML(
+        f"<div class='hero'><div class='hero-topline'>"
+        f"<span class='release-badge'>{APP_VERSION_TAG}</span>"
+        "<span class='release-channel'>Stable OCR · Azure Live Media Streaming</span>"
+        f"</div><h1>{APP_DISPLAY_NAME}</h1>"
+        f"<p class='hero-subtitle'>{RELEASE_NAME}. Pilih sumber terjemahan, game, dan tingkat tampilan; "
+        "pengaturan lanjutan hanya muncul ketika benar-benar dibutuhkan.</p></div>"
+    )
     with gr.Row():
         with gr.Column(scale=11):
             candidate_notice = gr.HTML("")
@@ -698,84 +1137,205 @@ with gr.Blocks(title="ORT Translation v8.8.6") as demo:
             exit_btn = gr.Button("Exit", variant="stop")
 
     with gr.Tabs():
-        with gr.Tab("Dashboard"):
+        with gr.Tab("Mulai"):
+            with gr.Group(elem_classes=["workspace-card"]):
+                gr.HTML("<div class='setup-header'><div><div class='section-kicker'>Persiapan</div><div class='section-title'>Atur sesi penerjemahan</div><div class='section-copy'>Pilih game dan tingkat kontrol. Basic menjaga halaman tetap ringkas; Expert membuka seluruh parameter runtime dan diagnostik.</div></div><span class='step-badge'>1</span></div>")
+                with gr.Row():
+                    game_dropdown = gr.Dropdown(label="Game", choices=GAME_CHOICES, value=PREFS.get("game", "GFL2_EXILIUM"))
+                    ui_mode = gr.Radio(label="Tingkat tampilan", choices=[("Basic", "basic"), ("Terpandu", "recommended"), ("Expert", "expert")], value=INITIAL_UI_MODE, elem_id="ui_level")
+                    settings_mode = gr.Radio(label="Konfigurasi", choices=[("Otomatis", "recommended"), ("Manual", "manual")], value=PREFS.get("settings_mode", "recommended"))
+                gr.HTML("<div class='smallnote'><b>Otomatis</b> memakai profil aman sesuai game. <b>Manual</b> mempertahankan pilihan model, engine, interval, dan resolusi OCR Anda.</div>")
+
+            with gr.Group(elem_classes=["source-stage"]):
+                gr.HTML("<div class='setup-header'><div><div class='section-kicker'>Sumber terjemahan</div><div class='section-title'>Pilih cara ORT membaca dialog</div><div class='section-copy'>OCR dan Audio dirancang saling eksklusif agar satu overlay tidak menerima dua hasil yang bertabrakan.</div></div><span class='step-badge'>2</span></div>")
+                translation_source = gr.Radio(
+                    label="Sumber aktif",
+                    choices=[("OCR · Siap", "ocr"), ("Audio · Live Media/Local", "audio")],
+                    value=INITIAL_TRANSLATION_SOURCE,
+                    elem_id="translation_source",
+                )
+                source_status = gr.HTML(_translation_source_status_html(INITIAL_TRANSLATION_SOURCE, INITIAL_AUDIO_PROFILE, INITIAL_AUDIO_MODE, INITIAL_AUDIO_ENGINE, INITIAL_AUDIO_USAGE))
+
+            guided_header_panel = gr.HTML(
+                "<div class='guided-banner'><b>Alur cepat:</b><span>pilih OCR atau Audio → gunakan pengaturan bawaan → tekan tombol Mulai yang sesuai. Panel teknis tetap tersimpan tetapi tidak memenuhi layar.</span></div>",
+                visible=_INITIAL_VIS["guided_header"],
+            )
+            expert_header_panel = gr.HTML(
+                "<div class='expert-banner'><span class='expert-tag'>Expert workspace</span><b>Kontrol profesional aktif.</b><span>Model, capture, OCR, engine, policy, runtime, hardware, dan diagnostic tersedia dalam satu workspace.</span></div>",
+                visible=_INITIAL_VIS["expert_header"],
+            )
+
             with gr.Row():
                 with gr.Column(scale=3):
-                    with gr.Row():
-                        game_dropdown = gr.Dropdown(label="Nama Game", choices=GAME_CHOICES, value=PREFS.get("game", "GFL2_EXILIUM"))
-                        ui_mode = gr.Radio(label="Tampilan UI", choices=[("Basic", "basic"), ("Recommended", "recommended"), ("Expert", "expert")], value=INITIAL_UI_MODE)
-                    settings_mode = gr.Radio(label="Mode Pengaturan", choices=[("Rekomendasi Sistem", "recommended"), ("Normal / Manual", "manual")], value=PREFS.get("settings_mode", "recommended"))
-                    gr.HTML("<div class='mode-note'><b>Rekomendasi Sistem</b> mengatur model/engine/OCR otomatis. <b>Normal / Manual</b> memberi kontrol penuh; non-Lite default Hybrid/GPU, Lite pada game berat tetap CPU/Safe.</div>")
-                    game_profile_card = gr.HTML(profile_html(PREFS.get("game", "GFL2_EXILIUM"), _settings_mode_is_manual(PREFS.get("settings_mode", "recommended"))))
-                    gr.HTML("<div class='dashboard-tip'>Mode bersih aktif: panel teknis disembunyikan default. Klik <b>Perluas</b> untuk melihat detail rekomendasi, diagnostic, dan status runtime.</div>")
-                    with gr.Accordion("Perluas: Rekomendasi Sistem", open=False, visible=_INITIAL_VIS["recommendation"]) as recommendation_panel:
-                        gr.HTML("<div class='pro-hint'>Cocok untuk mengecek alasan sistem menyarankan Safe Game, Lite, Fast, CPU/GPU, OCR resolution, dan interval.</div>")
-                        recommendation_box = gr.Textbox(label="Rekomendasi sistem", value=recommendation_text(PREFS.get("game", "GFL2_EXILIUM"), _settings_mode_is_manual(PREFS.get("settings_mode", "recommended"))), interactive=False, lines=13, elem_classes=["mono"])
-                        apply_rec_btn = gr.Button("Terapkan Rekomendasi Profil", variant="secondary")
-                    with gr.Accordion("Perluas: Diagnostic Dashboard", open=False, visible=_INITIAL_VIS["diagnostic"]) as dashboard_diagnostic_panel:
-                        gr.HTML("<div class='pro-hint'>Panel teknis untuk user pro: strategy, core bridge, runtime action, cache, online assist, Fast engine, dan session log.</div>")
-                        diagnostic_box = gr.Textbox(label="Diagnostic Dashboard", value=diagnostic_text(), interactive=False, lines=18, elem_classes=["mono"])
-                        refresh_diag_btn = gr.Button("Refresh Diagnostic")
-                    with gr.Group(visible=_INITIAL_VIS["model_controls"]) as model_controls_panel:
-                        with gr.Row():
-                            model_group = gr.Radio(label="Grup model", choices=group_choices(), value=initial_group)
-                            model_dropdown = gr.Dropdown(label="Pilih model", choices=basic_choices, value=default_model)
-                        model_default_msg = gr.HTML(model_user_preset_badge_html(default_model))
-                        reset_model_default_btn = gr.Button("Reset Default", elem_id="reset_model_default_btn", visible=model_user_preset_is_modified(default_model))
-                        gr.HTML("<div class='smallnote'>v8.8.6: perubahan Mode / Engine / Interval / OCR disimpan otomatis per model; override OCR manual tidak diturunkan diam-diam. Badge <b style='color:#fb923c'>• Modification</b> muncul jika model sudah berbeda dari default bawaan.</div>")
-                        mode_buffer_checkbox = gr.Checkbox(label="Mode Buffer", value=bool(PREFS.get("mode_buffer_enabled", False)))
-                        gr.HTML("<div class='mode-buffer-help' title='Mode Buffer menambahkan jeda kecil terkontrol agar final terjemahan lebih lengkap/stabil saat rekaman. Default OFF. Saat dimatikan runtime kembali normal.'><b>☐ Mode Buffer</b><span class='q'>?</span><div class='tip'>Mode Buffer menambahkan buffer kecil terkontrol untuk membantu hasil terjemahan tampil lebih lengkap dan stabil saat rekaman story. Cocok untuk rekaman, tetapi dapat menambah sedikit latensi. Jika dimatikan, program kembali ke mode normal tanpa state tertinggal.</div></div>")
-                        model_md = gr.Markdown(_model_desc(default_model))
-                        with gr.Row():
-                            mode_dropdown = gr.Dropdown(label="Mode", choices=[("Auto / Story Otomatis", "auto"), ("Freeze Manual / Klik User", "freeze"), ("Interval / Freeze Otomatis", "interval")], value=_initial_model_preset.get("mode", PREFS.get("mode", "auto")))
-                            responsive_story_mode = gr.Checkbox(label="Mode Responsif / Story Cepat (Tanpa Voice)", value=bool(PREFS.get("responsive_story_mode", False)))
-                            gr.Markdown("Mode responsif memprioritaskan dialog terbaru dan mengurangi preview usang. Two-Pass Name ROI tetap aktif; v8.8.6 dapat menaikkan OCR sementara bila teks preset rendah rusak.")
-                            with gr.Accordion("Diagnostic A/B Test (Advanced)", open=False):
-                                diagnostic_profile = gr.Dropdown(label="Profil Uji", choices=[("Baseline Correctness", "baseline"), ("Responsive Story", "responsive_story"), ("Diagnostic No-Name-ROI (uji saja)", "diagnostic_no_name_roi")], value=str(PREFS.get("diagnostic_profile", "baseline")))
-                                gr.Markdown("⚠️ **Diagnostic No-Name-ROI** hanya untuk pengukuran performa; label KSVK/Helen/Helena dapat hilang atau salah.")
-                            engine_dropdown = gr.Dropdown(label="Engine OCR / Terjemahan", choices=[("CPU", "cpu"), ("GPU", "gpu"), ("Hybrid", "hybrid")], value=_initial_model_preset.get("engine", PREFS.get("engine", "hybrid")))
-                        with gr.Row():
-                            interval_slider = gr.Slider(label="Interval / capture ms", minimum=45, maximum=1200, step=5, value=max(45, int(_initial_model_preset.get("interval_ms", PREFS.get("interval_ms", 160)))))
-                            ocr_resolution_slider = gr.Slider(label="OCR Resolution %", minimum=5, maximum=100, step=5, value=int(_initial_model_preset.get("ocr_resolution", PREFS.get("ocr_resolution", 65))))
-                        gr.HTML("<div class='mode-guide'><b>Panduan Mode v8.7:</b><br>Freeze = manual story click, langsung commit. Interval = Freeze otomatis klasik dengan commit cepat setiap snapshot baru. Auto = story otomatis ala visual novel, menerjemahkan bertahap mengikuti teks dialog yang muncul.</div>")
-                    performance_policy_info = gr.Markdown("**Kebijakan performa v8.7:** Fast CT2 tetap dipakai jika aktif. Jika CT2 gagal, OCR ultra-rendah tidak direkomendasikan untuk story. Mode capture tetap global. Fast V1/V2/IDN hanya memberi tuning tambahan: V1 speed-first, V2 balanced, Fast IDN naturalisasi Indonesia. Status card menunjukkan requested vs effective dan alasan performa.", visible=_INITIAL_VIS["policy"])
-                    with gr.Row():
-                        start_btn = gr.Button("Start", variant="primary")
-                        refresh_btn = gr.Button("Refresh")
-                        stop_btn = gr.Button("Stop", variant="stop")
-                    launch_msg = gr.Textbox(label="Status launcher", interactive=False)
-                with gr.Column(scale=2):
-                    runtime_status_cards = gr.HTML(runtime_effective_status_html())
-                    state_box = gr.HTML(_status_html("STATUS: IDLE"))
-                    with gr.Accordion("Perluas: Runtime Ringkas", open=False, visible=_INITIAL_VIS["runtime_summary"]) as runtime_summary_panel:
-                        runtime_box = gr.Textbox(label="Runtime summary", value=runtime_summary_text(), interactive=False, lines=6, elem_classes=["mono"])
-                    with gr.Accordion("Perluas: Deteksi Spesifikasi Laptop", open=False, visible=_INITIAL_VIS["hardware"]) as hardware_panel:
-                        hardware_box = gr.Textbox(label="Deteksi spesifikasi laptop", value=hardware_summary_text(), interactive=False, lines=8, elem_classes=["mono"])
-                    error_box = gr.Markdown("")
+                    with gr.Group(visible=INITIAL_TRANSLATION_SOURCE == "ocr", elem_classes=["transition-panel"]) as ocr_runtime_panel:
+                        gr.HTML("<div class='setup-header'><div><div class='section-kicker'>OCR workspace</div><div class='section-title'>Konfigurasi pembacaan layar</div></div><span class='step-badge'>3</span></div>")
+                        game_profile_card = gr.HTML(profile_html(PREFS.get("game", "GFL2_EXILIUM"), _settings_mode_is_manual(PREFS.get("settings_mode", "recommended"))))
+                        with gr.Accordion("Rekomendasi sistem", open=False, visible=_INITIAL_VIS["recommendation"]) as recommendation_panel:
+                            gr.HTML("<div class='pro-hint'>Alasan pemilihan model, Safe Game, Fast, CPU/GPU, resolusi OCR, dan interval.</div>")
+                            recommendation_box = gr.Textbox(label="Rekomendasi", value=recommendation_text(PREFS.get("game", "GFL2_EXILIUM"), _settings_mode_is_manual(PREFS.get("settings_mode", "recommended"))), interactive=False, lines=11, elem_classes=["mono"])
+                            apply_rec_btn = gr.Button("Terapkan rekomendasi", variant="secondary")
+                        with gr.Accordion("Diagnostic dashboard", open=False, visible=_INITIAL_VIS["diagnostic"]) as dashboard_diagnostic_panel:
+                            gr.HTML("<div class='pro-hint'>Strategy, core bridge, runtime action, cache, Online Assist, Fast engine, dan session log.</div>")
+                            diagnostic_box = gr.Textbox(label="Diagnostic", value=diagnostic_text(), interactive=False, lines=16, elem_classes=["mono"])
+                            refresh_diag_btn = gr.Button("Refresh diagnostic")
+                        with gr.Group(visible=_INITIAL_VIS["model_controls"]) as model_controls_panel:
+                            with gr.Row():
+                                model_group = gr.Radio(label="Keluarga model", choices=group_choices(), value=initial_group)
+                                model_dropdown = gr.Dropdown(label="Model", choices=basic_choices, value=default_model)
+                            model_default_msg = gr.HTML(model_user_preset_badge_html(default_model))
+                            reset_model_default_btn = gr.Button("Reset default model", elem_id="reset_model_default_btn", visible=model_user_preset_is_modified(default_model))
+                            with gr.Accordion("Detail model terpilih", open=False):
+                                model_md = gr.Markdown(_model_desc(default_model))
+                            with gr.Group(visible=_INITIAL_VIS["advanced_controls"], elem_classes=["expert-controls", "transition-panel"]) as advanced_controls_panel:
+                                gr.HTML(f"<div class='section-kicker'>Advanced OCR controls · {APP_VERSION_TAG}</div><div class='smallnote'>Perubahan Mode / Engine / Interval / OCR disimpan otomatis per model. Badge <b style='color:#fb923c'>• Modification</b> menandai override dari default bawaan.</div>")
+                                mode_buffer_checkbox = gr.Checkbox(label="Mode Buffer", value=bool(PREFS.get("mode_buffer_enabled", False)))
+                                gr.HTML("<div class='mode-buffer-help' title='Mode Buffer menambahkan jeda kecil terkontrol agar final terjemahan lebih lengkap/stabil saat rekaman. Default OFF.'><b>Mode Buffer</b><span class='q'>?</span><div class='tip'>Menambahkan buffer kecil terkontrol untuk membantu hasil story lebih lengkap. Opsi ini dapat menambah sedikit latensi dan tetap OFF secara default.</div></div>")
+                                with gr.Row():
+                                    mode_dropdown = gr.Dropdown(label="Strategi capture", choices=[("Auto / Story Otomatis", "auto"), ("Freeze Manual / Klik User", "freeze"), ("Interval / Freeze Otomatis", "interval")], value=_initial_model_preset.get("mode", PREFS.get("mode", "auto")))
+                                    engine_dropdown = gr.Dropdown(label="Engine OCR / Terjemahan", choices=[("CPU", "cpu"), ("GPU", "gpu"), ("Hybrid", "hybrid")], value=_initial_model_preset.get("engine", PREFS.get("engine", "hybrid")))
+                                responsive_story_mode = gr.Checkbox(label="Responsive Story / Dialog Cepat", value=bool(PREFS.get("responsive_story_mode", False)))
+                                gr.Markdown(f"Memprioritaskan dialog terbaru, membuang hasil generasi lama, dan mempertahankan overlay sampai hasil baru siap pada {APP_VERSION_TAG}.")
+                                with gr.Row():
+                                    interval_slider = gr.Slider(label="Interval capture (ms)", minimum=45, maximum=1200, step=5, value=max(45, int(_initial_model_preset.get("interval_ms", PREFS.get("interval_ms", 160)))))
+                                    ocr_resolution_slider = gr.Slider(label="Resolusi OCR (%)", minimum=5, maximum=100, step=5, value=int(_initial_model_preset.get("ocr_resolution", PREFS.get("ocr_resolution", 65))))
+                                with gr.Accordion("Profil diagnostic A/B", open=False):
+                                    diagnostic_profile = gr.Dropdown(label="Profil uji", choices=[("Baseline Correctness", "baseline"), ("Responsive Story", "responsive_story"), ("Diagnostic No-Name-ROI", "diagnostic_no_name_roi")], value=str(PREFS.get("diagnostic_profile", "baseline")))
+                                    gr.Markdown("**Peringatan:** No-Name-ROI hanya untuk pengukuran performa; label KSVK/Helen/Helena dapat hilang atau salah.")
+                                gr.HTML("<div class='mode-guide'><b>Strategi capture:</b> Auto mengikuti teks dialog progresif; Freeze memproses klik manual; Interval mengambil snapshot otomatis dengan jeda tetap.</div>")
+                        performance_policy_info = gr.Markdown("**Performance policy:** Fast CT2 dipertahankan ketika aktif; OCR ultra-rendah tidak direkomendasikan untuk story. Status card membedakan requested dan effective settings.", visible=_INITIAL_VIS["policy"])
 
-            gr.Markdown("### Live Log & AI Recap")
-            with gr.Row():
+                    with gr.Group(visible=INITIAL_TRANSLATION_SOURCE == "audio", elem_classes=["audio-preview", "transition-panel"]) as audio_preview_panel:
+                        gr.HTML("<div class='setup-header'><div><div class='section-kicker'>Audio workspace</div><div class='section-title'>Real-Time Video Translation</div><div class='section-copy'>Audio video/game dikirim sebagai aliran satu arah per 20 ms. Azure maupun Local Live memperbarui subtitle selama karakter masih berbicara; jeda hanya mengunci final dan tidak lagi memulai proses terjemahan.</div></div><span class='step-badge'>3</span></div>")
+                        audio_availability = gr.HTML(_translation_source_status_html("audio", INITIAL_AUDIO_PROFILE, INITIAL_AUDIO_MODE, INITIAL_AUDIO_ENGINE, INITIAL_AUDIO_USAGE))
+                        with gr.Row():
+                            audio_usage = gr.Radio(
+                                label="Jenis penggunaan",
+                                choices=[("Live Media · Rekomendasi", "live_media"), ("Conversation", "conversation")],
+                                value=INITIAL_AUDIO_USAGE,
+                            )
+                            audio_engine = gr.Radio(
+                                label="Mesin Audio",
+                                choices=[("Local Live · Rolling partial/offline", "local"), ("Azure Cloud · Streaming", "azure"), ("Azure + Local Live Fallback · Rekomendasi", "azure_fallback")],
+                                value=INITIAL_AUDIO_ENGINE,
+                            )
+                        audio_mode = gr.Radio(
+                            label="Perangkat ASR lokal / fallback",
+                            choices=[("CPU · Kompatibel", "cpu"), ("GPU · ASR CUDA ketat", "gpu"), ("Hybrid · Rekomendasi", "hybrid")],
+                            value=INITIAL_AUDIO_MODE,
+                        )
+                        with gr.Row():
+                            audio_input_mode = gr.Radio(
+                                label="Sumber audio",
+                                choices=[("Audio internal (WASAPI)", "loopback"), ("File audio uji", "file")],
+                                value=INITIAL_AUDIO_INPUT,
+                            )
+                            audio_device = gr.Dropdown(
+                                label="Perangkat output / loopback",
+                                choices=_AUDIO_DEVICE_CHOICES,
+                                value=INITIAL_AUDIO_DEVICE,
+                                interactive=INITIAL_AUDIO_INPUT != "file",
+                            )
+                        audio_test_file = gr.File(
+                            label="File audio uji (WAV, MP3, M4A, MKV, atau MP4)",
+                            file_types=["audio", "video"],
+                            type="filepath",
+                            visible=INITIAL_AUDIO_INPUT == "file",
+                        )
+                        with gr.Row():
+                            audio_language = gr.Dropdown(
+                                label="Bahasa utama awal",
+                                choices=[("Smart Auto · Rekomendasi", "auto"), ("English", "en"), ("Japanese · Multilingual", "ja"), ("Japanese Specialist · Kotoba", "ja_specialist"), ("Chinese", "zh"), ("Korean", "ko")],
+                                value=INITIAL_AUDIO_LANGUAGE,
+                            )
+                            audio_processing = gr.Radio(
+                                label="Pemrosesan lokal/fallback",
+                                choices=[("Normal", "normal"), ("VAD · Rekomendasi", "vad")],
+                                value=INITIAL_AUDIO_PROCESSING,
+                            )
+                        with gr.Row():
+                            audio_language_correction = gr.Dropdown(
+                                label="Auto-Correct bahasa",
+                                choices=[
+                                    ("Nonaktif", "off"),
+                                    ("Conservative · 12 detik", "conservative"),
+                                    ("Balanced · 8 detik · Rekomendasi", "balanced"),
+                                    ("Aggressive · 5 detik", "aggressive"),
+                                ],
+                                value=INITIAL_AUDIO_LANGUAGE_CORRECTION,
+                            )
+                            audio_language_lock = gr.Checkbox(
+                                label="Kunci bahasa utama (code-switch sementara tetap dideteksi)",
+                                value=INITIAL_AUDIO_LANGUAGE_LOCK,
+                            )
+                        audio_profile = gr.Radio(
+                            label="Respons subtitle / profil fallback",
+                            choices=[("Instant · Paling real-time", "speed"), ("Balanced · Rekomendasi", "normal"), ("Accurate · Jeda lebih longgar", "accurate")],
+                            value=INITIAL_AUDIO_PROFILE,
+                        )
+                        audio_profile_info = gr.Markdown(_audio_profile_description(INITIAL_AUDIO_PROFILE, INITIAL_AUDIO_MODE))
+                        gr.HTML("<div class='audio-flow-grid'><div class='audio-flow-item'><b>20 ms Live Stream</b><small>Audio diproses terus-menerus dan hasil Indonesia diperbarui selama ucapan berlangsung.</small></div><div class='audio-flow-item'><b>Safe Auto-Correct</b><small>Balanced memerlukan bukti dominan sekitar 8 detik; dialog asing pendek diperlakukan sebagai code-switch tanpa mengganti bahasa utama.</small></div><div class='audio-flow-item'><b>Japanese Specialist</b><small>Kotoba dipertahankan saat GPU gagal dengan memuat model yang sama di CPU. Output berulang atau bridge Jepang yang gagal diblokir sebelum overlay.</small></div></div>")
+                        with gr.Accordion("Azure Speech · setup & kredensial", open=INITIAL_AUDIO_ENGINE != "local"):
+                            gr.Markdown("Audio akan dikirim ke Microsoft Azure dan dapat menimbulkan biaya layanan. API key disimpan melalui Windows Credential Manager, tidak di dalam proyek, ZIP, atau log.")
+                            with gr.Row():
+                                azure_region = gr.Textbox(label="Azure Speech region", value=INITIAL_AZURE_REGION, placeholder="contoh: southeastasia")
+                                azure_api_key = gr.Textbox(label="Azure Speech API key", value="", type="password", placeholder="kosongkan jika sudah tersimpan")
+                            with gr.Row():
+                                setup_cloud_btn = gr.Button("Siapkan Runtime Azure", variant="secondary")
+                                save_test_cloud_btn = gr.Button("Simpan & Uji Azure", variant="primary")
+                                clear_cloud_btn = gr.Button("Hapus Kredensial Azure", variant="stop")
+                            cloud_setup_log = gr.Textbox(label="Status Azure", value=audio_cloud_runtime_status_text(), interactive=False, lines=12, elem_classes=["mono"])
+                        with gr.Row():
+                            setup_audio_btn = gr.Button(
+                                f"Siapkan Audio {INITIAL_AUDIO_MODE.upper()}" if INITIAL_AUDIO_ENGINE == "local" else f"Siapkan Fallback Lokal {INITIAL_AUDIO_MODE.upper()}",
+                                variant="secondary",
+                            )
+                            refresh_audio_devices_btn = gr.Button("Deteksi ulang perangkat")
+                        audio_device_message = gr.Textbox(label="Deteksi perangkat", value=_AUDIO_DEVICE_MESSAGE, interactive=False, lines=2)
+                        with gr.Accordion("Setup & diagnostic Audio lengkap", open=False):
+                            audio_setup_log = gr.Textbox(label="Setup Audio", value=audio_runtime_status_text(INITIAL_AUDIO_PROFILE, INITIAL_AUDIO_MODE, INITIAL_AUDIO_ENGINE, INITIAL_AUDIO_USAGE), interactive=False, lines=16, elem_classes=["mono"])
+
+                    with gr.Row(elem_classes=["action-row"]):
+                        start_btn = gr.Button("Mulai OCR", variant="primary", visible=INITIAL_TRANSLATION_SOURCE == "ocr", elem_id="start_primary")
+                        audio_start_btn = gr.Button("Mulai Audio", variant="primary", visible=INITIAL_TRANSLATION_SOURCE == "audio", elem_id="audio_start_primary")
+                        refresh_btn = gr.Button("Refresh status")
+                        stop_btn = gr.Button("Stop", variant="stop")
+                    launch_msg = gr.Textbox(label="Status sesi", interactive=False)
+
+                with gr.Column(scale=2):
+                    with gr.Group(elem_classes=["workspace-card"]):
+                        gr.HTML("<div class='section-kicker'>Runtime monitor</div><div class='section-title'>Status aktif</div>")
+                        state_box = gr.HTML(_status_html("STATUS: IDLE"))
+                        runtime_status_cards = gr.HTML(runtime_effective_status_html())
+                        with gr.Accordion("Runtime ringkas", open=False, visible=_INITIAL_VIS["runtime_summary"]) as runtime_summary_panel:
+                            runtime_box = gr.Textbox(label="Runtime summary", value=runtime_summary_text(), interactive=False, lines=6, elem_classes=["mono"])
+                        with gr.Accordion("Spesifikasi perangkat", open=False, visible=_INITIAL_VIS["hardware"]) as hardware_panel:
+                            hardware_box = gr.Textbox(label="Hardware", value=hardware_summary_text(), interactive=False, lines=8, elem_classes=["mono"])
+                        error_box = gr.Markdown("")
+
+            with gr.Accordion("Aktivitas, Live Log & AI Recap", open=INITIAL_UI_MODE == "expert", elem_classes=["log-accordion"]):
+                with gr.Row():
+                    gr.HTML("""
+                    <div class='copylog-wrap'>
+                      <button onclick="(function(){const ta=document.querySelector('#live_log textarea'); if(ta){navigator.clipboard.writeText(ta.value); const s=document.getElementById('copylog_status'); if(s){s.textContent='Live log tersalin'; setTimeout(()=>s.textContent='',1500);}}})()">Copy Live Log</button>
+                      <span id='copylog_status'></span>
+                    </div>
+                    """)
+                    prompt_btn = gr.Button("Buat prompt recap")
+                    reset_live_log_btn = gr.Button("Reset live log")
+                    analyze_session_btn = gr.Button("Analyze last session")
+                log_box = gr.Textbox(label="Live log", lines=16, interactive=False, autoscroll=True, elem_classes=["logbox"], elem_id="live_log")
+                ai_prompt_box = gr.Textbox(label="Prompt AI Recap", value="", interactive=False, lines=10, elem_classes=["mono"], elem_id="ai_prompt_box")
+                session_report_box = gr.Textbox(label="Analisis sesi / rekomendasi performa", value="", interactive=False, lines=9, elem_classes=["mono"])
                 gr.HTML("""
-                <div class='copylog-wrap'>
-                  <button onclick="(function(){const ta=document.querySelector('#live_log textarea'); if(ta){navigator.clipboard.writeText(ta.value); const s=document.getElementById('copylog_status'); if(s){s.textContent='Live log tersalin'; setTimeout(()=>s.textContent='',1500);}}})()">Copy Live Log</button>
-                  <span id='copylog_status'></span>
+                <div style='display:flex;gap:10px;flex-wrap:wrap;margin-top:8px'>
+                  <button class='ai-copy-btn' onclick="(function(){const ta=document.querySelector('#ai_prompt_box textarea'); if(ta){navigator.clipboard.writeText(ta.value||''); const s=document.getElementById('aicopy_status'); if(s){s.textContent='Prompt tersalin'; setTimeout(()=>s.textContent='',1500);}}})()">Copy Prompt</button>
+                  <button class='ai-link ai-chatgpt' onclick="(function(){const ta=document.querySelector('#ai_prompt_box textarea'); if(ta){navigator.clipboard.writeText(ta.value||'');} window.open('https://chat.openai.com/','_blank');})()">Copy + Buka ChatGPT</button>
+                  <button class='ai-link ai-gemini' onclick="(function(){const ta=document.querySelector('#ai_prompt_box textarea'); if(ta){navigator.clipboard.writeText(ta.value||'');} window.open('https://gemini.google.com/','_blank');})()">Copy + Buka Gemini</button>
+                  <span id='aicopy_status' style='color:#a7f3d0;align-self:center'></span>
                 </div>
                 """)
-                prompt_btn = gr.Button("Buat Prompt Recap")
-                reset_live_log_btn = gr.Button("Reset Live Log")
-                analyze_session_btn = gr.Button("Analyze Last Session")
-            log_box = gr.Textbox(label="Live log", lines=18, interactive=False, autoscroll=True, elem_classes=["logbox"], elem_id="live_log")
-            ai_prompt_box = gr.Textbox(label="Prompt AI Recap dari Live Log", value="", interactive=False, lines=12, elem_classes=["mono"], elem_id="ai_prompt_box")
-            session_report_box = gr.Textbox(label="Analyze Last Session / Rekomendasi Performa", value="", interactive=False, lines=10, elem_classes=["mono"])
-            gr.HTML("""
-            <div style='display:flex;gap:10px;flex-wrap:wrap;margin-top:8px'>
-              <button class='ai-copy-btn' onclick="(function(){const ta=document.querySelector('#ai_prompt_box textarea'); if(ta){navigator.clipboard.writeText(ta.value||''); const s=document.getElementById('aicopy_status'); if(s){s.textContent='Prompt tersalin'; setTimeout(()=>s.textContent='',1500);}}})()">Copy Prompt</button>
-              <button class='ai-link ai-chatgpt' onclick="(function(){const ta=document.querySelector('#ai_prompt_box textarea'); if(ta){navigator.clipboard.writeText(ta.value||'');} window.open('https://chat.openai.com/','_blank');})()">Copy + Buka ChatGPT</button>
-              <button class='ai-link ai-gemini' onclick="(function(){const ta=document.querySelector('#ai_prompt_box textarea'); if(ta){navigator.clipboard.writeText(ta.value||'');} window.open('https://gemini.google.com/','_blank');})()">Copy + Buka Gemini</button>
-              <span id='aicopy_status' style='color:#a7f3d0;align-self:center'></span>
-            </div>
-            """)
-            gr.Markdown(USER_NOTE)
+            with gr.Accordion("Catatan rilis dan kompatibilitas", open=False):
+                gr.Markdown(USER_NOTE)
 
         with gr.Tab("Model Browser"):
             gr.Markdown("Model v7 disederhanakan menjadi grup yang jelas. Alias model lama tetap diarahkan agar tidak memutus launcher lama.")
@@ -808,7 +1368,7 @@ with gr.Blocks(title="ORT Translation v8.8.6") as demo:
                 gr.Markdown("### Katalog Referensi Nama — untuk proteksi ejaan/exact match, bukan auto-label speaker")
                 identity_spoiler = gr.Checkbox(label="Tampilkan / Import Karakter Cerita Lanjutan (mengandung spoiler, khusus GFL)", value=bool(SETTINGS.get("show_story_spoilers", False)))
                 identity_catalog_html = gr.HTML(render_reference_catalog_html(PREFS.get("game", "GFL2_EXILIUM"), bool(SETTINGS.get("show_story_spoilers", False))))
-                gr.Markdown("### Observed Story / Alias Review v8.8.6")
+                gr.Markdown("### Observed Story / Alias Review — data v8.9.1")
                 identity_observed_html = gr.HTML(render_observed_review_html(PREFS.get("game", "GFL2_EXILIUM")))
                 identity_select = gr.Radio(label="Klik nama untuk aksi Hapus / Migrasi", choices=_identity_initial[4], value=None)
                 with gr.Row():
@@ -953,11 +1513,23 @@ with gr.Blocks(title="ORT Translation v8.8.6") as demo:
                 reset_box = gr.Textbox(label="Reset Settings Log", value="", interactive=False, lines=5, elem_classes=["mono"])
 
     # Dashboard events
-    start_btn.click(_start, inputs=[model_dropdown, game_dropdown, mode_dropdown, engine_dropdown, interval_slider, ocr_resolution_slider, settings_mode, responsive_story_mode, diagnostic_profile, mode_buffer_checkbox], outputs=[state_box, runtime_box, log_box, launch_msg, error_box, candidate_notice])
+    start_btn.click(_start, inputs=[model_dropdown, game_dropdown, mode_dropdown, engine_dropdown, interval_slider, ocr_resolution_slider, settings_mode, responsive_story_mode, diagnostic_profile, mode_buffer_checkbox, translation_source], outputs=[state_box, runtime_box, log_box, launch_msg, error_box, candidate_notice])
+    audio_start_btn.click(_start_audio, inputs=[model_dropdown, game_dropdown, audio_input_mode, audio_device, audio_language, audio_language_correction, audio_language_lock, audio_processing, audio_usage, audio_engine, audio_mode, audio_profile, audio_test_file], outputs=[state_box, runtime_box, log_box, launch_msg, error_box, candidate_notice])
+    setup_audio_btn.click(_setup_audio_ui, inputs=[audio_mode, audio_profile, audio_engine, audio_usage], outputs=[audio_setup_log, audio_device, audio_availability, source_status])
+    refresh_audio_devices_btn.click(_refresh_audio_devices_ui, inputs=[audio_mode, audio_profile, audio_engine, audio_usage], outputs=[audio_device, audio_device_message, audio_availability])
+    setup_cloud_btn.click(_setup_audio_cloud_ui, inputs=[audio_engine, audio_profile, audio_mode, audio_usage], outputs=[cloud_setup_log, audio_availability])
+    save_test_cloud_btn.click(_save_audio_cloud_ui, inputs=[azure_region, azure_api_key, audio_language, audio_engine, audio_profile, audio_mode, audio_usage], outputs=[cloud_setup_log, azure_api_key, audio_availability])
+    clear_cloud_btn.click(_clear_audio_cloud_ui, inputs=[audio_engine, audio_profile, audio_mode, audio_usage], outputs=[cloud_setup_log, audio_availability])
+    audio_input_mode.change(_audio_input_updates, inputs=[audio_input_mode], outputs=[audio_test_file, audio_device])
+    audio_profile.change(_audio_profile_description, inputs=[audio_profile, audio_mode], outputs=[audio_profile_info])
+    audio_mode.change(_audio_mode_updates, inputs=[audio_mode, audio_profile, audio_engine, audio_usage], outputs=[audio_profile_info, setup_audio_btn, audio_availability, audio_setup_log, audio_device])
+    audio_engine.change(_audio_engine_updates, inputs=[audio_engine, audio_mode, audio_profile, audio_usage], outputs=[audio_availability, audio_setup_log, audio_device, audio_device_message, setup_audio_btn])
+    audio_usage.change(_audio_usage_updates, inputs=[audio_usage, audio_profile, audio_mode, audio_engine], outputs=[audio_availability])
     stop_btn.click(_stop, inputs=[game_dropdown], outputs=[state_box, runtime_box, log_box, launch_msg, error_box, candidate_notice, proc_msg, cand_names, cand_special, confirmed_html, names_html, special_html, blacklist_html, original_html, name_color, special_color, popup_toggle, auto_reset_toggle, preview_html, color_legend_html, remove_name_pick, remove_special_pick, remove_blacklist_pick])
     refresh_btn.click(_refresh_all, inputs=[game_dropdown], outputs=[state_box, runtime_box, log_box, error_box, candidate_notice])
     apply_rec_btn.click(_force_apply_recommendation, inputs=[game_dropdown], outputs=[game_profile_card, recommendation_box, model_group, model_dropdown, model_md, mode_dropdown, engine_dropdown, interval_slider, ocr_resolution_slider, settings_mode])
     game_dropdown.change(_apply_recommendation, inputs=[game_dropdown, settings_mode], outputs=[game_profile_card, recommendation_box, model_group, model_dropdown, model_md, mode_dropdown, engine_dropdown, interval_slider, ocr_resolution_slider, settings_mode])
+    game_dropdown.change(_audio_language_for_game, inputs=[game_dropdown, audio_language], outputs=[audio_language])
     settings_mode.change(_apply_recommendation, inputs=[game_dropdown, settings_mode], outputs=[game_profile_card, recommendation_box, model_group, model_dropdown, model_md, mode_dropdown, engine_dropdown, interval_slider, ocr_resolution_slider, settings_mode])
     model_group.change(_on_group_change, inputs=[model_group], outputs=[model_dropdown, model_md, catalog_html, model_default_msg, reset_model_default_btn])
     model_dropdown.change(_manual_model_defaults, inputs=[model_dropdown, game_dropdown], outputs=[model_md, mode_dropdown, engine_dropdown, interval_slider, ocr_resolution_slider, settings_mode, model_default_msg, reset_model_default_btn])
@@ -1027,7 +1599,8 @@ with gr.Blocks(title="ORT Translation v8.8.6") as demo:
     reset_online_btn.click(lambda: reset_settings_text("online"), outputs=[reset_box])
     reset_all_btn.click(lambda: reset_settings_text("all"), outputs=[reset_box])
     npc_cleanup_btn.click(npc_cleanup_text, outputs=[v8_diag_box])
-    ui_mode.change(_ui_mode_updates, inputs=[ui_mode], outputs=[recommendation_panel, dashboard_diagnostic_panel, model_controls_panel, runtime_summary_panel, hardware_panel, performance_policy_info])
+    translation_source.change(_translation_source_updates, inputs=[translation_source, audio_profile, audio_mode, audio_engine, audio_usage], outputs=[source_status, ocr_runtime_panel, audio_preview_panel, start_btn, audio_start_btn])
+    ui_mode.change(_ui_mode_updates, inputs=[ui_mode], outputs=[guided_header_panel, expert_header_panel, recommendation_panel, dashboard_diagnostic_panel, model_controls_panel, advanced_controls_panel, runtime_summary_panel, hardware_panel, performance_policy_info])
 
     timer = gr.Timer(1.0)
     timer.tick(_refresh_all, inputs=[game_dropdown], outputs=[state_box, runtime_box, log_box, error_box, candidate_notice])
@@ -1053,3 +1626,7 @@ if __name__ == "__main__":
 
     threading.Thread(target=_open_browser, daemon=True).start()
     demo.queue().launch(server_name="127.0.0.1", server_port=7860, inbrowser=False, css=CSS)
+
+
+# v8.9.1 note: runtime supports Name/Term Prediction Guard, UI/Dialog Filter,
+# Dialogue Timeout Safety, and general Name/Term Ambiguity Guard.

@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from status_manager import write_status
+from build_info import APP_VERSION_TAG
 try:
     from app.runtime.ct2_path_resolver import candidate_ct2_dirs, validate_ct2_dir, resolve_ct2_model_dir
 except Exception:
@@ -131,7 +132,7 @@ class FastModelManager:
         model_dir_used = str(self.model_dir)
         spm_dir_used = str(os.environ.get("TITAN_SPM_EN_ID_DIR") or self.model_dir)
         data = {
-            "version": "v8.8.6",
+            "version": APP_VERSION_TAG,
             "state": state,
             "active": active,
             "python": sys.executable,
@@ -193,7 +194,7 @@ Catatan penting:
 
     def quick_translation_test(self, text: str = "Hello") -> Dict[str, Any]:
         data = self.status()
-        result = {"version": "v8.8.6", "input": text, "state": data.get("state"), "active": data.get("active"), "ok": False, "output": "", "reason": data.get("reason", "")}
+        result = {"version": APP_VERSION_TAG, "input": text, "state": data.get("state"), "active": data.get("active"), "ok": False, "output": "", "reason": data.get("reason", "")}
         if not data.get("active"):
             result["reason"] = "Fast CT2 is not active; runtime will use Argos fallback. Check model_dir and missing files."
             try:
@@ -224,7 +225,7 @@ Catatan penting:
     def quick_translation_report(self, text: str = "Hello") -> str:
         data = self.quick_translation_test(text)
         return "\n".join([
-            "Fast Engine Quick Translation Test v8.8.6",
+            f"Fast Engine Quick Translation Test {APP_VERSION_TAG}",
             "=====================================",
             f"state = {data.get('state')}",
             f"active = {data.get('active')}",

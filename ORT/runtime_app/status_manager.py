@@ -16,6 +16,7 @@ STATUS_DIR_NAME = "status"
 STATUS_KEYS = [
     "strategy", "runtime_health", "runtime_actions", "core_bridge", "core_profile",
     "cache", "fast_engine", "online_assist", "translation_engine", "shutdown",
+    "audio_runtime",
     "session_log", "benchmark", "benchmark_ocr", "benchmark_translation",
     "benchmark_profiles", "benchmark_real_translation", "benchmark_cache_hit", "benchmark_session",
     "fast_setup", "online_config",
