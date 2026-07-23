@@ -10,9 +10,14 @@ APP_VERSION = ".".join(str(part) for part in VERSION) + VERSION_SUFFIX
 APP_VERSION_TAG = f"v{APP_VERSION}"
 APP_NAME = "ORT Translation"
 APP_DISPLAY_NAME = f"{APP_NAME} {APP_VERSION_TAG}"
-RELEASE_NAME = "R1 Live Preview and CPU Dual-Stream Performance Hotfix"
-RELEASE_CHANNEL = "v8-9-9-r1-preview-cpu-dual-stream"
-BUILD_DATE = "2026-07-23"
+RELEASE_NAME = "R2 F2 Long-Turn Context and Japanese Accuracy Fix"
+RELEASE_CHANNEL = "v8-9-9-r2-f2-long-turn-japanese-context"
+BASE_RELEASE_CHANNEL = "v8-9-9-r2-gpu-runtime-normal-realtime"
+COMPAT_RELEASE_CHANNELS = (
+    "v8-9-9-r2-f1-hybrid-subtitle-continuity",
+    "v8-9-9-r2-gpu-runtime-normal-realtime",
+)
+BUILD_DATE = "2026-07-24"
 STATUS_SCHEMA_VERSION = 2
 
 

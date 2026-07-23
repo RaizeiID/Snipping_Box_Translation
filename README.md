@@ -1,3 +1,65 @@
+# ORT Translation v8.9.9 R2 F2 — Long-Turn Context & Japanese Accuracy Fix
+
+Hotfix ini tetap memakai nomor versi **v8.9.9** dan dipasang setelah v8.9.9 R2 F1.
+
+Perubahan utama:
+- Dialog panjang tidak lagi dipaksa menjadi segmen baru setiap 6–10 detik. Audio memakai rolling window terbatas, tetapi satu `segment_id` dipertahankan sampai jeda yang benar-benar cukup.
+- `RollingTurnContext` menyimpan hingga 240 kata konteks internal dan menampilkan jendela terbaru 56/72/92 kata sesuai profil Speed/Normal/Accurate.
+- Hipotesis ASR yang berubah tidak ditempel mentah. Tail yang belum stabil diganti, sedangkan bagian yang keluar melalui overlap dikomit sebagai konteks.
+- Kotoba GPU Normal memakai beam 2 untuk partial dan beam 3 untuk final; Accurate memakai beam 3/4. Ini meningkatkan ketelitian Jepang dengan latensi yang masih cocok untuk GPU realtime.
+- Endpoint diperpanjang agar jeda pendek antarfrasa atau pergantian pembicara cepat tidak langsung memutus konteks.
+- Final kosong dapat memakai konteks partial terakhir agar kalimat berguna tidak hilang.
+- Final pembicara sebelumnya masih boleh tampil selama 1,8 detik bila pembicara baru belum menghasilkan setidaknya empat kata.
+- Log `displayed` sekarang mencatat `context_words` dan `display_words`.
+
+Jalankan `VERIFY_ORT_V8_9_9_R2_F2.bat` setelah menimpa file.
+
+---
+
+# ORT Translation v8.9.9 R2 F1 — Hybrid Startup & Subtitle Continuity Fix
+
+Hotfix ini tetap menggunakan nomor versi **v8.9.9** dan dipasang di atas v8.9.9 R2.
+
+Perubahan utama:
+- Hybrid Japanese/Accurate dapat memakai baseline CUDA Small yang sudah divalidasi, lalu Kotoba menjalankan preflight modelnya sendiri.
+- Partial bermakna pertama tetap tampil segera.
+- Revisi kecil digabung sekitar 0,46 detik pada Normal dan 0,58 detik pada Accurate agar subtitle tidak berkedip atau terpotong per kata.
+- Tanda baca tunggal, hasil kosong, dan pesan guard tidak menggantikan subtitle terakhir.
+- Quality reject EMPTY/NO_SPEECH dibatasi frekuensinya di log.
+- CPU fallback tetap aktif apabila preflight model GPU gagal.
+
+Jalankan `VERIFY_ORT_V8_9_9_R2_F1.bat` setelah menimpa file.
+
+---
+
+# ORT Translation v8.9.9 R2 — GPU Runtime & Normal Realtime Stability
+
+R2 adalah hotfix di atas v8.9.9 R1. Fokusnya adalah membuat mode GPU benar-benar menggunakan CUDA setelah inferensi nyata lulus, sekaligus menjaga profil **Normal** tetap responsif saat hanya CPU yang tersedia.
+
+## Perubahan utama
+
+- Installer `INSTALL_AUDIO_GPU_V8_9_9_R2.bat` membuat atau memperbaiki environment Audio GPU.
+- CUDA 12, cuBLAS 12, cuDNN 9, dan CUDA runtime dipasang di environment GPU ORT, bukan ke source ZIP.
+- Jalur DLL NVIDIA diaktifkan sebelum CTranslate2/Faster-Whisper diimpor.
+- GPU baru dianggap siap setelah dua inferensi nyata pada model Faster-Whisper Small berhasil.
+- Profil Normal menggunakan `small:cuda:int8_float16` pada GPU dan `base:cpu:int8` pada CPU/CPU Guard.
+- Partial Normal dibatasi pada jendela audio terbaru agar antrean tidak terus membesar.
+- Quality retry ganda dinonaktifkan pada Normal; retry kualitas penuh hanya tersedia pada Accurate.
+- Antrean final dibatasi dan memprioritaskan segmen terbaru saat perangkat tertinggal.
+
+## Cara menerapkan
+
+1. Tutup seluruh WebUI, overlay, dan proses Audio ORT.
+2. Timpa patch R2 ke instalasi v8.9.9 R1.
+3. Jalankan `VERIFY_ORT_V8_9_9_R2.bat`.
+4. Jalankan `INSTALL_AUDIO_GPU_V8_9_9_R2.bat`. Paket NVIDIA dapat berukuran lebih dari 1 GB.
+5. Jalankan `CHECK_AUDIO_GPU_V8_9_9.bat`.
+6. Buka kembali WebUI dan pilih **Normal + Hybrid** atau **Normal + GPU**.
+
+GPU yang lulus akan menghasilkan `effective_mode=hybrid` atau `effective_mode=gpu`, diikuti `CUDA_PREFLIGHT_PASSED`. Jika driver atau runtime GPU belum kompatibel, ORT mempertahankan CPU Normal tanpa menandai GPU sebagai siap.
+
+---
+
 # ORT Translation v8.9.9 R1
 
 **Hotfix:** Live Preview & CPU Dual-Stream Performance  

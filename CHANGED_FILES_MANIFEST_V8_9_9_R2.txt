@@ -1,0 +1,23 @@
+ORT Translation v8.9.9 R2 — Changed Files Manifest
+
+Base required: ORT v8.9.9 R1
+Release channel: v8-9-9-r2-gpu-runtime-normal-realtime
+
+Changed files:
+- README.md
+- CHANGELOG.md
+- INSTALL_AUDIO_GPU_V8_9_9_R2.bat
+- CHECK_AUDIO_GPU_V8_9_9.bat
+- VERIFY_ORT_V8_9_9_R2.bat
+- README_APPLY_HOTFIX_V8_9_9_R2_GPU_CPU_REALTIME.txt
+- ORT/runtime_app/build_info.py
+- ORT/runtime_app/audio_realtime_local_sidecar.py
+- ORT/runtime_app/requirements_audio_gpu.txt
+- ORT/runtime_app/app/audio/cuda_bootstrap.py
+- ORT/runtime_app/app/audio/profiles.py
+- ORT/runtime_app/tools/install_audio_gpu_v8_9_9_r2.py
+- ORT/runtime_app/tools/check_audio_gpu_v8_9_9.py
+- ORT/runtime_app/tools/v8_9_9_r2_gpu_cpu_realtime_test.py
+- ORT/runtime_app/tools/verify_v8_9_9_r2_install.py
+- ORT/runtime_app/docs/changelog/CHANGELOG_V8_9_9_R2.md
+- ORT/runtime_app/docs/test_reports/ORT_V8_9_9_R2_GPU_CPU_REALTIME_REPORT.md

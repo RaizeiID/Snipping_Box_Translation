@@ -1,55 +1,44 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import ctypes
 import json
-import os
-import platform
 import sys
 from pathlib import Path
 
-DLLS = ("cublas64_12.dll", "cudnn64_9.dll")
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 
-
-def load_dll(name: str) -> tuple[bool, str]:
-    if os.name != "nt":
-        return False, "Pemeriksaan DLL ini ditujukan untuk Windows."
-    try:
-        ctypes.WinDLL(name)
-        return True, "loaded"
-    except Exception as exc:
-        return False, str(exc)
+from install_audio_gpu_v8_9_9_r2 import _runtime_paths, _validate_gpu, _write_marker
 
 
 def main() -> int:
-    dlls = {name: dict(zip(("available", "detail"), load_dll(name))) for name in DLLS}
-    ct2 = {"available": False, "cuda_device_count": 0, "detail": ""}
+    paths = _runtime_paths()
     try:
-        import ctranslate2
-        ct2["available"] = True
-        try:
-            ct2["cuda_device_count"] = int(ctranslate2.get_cuda_device_count())
-        except Exception as exc:
-            ct2["detail"] = str(exc)
+        payload = _validate_gpu(paths["model_root"], "small")
+        marker = _write_marker(paths, payload)
+        report = {
+            "passed": True,
+            "gpu_python": sys.executable,
+            "model": payload.get("model"),
+            "device": payload.get("device"),
+            "compute_type": payload.get("compute_type"),
+            "load_ms": payload.get("load_ms"),
+            "warmup_ms": payload.get("warmup_ms"),
+            "steady_ms": payload.get("steady_ms"),
+            "validation_marker": str(marker),
+            "cuda": payload.get("cuda"),
+            "recommendation": "GPU Audio siap. Pilih GPU atau Hybrid lalu gunakan profil Normal.",
+        }
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0
     except Exception as exc:
-        ct2["detail"] = str(exc)
-
-    passed = bool(ct2["available"] and ct2["cuda_device_count"] > 0 and all(v["available"] for v in dlls.values()))
-    report = {
-        "passed": passed,
-        "python": sys.executable,
-        "platform": platform.platform(),
-        "path_entries": len(os.environ.get("PATH", "").split(os.pathsep)),
-        "dlls": dlls,
-        "ctranslate2": ct2,
-        "recommendation": (
-            "GPU Audio siap untuk Faster-Whisper/Kotoba."
-            if passed
-            else "Pasang cuBLAS CUDA 12 dan cuDNN 9 yang cocok, pastikan folder DLL berada di PATH, lalu buka ulang ORT."
-        ),
-    }
-    print(json.dumps(report, ensure_ascii=False, indent=2))
-    return 0 if passed else 1
+        print(json.dumps({
+            "passed": False,
+            "gpu_python": sys.executable,
+            "error": str(exc),
+            "recommendation": "Jalankan INSTALL_AUDIO_GPU_V8_9_9_R2.bat, lalu buka ulang WebUI.",
+        }, ensure_ascii=False, indent=2))
+        return 1
 
 
 if __name__ == "__main__":

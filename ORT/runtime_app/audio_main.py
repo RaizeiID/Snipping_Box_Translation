@@ -44,6 +44,12 @@ def log(message: str) -> None:
     print(str(message), flush=True)
 
 
+
+def _has_semantic_audio_text(value: Any) -> bool:
+    text = " ".join(str(value or "").strip().split())
+    return any(char.isalnum() or "\u3040" <= char <= "\u30ff" or "\u4e00" <= char <= "\u9fff" for char in text)
+
+
 def _write_audio_status(**updates: Any) -> None:
     current = {
         "version": APP_VERSION_TAG,
@@ -852,6 +858,8 @@ class TranslationCoordinator(QObject):
         self._safe_mode = False
         self._restart_count = 0
         self._last_emitted_by_segment: dict[str, int] = {}
+        self._last_emitted_words_by_segment: dict[str, int] = {}
+        self._segment_seen_at: dict[str, float] = {}
         self._latest_segment_id = ""
 
     @staticmethod
@@ -947,7 +955,10 @@ class TranslationCoordinator(QObject):
         with self._lock:
             self._generation += 1
             item = {**event, "generation_id": self._generation, "received_at": time.perf_counter()}
-            self._latest_segment_id = str(item.get("segment_id") or self._latest_segment_id)
+            incoming_segment = str(item.get("segment_id") or self._latest_segment_id)
+            if incoming_segment and incoming_segment != self._latest_segment_id:
+                self._latest_segment_id = incoming_segment
+                self._segment_seen_at[incoming_segment] = time.monotonic()
             dropped = self._pending
             self._pending = item
             if dropped is not None:
@@ -985,6 +996,11 @@ class TranslationCoordinator(QObject):
             "quality": item.get("quality") or {},
             "quality_retry": bool(item.get("quality_retry")),
             "glossary_hits": item.get("glossary_hits") or [],
+            "stable": bool(item.get("stable")),
+            "revision": int(item.get("revision", 0) or 0),
+            "turn_context_words": int(item.get("turn_context_words", 0) or 0),
+            "turn_display_words": int(item.get("turn_display_words", 0) or 0),
+            "turn_context_truncated": bool(item.get("turn_context_truncated")),
         }
         try:
             proc.stdin.write(json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n")
@@ -1044,9 +1060,19 @@ class TranslationCoordinator(QObject):
                 segment_id = str(payload.get("segment_id") or "")
                 last_emitted = int(self._last_emitted_by_segment.get(segment_id, 0) or 0)
                 is_current_segment = not self._latest_segment_id or segment_id == self._latest_segment_id
-                should_emit = generation > last_emitted and is_current_segment
+                latest_words = int(self._last_emitted_words_by_segment.get(self._latest_segment_id, 0) or 0)
+                latest_age = time.monotonic() - float(self._segment_seen_at.get(self._latest_segment_id, time.monotonic()))
+                previous_final_grace = bool(
+                    payload.get("stable")
+                    and segment_id
+                    and segment_id != self._latest_segment_id
+                    and latest_words < 4
+                    and latest_age <= 1.8
+                )
+                should_emit = generation > last_emitted and (is_current_segment or previous_final_grace)
                 if should_emit:
                     self._last_emitted_by_segment[segment_id] = generation
+                    self._last_emitted_words_by_segment[segment_id] = len(str(payload.get("text") or "").split())
                 self._dispatch_locked()
             # v8.9.8: a completed translation is useful even when a newer ASR
             # revision of the same segment is already queued. The current-segment
@@ -1058,7 +1084,8 @@ class TranslationCoordinator(QObject):
             else:
                 self.log_received.emit(
                     f"[AUDIO {APP_VERSION_TAG}] superseded translation ignored | generation={generation} "
-                    f"segment={segment_id} current={self._latest_segment_id or '-'} last_emitted={last_emitted}"
+                    f"segment={segment_id} current={self._latest_segment_id or '-'} last_emitted={last_emitted} "
+                    f"latest_words={latest_words} latest_age_ms={int(latest_age * 1000)}"
                 )
             return
         if event_type == "error":
@@ -1696,7 +1723,11 @@ class AudioApplication(QObject):
             log(f"[AUDIO {APP_VERSION_TAG}] asr_state={state} | {json.dumps(event, ensure_ascii=False)}")
         elif event_type in {"partial_transcript", "transcript"}:
             source = str(event.get("text") or "").strip()
-            if not source:
+            if not source or not _has_semantic_audio_text(source):
+                log(
+                    f"[AUDIO {APP_VERSION_TAG}] nonsemantic partial suppressed | "
+                    f"segment={event.get('segment_id', '-')} | text={source or '<empty>'}"
+                )
                 return
             is_partial = event_type == "partial_transcript" or not bool(event.get("stable", event_type == "transcript"))
             local_live = bool(event.get("local_realtime"))
@@ -1852,7 +1883,21 @@ class AudioApplication(QObject):
 
     def _translation_ready(self, payload: dict) -> None:
         source = str(payload.get("text") or "")
+        if not _has_semantic_audio_text(source):
+            log(
+                f"[AUDIO {APP_VERSION_TAG}] nonsemantic translation suppressed | "
+                f"generation={payload.get('generation_id', '-')}"
+            )
+            return
         translated = str(payload.get("translation") or source)
+        if "[Terjemahan ditahan:" in translated:
+            # Keep the last useful subtitle visible instead of replacing it with
+            # a guard diagnostic. Diagnostics remain available in status/log.
+            log(
+                f"[AUDIO {APP_VERSION_TAG}] guarded translation kept off overlay | "
+                f"generation={payload.get('generation_id', '-')} | source={source}"
+            )
+            return
         engine = str(payload.get("translation_engine") or "unknown")
         status = f"{engine} · {int(payload.get('total_ms', 0) or 0)} ms"
         if payload.get("translation_error"):
@@ -1904,6 +1949,10 @@ class AudioApplication(QObject):
             bridge_language=payload.get("bridge_language", "en"),
             asr_task=payload.get("asr_task", "transcribe"),
             japanese_specialist=bool(payload.get("japanese_specialist")),
+            turn_context_words=int(payload.get("turn_context_words", 0) or 0),
+            turn_display_words=int(payload.get("turn_display_words", 0) or 0),
+            turn_context_truncated=bool(payload.get("turn_context_truncated")),
+            final_context_fallback=bool(payload.get("final_context_fallback")),
         )
         _append_audio_event("AUDIO_TRANSLATION_DISPLAYED", {
             "generation_id": payload.get("generation_id"),
@@ -1927,6 +1976,7 @@ class AudioApplication(QObject):
             f"[AUDIO {APP_VERSION_TAG}] displayed | generation={payload.get('generation_id')} | engine={engine} | "
             f"source_lang={payload.get('source_language') or payload.get('detected_language') or '-'} | "
             f"bridge={payload.get('bridge_language', 'en')} | task={payload.get('asr_task', '-')} | "
+            f"context_words={payload.get('turn_context_words', 0)} | display_words={payload.get('turn_display_words', 0)} | "
             f"total_ms={payload.get('total_ms')} | translation={translated}"
         )
 

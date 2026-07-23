@@ -16,6 +16,11 @@ from typing import Any, Callable, Deque, Optional
 
 import numpy as np
 
+from app.audio.cuda_bootstrap import activate_cuda_dll_search
+from app.audio.turn_context import RollingTurnContext
+
+CUDA_BOOTSTRAP = activate_cuda_dll_search()
+
 EVENT_PREFIX = "ORT_AUDIO_EVENT "
 TARGET_SAMPLE_RATE = 16000
 STOP_REQUESTED = False
@@ -49,6 +54,26 @@ def _install_signal_handlers() -> None:
 
 def _clean_text(value: Any) -> str:
     return " ".join(str(value or "").strip().split())
+
+
+
+def _has_semantic_text(value: Any) -> bool:
+    """Return True for text containing at least one letter/number/CJK symbol."""
+    text = _clean_text(value)
+    return any(char.isalnum() or "\u3040" <= char <= "\u30ff" or "\u4e00" <= char <= "\u9fff" for char in text)
+
+
+def _partial_growth(previous: str, current: str) -> float:
+    old = _clean_text(previous)
+    new = _clean_text(current)
+    if not old:
+        return 1.0
+    if new.lower().startswith(old.lower()):
+        return max(0.0, (len(new) - len(old)) / float(max(1, len(old))))
+    old_tokens = set(old.lower().split())
+    new_tokens = set(new.lower().split())
+    overlap = len(old_tokens & new_tokens) / float(max(1, len(old_tokens | new_tokens)))
+    return 1.0 - overlap
 
 
 def _language_code(value: str) -> Optional[str]:
@@ -142,37 +167,37 @@ def resolve_policy(profile: str, device: str) -> LocalRealtimePolicy:
     if profile_key in {"speed", "instant", "fast"}:
         return LocalRealtimePolicy(
             profile="speed",
-            first_partial_s=0.30 if gpu else 0.42,
-            partial_interval_s=0.28 if gpu else 0.46,
-            endpoint_s=0.28,
-            max_phrase_s=6.0,
-            pre_roll_s=0.20,
-            carry_over_s=0.22,
-            minimum_rms=0.0035,
-            noise_multiplier=2.4,
+            first_partial_s=0.34 if gpu else 0.46,
+            partial_interval_s=0.30 if gpu else 0.46,
+            endpoint_s=0.46,
+            max_phrase_s=8.0,
+            pre_roll_s=0.30,
+            carry_over_s=0.55,
+            minimum_rms=0.0032,
+            noise_multiplier=2.25,
         )
     if profile_key in {"accurate", "quality"}:
         return LocalRealtimePolicy(
             profile="accurate",
-            first_partial_s=0.55 if gpu else 0.75,
-            partial_interval_s=0.52 if gpu else 0.80,
-            endpoint_s=0.48,
-            max_phrase_s=10.0,
-            pre_roll_s=0.28,
-            carry_over_s=0.32,
-            minimum_rms=0.0045,
-            noise_multiplier=3.0,
+            first_partial_s=0.64 if gpu else 0.84,
+            partial_interval_s=0.58 if gpu else 0.86,
+            endpoint_s=0.76,
+            max_phrase_s=16.0,
+            pre_roll_s=0.42,
+            carry_over_s=1.00,
+            minimum_rms=0.0038,
+            noise_multiplier=2.65,
         )
     return LocalRealtimePolicy(
         profile="normal",
-        first_partial_s=0.40 if gpu else 0.50,
-        partial_interval_s=0.38 if gpu else 0.58,
-        endpoint_s=0.35,
-        max_phrase_s=8.0,
-        pre_roll_s=0.24,
-        carry_over_s=0.28,
-        minimum_rms=0.0040,
-        noise_multiplier=2.7,
+        first_partial_s=0.46 if gpu else 0.58,
+        partial_interval_s=0.42 if gpu else 0.58,
+        endpoint_s=0.62,
+        max_phrase_s=12.0,
+        pre_roll_s=0.36,
+        carry_over_s=0.75,
+        minimum_rms=0.0035,
+        noise_multiplier=2.45,
     )
 
 
@@ -189,16 +214,26 @@ class Snapshot:
 class LatestSnapshotMailbox:
     """Keeps only the newest interim while never discarding a final snapshot."""
 
-    def __init__(self) -> None:
+    def __init__(self, max_finals: int = 2) -> None:
         self._condition = threading.Condition()
         self._latest_partial: Optional[Snapshot] = None
         self._finals: Deque[Snapshot] = deque()
+        self._max_finals = max(1, int(max_finals))
         self._closed = False
 
     def put(self, snapshot: Snapshot) -> None:
         with self._condition:
             if snapshot.stable:
                 self._latest_partial = None
+                while len(self._finals) >= self._max_finals:
+                    dropped = self._finals.popleft()
+                    emit_event(
+                        "metric",
+                        name="realtime_final_backpressure_drop",
+                        dropped_segment=dropped.result_id,
+                        kept_segment=snapshot.result_id,
+                        local_realtime=True,
+                    )
                 self._finals.append(snapshot)
             else:
                 self._latest_partial = snapshot
@@ -495,7 +530,7 @@ def _asr_quality_reasons(text: str, audio_seconds: float, task: str) -> list[str
         # A few Japanese names are acceptable, but a bridge dominated by Japanese
         # cannot be sent to the English->Indonesian translator.
         jp_chars = sum(1 for char in clean if "\u3040" <= char <= "\u30ff" or "\u4e00" <= char <= "\u9fff")
-        if jp_chars / max(1, len(clean)) >= 0.30:
+        if jp_chars / max(1, len(clean)) >= 0.45:
             reasons.append("BRIDGE_NOT_ENGLISH")
     return sorted(set(reasons))
 
@@ -634,22 +669,30 @@ class ModelAdapter:
         )
         language = "en" if specialist and source_language == "ja" else (source_language or "en")
         task = "translate" if source_language not in {None, "en"} else "transcribe"
-        segments, _ = model.transcribe(
-            np.zeros(int(TARGET_SAMPLE_RATE * 0.25), dtype=np.float32),
-            language=language,
-            task=task,
-            beam_size=1,
-            best_of=1,
-            temperature=0.0,
-            condition_on_previous_text=False,
-            vad_filter=False,
-            without_timestamps=True,
-        )
-        list(segments)
+        timeline = np.arange(int(TARGET_SAMPLE_RATE * 0.60), dtype=np.float32) / float(TARGET_SAMPLE_RATE)
+        probe_audio = (0.006 * np.sin(2.0 * np.pi * 440.0 * timeline)).astype(np.float32)
+        timings: list[int] = []
+        for _index in range(2):
+            tick = time.perf_counter()
+            segments, _ = model.transcribe(
+                probe_audio,
+                language=language,
+                task=task,
+                beam_size=1,
+                best_of=1,
+                temperature=0.0,
+                condition_on_previous_text=False,
+                vad_filter=False,
+                without_timestamps=True,
+            )
+            list(segments)
+            timings.append(max(0, int((time.perf_counter() - tick) * 1000.0)))
         emit_event(
             "state",
             state="CUDA_PREFLIGHT_PASSED",
             model="kotoba-bilingual" if specialist else self.model_size,
+            warmup_ms=timings[0],
+            steady_ms=timings[1],
             local_realtime=True,
         )
 
@@ -834,6 +877,7 @@ class ModelAdapter:
         source_language: Optional[str],
         specialist: bool,
         retry: bool = False,
+        stable: bool = False,
     ) -> tuple[str, Any, str]:
         if specialist and source_language == "ja":
             language_for_model = "en"
@@ -844,22 +888,35 @@ class ModelAdapter:
         else:
             language_for_model = source_language
             task = "translate"
+        specialist_gpu = bool(specialist and source_language == "ja" and self.device == "cuda")
+        if specialist_gpu:
+            if self.profile in {"accurate", "quality"}:
+                beam_size = 4 if stable else 3
+            elif self.profile in {"speed", "instant", "fast"}:
+                beam_size = 2 if stable else 1
+            else:
+                beam_size = 3 if stable else 2
+        elif specialist and source_language == "ja":
+            beam_size = 2 if stable and self.profile in {"accurate", "quality"} else 1
+        else:
+            beam_size = 1
         kwargs = {
             "language": language_for_model,
             "task": task,
-            "beam_size": 1,
-            "best_of": 1,
-            "temperature": 0.2 if retry else 0.0,
+            "beam_size": beam_size,
+            "best_of": max(1, beam_size),
+            "patience": 1.0,
+            "temperature": 0.15 if retry else 0.0,
             "condition_on_previous_text": False,
             "vad_filter": False,
             "word_timestamps": False,
             "without_timestamps": True,
             "initial_prompt": None,
-            "repetition_penalty": 1.18 if retry else 1.12,
+            "repetition_penalty": 1.16 if retry else 1.10,
             "no_repeat_ngram_size": 4 if retry else 3,
-            "compression_ratio_threshold": 1.9,
-            "log_prob_threshold": -1.0,
-            "no_speech_threshold": 0.65,
+            "compression_ratio_threshold": 2.15 if specialist else 2.0,
+            "log_prob_threshold": -1.25 if specialist else -1.0,
+            "no_speech_threshold": 0.52 if specialist else 0.62,
         }
         segments, info = model.transcribe(audio, **kwargs)
         text = self._soft_glossary(" ".join(str(item.text or "") for item in segments))
@@ -883,6 +940,7 @@ class ModelAdapter:
         source_language: str,
         specialist: bool,
         allow_retry: bool,
+        stable: bool = False,
     ) -> tuple[str, Any, str, list[str], bool, float]:
         duration_s = len(audio) / float(TARGET_SAMPLE_RATE)
         text, info, task = self._transcribe_once(
@@ -890,6 +948,7 @@ class ModelAdapter:
             audio,
             None if source_language == "auto" else source_language,
             specialist=specialist,
+            stable=stable,
         )
         reasons = _asr_quality_reasons(text, duration_s, task)
         quality_retry = False
@@ -902,6 +961,7 @@ class ModelAdapter:
                 None if source_language == "auto" else source_language,
                 specialist=specialist,
                 retry=True,
+                stable=True,
             )
             retry_reasons = _asr_quality_reasons(
                 retry_text,
@@ -937,6 +997,7 @@ class ModelAdapter:
                 "ja",
                 specialist=True,
                 allow_retry=False,
+                stable=True,
             )
         detected = str(getattr(info, "language", "ja") or "ja")
         probability = float(getattr(info, "language_probability", 1.0) or 1.0)
@@ -974,17 +1035,37 @@ class ModelAdapter:
             active_model = self.fast_preview_model if use_fast_preview else self.model
             active_specialist = bool(self.specialist_active and not use_fast_preview)
             inference_audio = audio
+            japanese_context = source_language == "ja"
+            if self.profile in {"speed", "instant", "fast"}:
+                window_s = (8.0 if stable else 5.5) if japanese_context else (7.0 if stable else 4.5)
+            elif self.profile in {"accurate", "quality"}:
+                window_s = (16.0 if stable else 10.0) if japanese_context else (14.0 if stable else 8.0)
+            else:
+                window_s = (12.0 if stable else 7.5) if japanese_context else (10.0 if stable else 6.0)
+            if self.device != "cuda":
+                if self.profile in {"speed", "instant", "fast"}:
+                    window_s = 3.8 if stable else 2.4
+                elif self.profile in {"accurate", "quality"}:
+                    window_s = 8.0 if stable else 4.5
+                else:
+                    window_s = 6.0 if stable else 3.2
             if use_fast_preview and not stable:
-                # Keep the preview responsive while the speaker is still talking.
-                maximum = int(3.2 * TARGET_SAMPLE_RATE)
-                if len(inference_audio) > maximum:
-                    inference_audio = inference_audio[-maximum:]
+                window_s = min(window_s, 4.0)
+            maximum = int(window_s * TARGET_SAMPLE_RATE)
+            if len(inference_audio) > maximum:
+                inference_audio = inference_audio[-maximum:]
+            allow_quality_retry = bool(
+                stable
+                and not use_fast_preview
+                and self.profile in {"accurate", "quality"}
+            )
             text, info, task, reasons, quality_retry, _duration = self._run_transcription(
                 active_model,
                 inference_audio,
                 source_language,
                 specialist=active_specialist,
-                allow_retry=not use_fast_preview,
+                allow_retry=allow_quality_retry,
+                stable=stable,
             )
             self._last_reject_reasons = reasons
 
@@ -1141,10 +1222,16 @@ class SpecialistCorrectionWorker:
 class StreamingInferenceWorker:
     def __init__(self, model: Any) -> None:
         self.model = model
-        self.mailbox = LatestSnapshotMailbox()
+        profile = str(getattr(model, "profile", "normal") or "normal").lower()
+        self.mailbox = LatestSnapshotMailbox(max_finals=4 if profile in {"accurate", "quality"} else 2)
         self.stop_event = threading.Event()
         self.thread = threading.Thread(target=self._run, name="ort-local-realtime-asr", daemon=True)
         self.last_text_by_result: dict[str, str] = {}
+        self.last_emit_at_by_result: dict[str, float] = {}
+        self.last_reject_at_by_result: dict[str, float] = {}
+        self.profile = profile
+        display_words = 92 if profile in {"accurate", "quality"} else 72 if profile == "normal" else 56
+        self.turn_context = RollingTurnContext(max_history_words=240, display_words=display_words)
         self.final_done: dict[str, threading.Event] = {}
         self.correction_worker: Optional[SpecialistCorrectionWorker] = None
         if bool(getattr(model, "specialist_correction_enabled", False)):
@@ -1172,6 +1259,58 @@ class StreamingInferenceWorker:
         if self.correction_worker is not None:
             self.correction_worker.stop()
 
+    def _minimum_display_interval(self) -> float:
+        if self.profile in {"speed", "instant", "fast"}:
+            return 0.30
+        if self.profile in {"accurate", "quality"}:
+            return 0.58
+        return 0.46
+
+    def _should_emit_partial(self, result_id: str, previous: str, current: str, now: float) -> bool:
+        if not _has_semantic_text(current):
+            return False
+        if not previous:
+            return True
+        if _clean_text(previous).casefold() == _clean_text(current).casefold():
+            return False
+        elapsed = now - float(self.last_emit_at_by_result.get(result_id, 0.0) or 0.0)
+        if elapsed >= self._minimum_display_interval():
+            return True
+        # Allow fast prefix growth, but coalesce full rewrites. Rolling ASR may
+        # revise every word at 300 ms; displaying each revision makes the
+        # Indonesian subtitle look broken even though inference is fast.
+        old = _clean_text(previous)
+        clean = _clean_text(current)
+        prefix_growth = clean.casefold().startswith(old.casefold()) and len(clean) >= len(old) + max(4, int(len(old) * 0.30))
+        if prefix_growth:
+            return True
+        # A completed clause may appear slightly before the normal interval, but
+        # never on every 300 ms rewrite.
+        if clean.endswith((".", "!", "?", "…")) and len(clean) >= 5:
+            return elapsed >= self._minimum_display_interval() * 0.65
+        return False
+
+    def _emit_reject_throttled(self, snapshot: Snapshot, metadata: dict) -> None:
+        now = time.monotonic()
+        last = float(self.last_reject_at_by_result.get(snapshot.result_id, 0.0) or 0.0)
+        reasons = list(metadata.get("quality_reject_reasons") or ["EMPTY", "NO_SPEECH"])
+        important = any(reason not in {"EMPTY", "NO_SPEECH"} for reason in reasons)
+        if not snapshot.stable and not important and now - last < 1.2:
+            return
+        self.last_reject_at_by_result[snapshot.result_id] = now
+        emit_event(
+            "quality_reject",
+            segment_id=snapshot.result_id,
+            reasons=reasons,
+            metrics={
+                "audio_seconds": snapshot.audio_seconds,
+                "asr_ms": metadata.get("asr_ms", 0),
+                "quality_retry": bool(metadata.get("quality_retry")),
+            },
+            overlay_visible=False,
+            local_realtime=True,
+        )
+
     def _run(self) -> None:
         while not self.stop_event.is_set():
             snapshot = self.mailbox.get(0.2)
@@ -1180,24 +1319,36 @@ class StreamingInferenceWorker:
             try:
                 text, metadata = self.model.transcribe(snapshot.samples, stable=snapshot.stable)
                 previous = self.last_text_by_result.get(snapshot.result_id, "")
-                if not text:
-                    reasons = list(metadata.get("quality_reject_reasons") or ["EMPTY", "NO_SPEECH"])
-                    emit_event(
-                        "quality_reject",
-                        segment_id=snapshot.result_id,
-                        reasons=reasons,
-                        metrics={
-                            "audio_seconds": snapshot.audio_seconds,
-                            "asr_ms": metadata.get("asr_ms", 0),
-                            "quality_retry": bool(metadata.get("quality_retry")),
-                        },
-                        overlay_visible=False,
-                        local_realtime=True,
-                    )
+                final_context_fallback = bool(
+                    snapshot.stable
+                    and previous
+                    and (not text or not _has_semantic_text(text))
+                )
+                if final_context_fallback:
+                    text = previous
+                    metadata.pop("quality_reject_reasons", None)
+                    metadata["final_context_fallback"] = True
+                    metadata["turn_context_words"] = len(previous.split())
+                    metadata["turn_display_words"] = len(previous.split())
+                    metadata["turn_context_truncated"] = previous.startswith("… ")
+                    metadata["turn_context_revision"] = 0
+                    metadata["turn_appended_words"] = 0
+                elif not text or not _has_semantic_text(text):
+                    self._emit_reject_throttled(snapshot, metadata)
                     continue
-                if not snapshot.stable and text == previous:
+                if not final_context_fallback:
+                    context = self.turn_context.update(snapshot.result_id, text, stable=snapshot.stable)
+                    text = context.text
+                    metadata["turn_context_words"] = context.full_words
+                    metadata["turn_display_words"] = context.words
+                    metadata["turn_context_truncated"] = context.truncated
+                    metadata["turn_context_revision"] = context.revisions
+                    metadata["turn_appended_words"] = context.appended_words
+                now = time.monotonic()
+                if not snapshot.stable and not self._should_emit_partial(snapshot.result_id, previous, text, now):
                     continue
                 self.last_text_by_result[snapshot.result_id] = text
+                self.last_emit_at_by_result[snapshot.result_id] = now
                 event_type = "transcript" if snapshot.stable else "partial_transcript"
                 model_used = str(metadata.pop("model_used", getattr(self.model, "model_size", "")))
                 emit_event(
@@ -1234,6 +1385,7 @@ class StreamingInferenceWorker:
                 if snapshot.stable:
                     self.final_done.setdefault(snapshot.result_id, threading.Event()).set()
                     emit_event("segment_complete", segment_id=snapshot.result_id, local_realtime=True)
+                    self.turn_context.clear(snapshot.result_id)
 
 
 class UtteranceController:
@@ -1244,6 +1396,7 @@ class UtteranceController:
         self.pre_roll_samples = 0
         self.active_chunks: list[np.ndarray] = []
         self.active_samples = 0
+        self.turn_samples = 0
         self.active_result_id = ""
         self.revision = 0
         self.last_voice_at = 0.0
@@ -1264,6 +1417,7 @@ class UtteranceController:
         self.active_result_id = f"live-{int(now * 1000)}-{self.sequence:06d}"
         self.active_chunks = [item.copy() for item in self.pre_roll]
         self.active_samples = sum(len(item) for item in self.active_chunks)
+        self.turn_samples = self.active_samples
         self.revision = 0
         self.last_voice_at = now
         self.last_partial_at = 0.0
@@ -1288,6 +1442,24 @@ class UtteranceController:
             audio_seconds=len(samples) / float(TARGET_SAMPLE_RATE),
         )
 
+    def _trim_active_window(self) -> None:
+        """Keep ASR memory bounded without ending the active speaking turn."""
+        maximum = max(1, int(self.policy.max_phrase_s * TARGET_SAMPLE_RATE))
+        if self.active_samples <= maximum:
+            return
+        full = np.concatenate(self.active_chunks).astype(np.float32, copy=False)
+        kept = full[-maximum:].astype(np.float32, copy=True)
+        self.active_chunks = [kept]
+        self.active_samples = len(kept)
+        emit_event(
+            "metric",
+            name="continuous_turn_window_shift",
+            segment_id=self.active_result_id,
+            retained_audio_seconds=round(self.active_samples / float(TARGET_SAMPLE_RATE), 3),
+            turn_audio_seconds=round(self.turn_samples / float(TARGET_SAMPLE_RATE), 3),
+            local_realtime=True,
+        )
+
     def _finish(self, now: float, carry: bool) -> str:
         result_id = self.active_result_id
         snapshot = self._snapshot(True, now)
@@ -1300,6 +1472,7 @@ class UtteranceController:
             self.worker.submit(snapshot)
         self.active_chunks = []
         self.active_samples = 0
+        self.turn_samples = 0
         self.active_result_id = ""
         self.revision = 0
         self.last_partial_at = 0.0
@@ -1333,10 +1506,11 @@ class UtteranceController:
         if not started_now:
             self.active_chunks.append(samples.copy())
             self.active_samples += len(samples)
+            self.turn_samples += len(samples)
         if speech:
             self.last_voice_at = current
 
-        duration = self.active_samples / float(TARGET_SAMPLE_RATE)
+        duration = self.turn_samples / float(TARGET_SAMPLE_RATE)
         if duration >= self.policy.first_partial_s:
             if self.last_partial_at <= 0.0 or current - self.last_partial_at >= self.policy.partial_interval_s:
                 snapshot = self._snapshot(False, current)
@@ -1344,9 +1518,8 @@ class UtteranceController:
                     self.worker.submit(snapshot)
                     self.last_partial_at = current
 
-        if duration >= self.policy.max_phrase_s:
-            self._finish(current, carry=True)
-            return
+        if self.active_samples / float(TARGET_SAMPLE_RATE) > self.policy.max_phrase_s:
+            self._trim_active_window()
         if not speech and current - self.last_voice_at >= self.policy.endpoint_s:
             self._finish(current, carry=False)
 
@@ -1484,6 +1657,8 @@ def run_stream(args: argparse.Namespace) -> int:
             japanese_specialist=bool(model.specialist_active),
             language_correction=model.language_watchdog.policy.mode,
             language_locked=model.language_locked,
+            continuous_turn_context=True,
+            context_history_words=240,
             local_realtime=True,
             **active_policy.as_dict(),
         )

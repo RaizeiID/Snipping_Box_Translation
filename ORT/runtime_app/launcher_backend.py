@@ -107,6 +107,35 @@ def _save_json(path: Path, data):
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+
+def _validated_cuda_baseline_ready(resolution: dict, *, model: str = "small") -> bool:
+    """Trust a recent real-inference CUDA marker as a baseline for Hybrid.
+
+    The active ASR model still performs its own CUDA preflight before streaming.
+    This prevents Accurate + Japanese Specialist from being forced to CPU merely
+    because the profile's generic model marker (for example medium) is absent.
+    """
+    try:
+        runtime = resolution.get("runtime") or {}
+        gpu = runtime.get("gpu") or {}
+        if not gpu.get("ready"):
+            return False
+        paths = audio_runtime_paths(BASE_DIR)
+        marker = paths["gpu_root"] / f"validated_cuda_{model}.json"
+        data = _load_json(marker, {})
+        validated_at = float(data.get("validated_at", 0.0) or 0.0)
+        marker_fresh = validated_at > 0 and (time.time() - validated_at) <= 30 * 24 * 3600
+        return bool(
+            data.get("ready")
+            and data.get("model") == model
+            and data.get("device") == "cuda"
+            and data.get("compute_type") == "int8_float16"
+            and marker_fresh
+        )
+    except Exception:
+        return False
+
+
 def get_runtime_config():
     cfg = _load_json(RUNTIME_CFG, {})
     runtime_root = cfg.get("runtime_root") or str(BASE_DIR / "_runtime")
@@ -1195,6 +1224,28 @@ class ProcessManager:
                 "runtime": {},
             }
         )
+        # v8.9.9 R2 fix: the GPU installer validates Faster-Whisper Small as
+        # the CUDA baseline. Accurate normally asks for a Medium marker, but a
+        # Japanese session actually loads Kotoba and performs a model-specific
+        # preflight. Do not force that session into CPU Guard before Kotoba gets
+        # a chance to validate itself. CPU fallback remains installed and the
+        # sidecar still falls back safely when the active-model preflight fails.
+        japanese_gpu_candidate = language in {
+            "ja", "ja-jp", "ja_specialist", "ja-specialist",
+            "japanese_specialist", "japanese-specialist",
+        }
+        if (
+            requested_audio_mode == "hybrid"
+            and str(local_resolution.get("effective_mode") or "") == "cpu_guard"
+            and japanese_gpu_candidate
+            and bool(local_resolution.get("ready"))
+            and _validated_cuda_baseline_ready(local_resolution, model="small")
+        ):
+            local_resolution = dict(local_resolution)
+            local_resolution["effective_mode"] = "hybrid"
+            local_resolution["reason"] = "HYBRID_CUDA_BASELINE_READY_ACTIVE_MODEL_PREFLIGHT"
+            local_resolution["gpu_model_validated"] = True
+            local_resolution["hybrid_cuda_baseline_model"] = "small"
         probe_realtime_cloud = bool(
             requested_audio_usage == "live_media"
             and requested_audio_engine in {"azure", "azure_fallback"}
@@ -1435,7 +1486,11 @@ class ProcessManager:
             "ORT_AUDIO_FALLBACK_MODEL": plan.fallback.model_size if plan.fallback else "",
             "ORT_AUDIO_CPU_PYTHON": str(audio_paths["cpu_python"]),
             "ORT_AUDIO_GPU_PYTHON": str(audio_paths["gpu_python"]),
-            "ORT_AUDIO_CAPTURE_PYTHON": str(probe.get("capture_python") or audio_paths["cpu_python"]),
+            "ORT_AUDIO_CAPTURE_PYTHON": str(
+                audio_paths["gpu_python"]
+                if effective_audio_mode in {"gpu", "hybrid"}
+                else (probe.get("capture_python") or audio_paths["cpu_python"])
+            ),
             "ORT_AUDIO_MODEL_ROOT": str(audio_paths["model_root"]),
             "ORT_AUDIO_SPOOL_ROOT": str(audio_paths["spool_root"]),
             "ORT_DIALOGUE_COMPLETENESS_GATE": "0",

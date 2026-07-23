@@ -1,3 +1,73 @@
+# CHANGELOG — ORT Translation v8.9.9 R2 F2
+
+## Long-Turn Context & Japanese Accuracy Fix
+
+### Added
+- `RollingTurnContext` dengan committed prefix dan replaceable live tail.
+- Konteks internal maksimal 240 kata dengan display window profil: Speed 56, Normal 72, Accurate 92 kata.
+- Telemetry `continuous_turn_window_shift`, `turn_context_words`, `turn_display_words`, dan `final_context_fallback`.
+
+### Changed
+- Batas 6–10 detik sekarang menjadi ukuran rolling audio window, bukan pemutus paksa dialog.
+- Speed/Normal/Accurate memakai endpoint 460/620/760 ms untuk mempertahankan jeda singkat.
+- Jendela GPU Jepang menjadi 5,5/7,5/10 detik untuk partial dan 8/12/16 detik untuk final.
+- Kotoba GPU: Speed beam 1/2, Normal beam 2/3, Accurate beam 3/4 untuk partial/final.
+- Threshold no-speech Japanese Specialist dilonggarkan menjadi 0,52 dan bridge Japanese guard menjadi 45% karakter Jepang.
+
+### Fixed
+- Terjemahan yang kembali pendek setiap rolling window walaupun karakter masih berbicara.
+- Segment reset pada dialog panjang tanpa jeda.
+- Final previous speaker yang dibuang ketika pembicara baru hanya sempat menghasilkan satu sampai tiga kata.
+- Final kosong yang menghapus konteks partial berguna.
+- Revisi ASR panjang yang ditempel sebagai kalimat duplikat alih-alih mengganti tail tidak stabil.
+
+### Preserved
+- Nomor versi tetap v8.9.9.
+- GPU preflight, CUDA runtime R2, Hybrid fallback, dan subtitle continuity F1 tetap aktif.
+- CPU Normal tetap memakai jendela inference 3,2 detik partial / 6 detik final; konteks panjang dibangun oleh assembler agar latency CPU tidak meningkat tajam.
+
+# CHANGELOG — ORT Translation v8.9.9 R2 F1
+
+## Hybrid Startup & Subtitle Continuity Fix
+
+### Fixed
+- Hybrid + Accurate + Japanese tidak lagi dipaksa ke CPU Guard hanya karena marker `validated_cuda_medium.json` belum ada. Marker Small hasil inferensi nyata dipakai sebagai baseline CUDA, lalu Kotoba melakukan preflight spesifik sebelum streaming.
+- Runtime capture mengikuti GPU runtime ketika mode efektif GPU/Hybrid.
+- Output `.` atau tanda baca tunggal tidak lagi masuk antrean penerjemah maupun menggantikan overlay.
+- Pesan `[Terjemahan ditahan: ...]` tetap dicatat di log tetapi tidak menimpa subtitle terakhir yang berguna.
+- Partial rolling yang hanya berubah sedikit digabung agar preview Inggris dan Indonesia lebih stabil.
+- Spam `EMPTY,NO_SPEECH` dibatasi tanpa memperketat penerimaan dialog bermakna.
+
+### Preserved
+- Nomor versi tetap v8.9.9.
+- GPU preflight nyata dan CPU fallback R2 tetap aktif.
+- Partial pertama tetap dapat muncul segera; hotfix bukan final-only mode.
+
+# CHANGELOG — ORT Translation v8.9.9 R2
+
+## GPU Runtime
+- Menambahkan installer/repair GPU mandiri untuk environment `ORT_Runtime/audio_gpu/.venv`.
+- Menambahkan paket CUDA 12.4, cuBLAS 12, cuDNN 9, CUDA runtime, dan NVRTC pada environment GPU.
+- Menambahkan CUDA DLL bootstrap dari paket `nvidia/*/bin`, CUDA Toolkit, atau cuDNN lokal.
+- Mengganti pemeriksaan GPU semu dengan load model dan dua inferensi nyata.
+- Marker `validated_cuda_small.json` hanya ditulis `ready=true` setelah inferensi nyata berhasil.
+- CUDA preflight live memakai sinyal non-zero dan mencatat `warmup_ms` serta `steady_ms`.
+
+## Normal Realtime Stability
+- Normal CPU memakai Faster-Whisper Base INT8; Normal GPU memakai Small INT8-Float16.
+- Beam dan best-of Normal diturunkan ke 1 untuk mengurangi waktu inferensi berulang.
+- Jendela partial Normal dibatasi: sekitar 3,2 detik pada CPU dan 4 detik pada GPU.
+- Jendela final Normal dibatasi sekitar 6 detik.
+- Quality retry ganda hanya aktif pada Accurate/Quality.
+- Antrean final Normal dibatasi dua segmen; saat backlog terjadi, segmen lama dilepas dan event `realtime_final_backpressure_drop` dicatat.
+
+## Safety
+- GPU tidak dialihkan diam-diam atau ditandai siap ketika DLL/inferensi gagal.
+- CPU Guard tetap tersedia dan tidak membutuhkan paket CUDA.
+- Model, environment, dan DLL NVIDIA tidak dimasukkan ke ZIP patch.
+
+---
+
 # ORT v8.9.9 R1 - Live Preview & CPU Dual-Stream Performance Hotfix
 
 - Restored English/source preview by default (`ORT_AUDIO_SHOW_SOURCE=1`).
