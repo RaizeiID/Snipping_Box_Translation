@@ -37,6 +37,12 @@ _PRESETS: tuple[PipelinePreset, ...] = (
         "ort_ocr", "ort_rms_vad", "ort_faster_whisper", "ort_rolling_context", "ortcore_fast_v2",
     ),
     PipelinePreset(
+        "japanese_live_lab", "Japanese Live Lab · Recommended",
+        "Executor Audio Lab: WASAPI, RMS/VAD, Japanese Specialist, Confirmed Prefix, dan bridge JA→EN→ID.",
+        "ort_wasapi", "ort_rms_vad", "ort_japanese_specialist", "confirmed_prefix", "ja_en_id_bridge",
+        experimental=True,
+    ),
+    PipelinePreset(
         "japanese_accuracy_lab", "Japanese Accuracy Lab",
         "Kotoba CUDA, Silero endpointing, confirmed prefix, dan rute direct JA→ID ketika provider tersedia.",
         "ort_wasapi", "silero_vad", "ort_japanese_specialist", "confirmed_prefix", "direct_ja_id",

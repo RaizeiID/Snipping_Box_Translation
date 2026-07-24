@@ -658,21 +658,22 @@ class ModelAdapter:
             local_realtime=True,
         )
 
-    def _cuda_preflight(self, model: Any, specialist: bool, source_language: Optional[str]) -> None:
-        if self.device != "cuda":
-            return
+    def _runtime_preflight(self, model: Any, specialist: bool, source_language: Optional[str], device: str) -> None:
+        state_prefix = "CUDA" if device == "cuda" else "CPU"
         emit_event(
             "state",
-            state="CUDA_PREFLIGHT",
+            state=f"{state_prefix}_PREFLIGHT",
             model="kotoba-bilingual" if specialist else self.model_size,
             local_realtime=True,
         )
         language = "en" if specialist and source_language == "ja" else (source_language or "en")
         task = "translate" if source_language not in {None, "en"} else "transcribe"
-        timeline = np.arange(int(TARGET_SAMPLE_RATE * 0.60), dtype=np.float32) / float(TARGET_SAMPLE_RATE)
+        duration = 0.60 if device == "cuda" else 0.32
+        timeline = np.arange(int(TARGET_SAMPLE_RATE * duration), dtype=np.float32) / float(TARGET_SAMPLE_RATE)
         probe_audio = (0.006 * np.sin(2.0 * np.pi * 440.0 * timeline)).astype(np.float32)
+        passes = 2 if device == "cuda" else 1
         timings: list[int] = []
-        for _index in range(2):
+        for _index in range(passes):
             tick = time.perf_counter()
             segments, _ = model.transcribe(
                 probe_audio,
@@ -685,24 +686,29 @@ class ModelAdapter:
                 vad_filter=False,
                 without_timestamps=True,
             )
+            # faster-whisper returns a generator; consuming it is required to
+            # execute inference and make the preload real rather than cosmetic.
             list(segments)
             timings.append(max(0, int((time.perf_counter() - tick) * 1000.0)))
         emit_event(
             "state",
-            state="CUDA_PREFLIGHT_PASSED",
+            state=f"{state_prefix}_PREFLIGHT_PASSED",
             model="kotoba-bilingual" if specialist else self.model_size,
             warmup_ms=timings[0],
-            steady_ms=timings[1],
+            steady_ms=timings[-1],
             local_realtime=True,
         )
+
+    def _cuda_preflight(self, model: Any, specialist: bool, source_language: Optional[str]) -> None:
+        self._runtime_preflight(model, specialist, source_language, "cuda")
 
     def _load(self, size: str, device: str, compute_type: str, specialist: bool = False, run_preflight: bool = True) -> None:
         previous_device = self.device
         self.device = device
         try:
             model, location = self._construct_model(size, device, compute_type)
-            if run_preflight and device == "cuda":
-                self._cuda_preflight(model, specialist, self.session_language or self.language)
+            if run_preflight:
+                self._runtime_preflight(model, specialist, self.session_language or self.language, device)
             self.model = model
             self.model_size = size
             self.compute_type = compute_type
@@ -1614,6 +1620,33 @@ def _stream_wav(controller: UtteranceController, path: Path, policy: LocalRealti
             time.sleep(len(audio_16k) / float(TARGET_SAMPLE_RATE))
 
 
+def _wait_for_start_gate(path_value: str, timeout_s: float = 180.0) -> None:
+    token = str(path_value or "").strip()
+    if not token:
+        return
+    gate = Path(token).expanduser().resolve()
+    emit_event(
+        "state",
+        state="PRELOAD_WAITING_FOR_START",
+        start_gate=str(gate),
+        local_realtime=True,
+    )
+    deadline = time.monotonic() + max(10.0, float(timeout_s))
+    while not STOP_REQUESTED:
+        if gate.is_file():
+            emit_event(
+                "state",
+                state="PRELOAD_ACTIVATED",
+                start_gate=str(gate),
+                local_realtime=True,
+            )
+            return
+        if time.monotonic() >= deadline:
+            raise TimeoutError(f"Audio Lab preload gate timeout: {gate}")
+        time.sleep(0.05)
+    raise RuntimeError("Audio Lab dihentikan sebelum capture diaktifkan.")
+
+
 def run_stream(args: argparse.Namespace) -> int:
     requested_language = str(args.language or "auto")
     language = _language_code(requested_language)
@@ -1662,6 +1695,7 @@ def run_stream(args: argparse.Namespace) -> int:
             local_realtime=True,
             **active_policy.as_dict(),
         )
+        _wait_for_start_gate(args.start_gate_file)
         if args.input_mode == "file":
             test_path = Path(args.test_file).expanduser().resolve()
             if not test_path.is_file():
@@ -1781,6 +1815,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--allow-cpu-fallback", action="store_true")
     parser.add_argument("--language-correction", default=os.environ.get("ORT_AUDIO_LANGUAGE_AUTOCORRECT", "balanced"))
     parser.add_argument("--language-lock", action="store_true", default=str(os.environ.get("ORT_AUDIO_LANGUAGE_LOCK", "0")).lower() in {"1", "true", "yes", "on"})
+    parser.add_argument("--start-gate-file", default=os.environ.get("ORT_AUDIO_START_GATE_FILE", ""))
     return parser
 
 

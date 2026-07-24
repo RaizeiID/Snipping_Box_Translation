@@ -14,17 +14,21 @@ REQUIRED_ROOT = (
     "START_HERE.bat", "Start WebUI.bat", "Start OCR.bat", "Runtime.bat", "ORT v9 Setup.bat", "VERSION.txt",
 )
 REQUIRED_APP = (
-    "webui.py", "build_info.py", "launcher_backend.py", "RUNTIME.bat", "Start_ORT_Translation.bat",
+    "webui.py", "build_info.py", "launcher_backend.py", "audio_main.py", "audio_realtime_local_sidecar.py",
+    "ORTCORE_VERSION.txt", "TITANCORE_VERSION.txt", "RUNTIME.bat", "Start_ORT_Translation.bat",
     "app/open_architecture/__init__.py",
     "app/open_architecture/paths.py",
     "app/open_architecture/registry.py",
     "app/open_architecture/pipeline.py",
     "app/open_architecture/lab.py",
     "app/open_architecture/event_bus.py",
+    "app/open_architecture/executor.py",
+    "app/open_architecture/runtime_control.py",
     "app/open_architecture/streaming/confirmed_prefix.py",
     "tools/migrate_v9_structure.py",
     "tools/export_source_light_v9.py",
     "tools/v9_0_0_open_architecture_layout_test.py",
+    "tools/v9_0_1_audio_lab_stability_test.py",
 )
 
 
@@ -46,7 +50,9 @@ def resolve_app(project_root: Path) -> Path:
 
 def load_checksums(project_root: Path) -> dict[str, str]:
     candidates = [
+        project_root / "ORT" / "release" / "SHA256SUMS_V9_0_1.json",
         project_root / "ORT" / "release" / "SHA256SUMS_V9_0_0.json",
+        project_root / "SHA256SUMS_V9_0_1.json",
         project_root / "SHA256SUMS_V9_0_0.json",
     ]
     for path in candidates:
@@ -86,7 +92,7 @@ def verify(project_root: Path) -> dict:
             errors.append(f"missing app file: {item}")
 
     version = (root / "VERSION.txt").read_text(encoding="utf-8-sig").strip() if (root / "VERSION.txt").exists() else ""
-    if version != "v9.0.0":
+    if version != "v9.0.1":
         errors.append(f"version mismatch: {version!r}")
 
     webui = app / "webui.py"
@@ -111,7 +117,7 @@ def verify(project_root: Path) -> dict:
         sys.path.insert(0, str(app))
         try:
             build_info = importlib.import_module("build_info")
-            if build_info.APP_VERSION_TAG != "v9.0.0":
+            if build_info.APP_VERSION_TAG != "v9.0.1":
                 errors.append(f"build_info version: {build_info.APP_VERSION_TAG}")
             lab = importlib.import_module("app.open_architecture.lab")
             initial = lab.architecture_initial_payload()
@@ -149,6 +155,40 @@ def verify(project_root: Path) -> dict:
         if result.returncode != 0:
             errors.append("v9 Open Architecture regression failed: " + output)
 
+    sidecar_self_test = app / "audio_realtime_local_sidecar.py"
+    if sidecar_self_test.is_file():
+        result = subprocess.run(
+            [sys.executable, str(sidecar_self_test), "--self-test-json"],
+            cwd=str(app),
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+            timeout=90,
+        )
+        output = (result.stdout + result.stderr).strip()[-4000:]
+        checks.append({"check": "audio_realtime_sidecar_self_test", "passed": result.returncode == 0, "output": output})
+        if result.returncode != 0:
+            errors.append("Audio realtime sidecar self-test failed: " + output)
+
+    stability = app / "tools" / "v9_0_1_audio_lab_stability_test.py"
+    if stability.is_file():
+        result = subprocess.run(
+            [sys.executable, str(stability)],
+            cwd=str(app),
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+            timeout=90,
+        )
+        output = (result.stdout + result.stderr).strip()[-4000:]
+        checks.append({"check": "v9_0_1_audio_lab_stability", "passed": result.returncode == 0, "output": output})
+        if result.returncode != 0:
+            errors.append("v9.0.1 Audio Lab stability failed: " + output)
+
     checksums = load_checksums(root)
     for token, expected in checksums.items():
         path = logical_path(root, app, token)
@@ -170,7 +210,7 @@ def verify(project_root: Path) -> dict:
     return {
         "passed": not errors,
         "version": version,
-        "release": "Open Architecture Foundation & Clean Project Layout",
+        "release": "Audio Lab Preload, Watchdog & Diagnostics",
         "app_root": str(app),
         "migrated_layout": migrated,
         "checked_files": len(REQUIRED_ROOT) + len(REQUIRED_APP),

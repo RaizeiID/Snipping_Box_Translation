@@ -3,7 +3,23 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-_TOKEN_RE = re.compile(r"\w+(?:['’-]\w+)*|[^\w\s]", re.UNICODE)
+_CJK_RANGES = (
+    ("\u3040", "\u30ff"),
+    ("\u3400", "\u4dbf"),
+    ("\u4e00", "\u9fff"),
+)
+_TOKEN_RE = re.compile(
+    r"[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]"
+    r"|\w+(?:['’-]\w+)*"
+    r"|[^\w\s]",
+    re.UNICODE,
+)
+
+
+def _is_cjk_token(token: str) -> bool:
+    if len(token) != 1:
+        return False
+    return any(start <= token <= end for start, end in _CJK_RANGES)
 
 
 def _tokens(text: str) -> list[str]:
@@ -11,10 +27,21 @@ def _tokens(text: str) -> list[str]:
 
 
 def _join(tokens: list[str]) -> str:
-    text = " ".join(tokens)
-    text = re.sub(r"\s+([,.;:!?%\]\)])", r"\1", text)
-    text = re.sub(r"([\[\(])\s+", r"\1", text)
-    return text.strip()
+    result = ""
+    previous = ""
+    for token in tokens:
+        if not result:
+            result = token
+        elif token in ",.;:!?%])}、。！？：；」』】）":
+            result += token
+        elif previous in "([{「『【（":
+            result += token
+        elif _is_cjk_token(token) or _is_cjk_token(previous):
+            result += token
+        else:
+            result += " " + token
+        previous = token
+    return result.strip()
 
 
 def _common_prefix(left: list[str], right: list[str]) -> list[str]:
@@ -38,10 +65,13 @@ class ConfirmedPrefixEngine:
         self.history = self.history[-keep:]
 
         candidate = current
-        if not final and len(self.history) >= keep:
-            candidate = self.history[0]
-            for item in self.history[1:]:
-                candidate = _common_prefix(candidate, item)
+        if not final:
+            if len(self.history) < keep:
+                candidate = list(self.confirmed)
+            else:
+                candidate = self.history[0]
+                for item in self.history[1:]:
+                    candidate = _common_prefix(candidate, item)
 
         already = len(self.confirmed)
         if candidate[:already] != self.confirmed:
@@ -55,10 +85,14 @@ class ConfirmedPrefixEngine:
                 self.confirmed.extend(candidate[already:])
             live_tail = current[len(self.confirmed):] if current[:len(self.confirmed)] == self.confirmed else current
 
+        display_tokens = self.confirmed + live_tail
+        if self.confirmed and current[:len(self.confirmed)] != self.confirmed:
+            display_tokens = current
+
         return {
             "confirmed": _join(self.confirmed),
             "live_tail": _join(live_tail),
-            "display": _join(self.confirmed + live_tail),
+            "display": _join(display_tokens),
             "confirmed_tokens": len(self.confirmed),
             "live_tokens": len(live_tail),
             "final": bool(final),

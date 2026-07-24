@@ -29,6 +29,8 @@ from app.audio.runtime_modes import HybridFailoverController, normalize_audio_mo
 from app.audio.segment_ledger import SegmentLedger, SegmentTask
 from app.runtime.app_state import save_state
 from build_info import APP_VERSION_TAG
+from app.open_architecture.streaming.confirmed_prefix import ConfirmedPrefixEngine
+from app.open_architecture.runtime_control import PartialTranslationGate, PreloadBarrier, TranslationWatchdogPolicy
 from status_manager import write_status
 
 
@@ -69,6 +71,9 @@ def _write_audio_status(**updates: Any) -> None:
         "asr_compute_type": os.environ.get("ORT_AUDIO_ASR_COMPUTE_TYPE", "int8_float16"),
         "cloud_provider": "azure",
         "cloud_connected": False,
+        "open_architecture_lab": str(os.environ.get("ORT_OPEN_ARCHITECTURE_LAB", "0")).lower() in {"1", "true", "yes", "on"},
+        "lab_streaming_policy": os.environ.get("ORT_AUDIO_STREAMING_POLICY", "ort_rolling_context"),
+        "lab_translation_route": os.environ.get("ORT_AUDIO_TRANSLATION_ROUTE", "ortcore_fast_v2"),
     }
     try:
         path = BASE_DIR / "status" / "audio_runtime.json"
@@ -468,6 +473,7 @@ class RealtimeLocalBridge(QObject):
             "--test-file", os.environ.get("ORT_AUDIO_TEST_FILE", ""),
             "--game", os.environ.get("ORT_GAME_PROFILE", "GFL2_EXILIUM"),
             "--language-correction", os.environ.get("ORT_AUDIO_LANGUAGE_AUTOCORRECT", "balanced"),
+            "--start-gate-file", os.environ.get("ORT_AUDIO_START_GATE_FILE", ""),
         ]
         if str(os.environ.get("ORT_AUDIO_LANGUAGE_LOCK", "0")).lower() in {"1", "true", "yes", "on"}:
             command.append("--language-lock")
@@ -861,6 +867,12 @@ class TranslationCoordinator(QObject):
         self._last_emitted_words_by_segment: dict[str, int] = {}
         self._segment_seen_at: dict[str, float] = {}
         self._latest_segment_id = ""
+        self._inflight_started_at = 0.0
+        self._watchdog_fired_generation = 0
+        self._watchdog_policy = TranslationWatchdogPolicy.for_profile(os.environ.get("ORT_AUDIO_PROFILE", "normal"))
+        self._watchdog_stop = threading.Event()
+        self._watchdog_thread = threading.Thread(target=self._watchdog_loop, name="ort-translation-watchdog", daemon=True)
+        self._watchdog_thread.start()
 
     @staticmethod
     def _unsigned_exit_code(code: int) -> int:
@@ -872,6 +884,38 @@ class TranslationCoordinator(QObject):
         if unsigned == WINDOWS_ACCESS_VIOLATION:
             return "0xC0000005 (native access violation)"
         return str(code)
+
+    def _watchdog_loop(self) -> None:
+        while not self._watchdog_stop.wait(self._watchdog_policy.poll_s):
+            proc: Optional[subprocess.Popen] = None
+            generation = 0
+            elapsed = 0.0
+            with self._lock:
+                if self._inflight is None or self._inflight_started_at <= 0:
+                    continue
+                generation = int(self._inflight.get("generation_id", 0) or 0)
+                if generation <= self._watchdog_fired_generation:
+                    continue
+                elapsed = time.monotonic() - self._inflight_started_at
+                if elapsed < self._watchdog_policy.timeout_s:
+                    continue
+                proc = self._proc
+                self._watchdog_fired_generation = generation
+            self.log_received.emit(
+                f"[AUDIO {APP_VERSION_TAG}][TRANSLATION WATCHDOG] generation={generation} "
+                f"elapsed_ms={int(elapsed * 1000)} timeout_ms={int(self._watchdog_policy.timeout_s * 1000)}; restarting translator"
+            )
+            self.runtime_event.emit({
+                "type": "TRANSLATION_WATCHDOG_TIMEOUT",
+                "generation_id": generation,
+                "elapsed_ms": int(elapsed * 1000),
+                "timeout_ms": int(self._watchdog_policy.timeout_s * 1000),
+            })
+            if proc is not None and proc.poll() is None:
+                try:
+                    proc.terminate()
+                except Exception as exc:
+                    self.log_received.emit(f"[AUDIO {APP_VERSION_TAG}] watchdog terminate error: {exc}")
 
     def _build_env(self, safe_mode: bool) -> dict:
         env = os.environ.copy()
@@ -1007,6 +1051,7 @@ class TranslationCoordinator(QObject):
             proc.stdin.flush()
             self._pending = None
             self._inflight = item
+            self._inflight_started_at = time.monotonic()
             self.state_changed.emit("Menerjemahkan · CPU")
         except Exception as exc:
             self.log_received.emit(f"[AUDIO {APP_VERSION_TAG}] translation request write error: {exc}")
@@ -1056,6 +1101,7 @@ class TranslationCoordinator(QObject):
                     return
                 original = self._inflight or {}
                 self._inflight = None
+                self._inflight_started_at = 0.0
                 payload = {**original, **event}
                 segment_id = str(payload.get("segment_id") or "")
                 last_emitted = int(self._last_emitted_by_segment.get(segment_id, 0) or 0)
@@ -1100,6 +1146,7 @@ class TranslationCoordinator(QObject):
                 return
             self._proc = None
             self._ready = False
+            self._inflight_started_at = 0.0
             if self._inflight is not None:
                 if self._pending is None or int(self._inflight.get("generation_id", 0)) >= int(self._pending.get("generation_id", 0)):
                     self._pending = self._inflight
@@ -1149,6 +1196,7 @@ class TranslationCoordinator(QObject):
 
     def stop(self) -> None:
         self._stopping.set()
+        self._watchdog_stop.set()
         with self._lock:
             proc = self._proc
             reader = self._reader
@@ -1170,9 +1218,12 @@ class TranslationCoordinator(QObject):
                     pass
         if reader is not None and reader.is_alive():
             reader.join(timeout=1.0)
+        if self._watchdog_thread.is_alive():
+            self._watchdog_thread.join(timeout=1.0)
         with self._lock:
             self._proc = None
             self._ready = False
+            self._inflight_started_at = 0.0
 
     @property
     def generation(self) -> int:
@@ -1213,6 +1264,17 @@ class AudioApplication(QObject):
         self.subtitle_stabilizer = LiveSubtitleStabilizer(
             minimum_interim_interval=self.realtime_policy.minimum_interim_interval_s
         )
+        self.lab_mode = str(os.environ.get("ORT_OPEN_ARCHITECTURE_LAB", "0")).lower() in {"1", "true", "yes", "on"}
+        self.lab_streaming_policy = str(os.environ.get("ORT_AUDIO_STREAMING_POLICY", "ort_rolling_context") or "ort_rolling_context").strip().lower()
+        self.lab_translation_route = str(os.environ.get("ORT_AUDIO_TRANSLATION_ROUTE", "ortcore_fast_v2") or "ortcore_fast_v2").strip().lower()
+        self.lab_agreement_passes = max(2, min(4, int(os.environ.get("ORT_AUDIO_AGREEMENT_PASSES", "2") or 2)))
+        if self.lab_streaming_policy == "local_agreement":
+            self.lab_agreement_passes = max(3, self.lab_agreement_passes)
+        self._lab_prefix_engines: dict[str, ConfirmedPrefixEngine] = {}
+        self._lab_preload = PreloadBarrier()
+        self._lab_translation_gate = PartialTranslationGate(os.environ.get("ORT_AUDIO_PROFILE", "normal"))
+        self._lab_start_gate_path: Optional[Path] = None
+        self._lab_overlay_shown = False
         self.cloud_fallback = CloudFallbackLatch()
         self._closing = False
         self._local_started = False
@@ -1265,7 +1327,50 @@ class AudioApplication(QObject):
         }
         execution = labels.get(self.effective_mode, self.effective_mode.upper())
         engine = engine_labels.get(self.engine_effective, self.engine_effective.upper())
-        self.overlay.mode_label.setText(f"AUDIO · {usage_label} · {engine} · {profile.label.upper()} {execution}")
+        lab_prefix = "LAB · " if self.lab_mode else ""
+        self.overlay.mode_label.setText(f"{lab_prefix}AUDIO · {usage_label} · {engine} · {profile.label.upper()} {execution}")
+
+    def _lab_mark_ready(self, component: str) -> None:
+        if not self.lab_mode:
+            return
+        activated = self._lab_preload.mark_translator_ready() if component == "translator" else self._lab_preload.mark_asr_ready()
+        _write_audio_status(
+            status="PRELOADING" if not self._lab_preload.activated else "RUNNING",
+            audio_state="LAB_PRELOADING" if not self._lab_preload.activated else "LAB_READY",
+            lab_translator_ready=self._lab_preload.translator_ready,
+            lab_asr_ready=self._lab_preload.asr_ready,
+            lab_preload_ms=self._lab_preload.elapsed_ms(),
+            overlay_visible=self._lab_overlay_shown,
+        )
+        if activated:
+            self._activate_lab_runtime()
+
+    def _activate_lab_runtime(self) -> None:
+        if not self.lab_mode or self._lab_overlay_shown:
+            return
+        if self._lab_start_gate_path is not None:
+            try:
+                self._lab_start_gate_path.parent.mkdir(parents=True, exist_ok=True)
+                self._lab_start_gate_path.write_text("START\n", encoding="utf-8")
+            except Exception as exc:
+                log(f"[AUDIO {APP_VERSION_TAG}][LAB PRELOAD] start gate write failed: {exc}")
+                self.overlay.set_error(f"Audio Lab gagal mengaktifkan capture: {exc}")
+                self.overlay.show_centered_bottom()
+                self._lab_overlay_shown = True
+                return
+        self._lab_overlay_shown = True
+        self.overlay.show_centered_bottom()
+        self.overlay.set_state("Audio Lab siap · putar media sekarang")
+        preload_ms = self._lab_preload.elapsed_ms()
+        _write_audio_status(
+            status="RUNNING",
+            audio_state="LAB_READY",
+            lab_preload_ms=preload_ms,
+            lab_translator_ready=True,
+            lab_asr_ready=True,
+            overlay_visible=True,
+        )
+        log(f"[AUDIO {APP_VERSION_TAG}][LAB PRELOAD] READY | preload_ms={preload_ms} | capture_gate=OPEN")
 
     def start(self) -> None:
         launcher_version = str(os.environ.get("ORT_LAUNCHER_VERSION", "") or "").strip()
@@ -1293,10 +1398,16 @@ class AudioApplication(QObject):
         spool_root.mkdir(parents=True, exist_ok=True)
         self._spool_dir = Path(tempfile.mkdtemp(prefix="session-", dir=str(spool_root)))
         self._update_mode_label()
-        self.overlay.show_centered_bottom()
+        if self.lab_mode:
+            self._lab_preload.begin()
+            self._lab_start_gate_path = self._spool_dir / "lab_capture.start"
+            os.environ["ORT_AUDIO_START_GATE_FILE"] = str(self._lab_start_gate_path)
+            log(f"[AUDIO {APP_VERSION_TAG}][LAB PRELOAD] START | overlay_visible=0 | gate={self._lab_start_gate_path}")
+        else:
+            self.overlay.show_centered_bottom()
         _write_audio_status(
-            status="RUNNING",
-            audio_state="STARTING",
+            status="PRELOADING" if self.lab_mode else "RUNNING",
+            audio_state="LAB_PRELOADING" if self.lab_mode else "STARTING",
             profile=profile.key,
             requested_mode=self.requested_mode,
             effective_mode=self.effective_mode,
@@ -1416,7 +1527,10 @@ class AudioApplication(QObject):
                 "LANGUAGE_MODEL_SWITCHING": "Mengganti model sesuai bahasa",
                 "STOPPED": "Local Live berhenti",
             }
-            self.overlay.set_state(labels.get(state, state.replace("_", " ").title()))
+            if not self.lab_mode or self._lab_overlay_shown:
+                self.overlay.set_state(labels.get(state, state.replace("_", " ").title()))
+            if state == "LOCAL_REALTIME_READY":
+                self._lab_mark_ready("asr")
             if state == "HYBRID_FAILOVER":
                 self.effective_mode = "cpu_fallback"
                 self._update_mode_label()
@@ -1731,7 +1845,50 @@ class AudioApplication(QObject):
                 return
             is_partial = event_type == "partial_transcript" or not bool(event.get("stable", event_type == "transcript"))
             local_live = bool(event.get("local_realtime"))
+            lab_prefix_state = None
+            if self.lab_mode and self.lab_streaming_policy in {"confirmed_prefix", "local_agreement"}:
+                segment_key = str(event.get("segment_id") or "__default__")
+                engine = self._lab_prefix_engines.get(segment_key)
+                if engine is None:
+                    engine = ConfirmedPrefixEngine(agreement_passes=self.lab_agreement_passes)
+                    self._lab_prefix_engines[segment_key] = engine
+                lab_prefix_state = engine.update(source, final=not is_partial)
+                source = str(lab_prefix_state.get("display") or source).strip()
+                event = {
+                    **event,
+                    "text": source,
+                    "lab_streaming_policy": self.lab_streaming_policy,
+                    "lab_confirmed": lab_prefix_state.get("confirmed", ""),
+                    "lab_live_tail": lab_prefix_state.get("live_tail", ""),
+                    "lab_agreement_passes": self.lab_agreement_passes,
+                }
+                if not is_partial:
+                    self._lab_prefix_engines.pop(segment_key, None)
             event = {**event, "local_realtime": local_live, "stable": not is_partial}
+            if self.lab_mode:
+                confirmed_text = str((lab_prefix_state or {}).get("confirmed") or "")
+                should_translate, gate_reason = self._lab_translation_gate.should_submit(
+                    source,
+                    confirmed=confirmed_text,
+                    stable=not is_partial,
+                )
+                if not should_translate:
+                    if local_live and self._lab_overlay_shown:
+                        self.overlay.set_cloud_source(source, int(event.get("asr_ms", 0) or 0))
+                        self.overlay.status_label.setText("Audio Lab · menunggu prefix stabil")
+                    _write_audio_status(
+                        status="RUNNING",
+                        audio_state="LAB_PARTIAL_COALESCED",
+                        last_transcript=source,
+                        lab_gate_reason=gate_reason,
+                        result_stable=False,
+                    )
+                    log(
+                        f"[AUDIO {APP_VERSION_TAG}][LAB COALESCE] segment={event.get('segment_id', '-')} "
+                        f"revision={event.get('revision', 0)} reason={gate_reason} text={source}"
+                    )
+                    return
+                event = {**event, "lab_translation_gate_reason": gate_reason}
             generation = self.translator.submit(event)
             if local_live:
                 self.overlay.set_cloud_source(source, int(event.get("asr_ms", 0) or 0))
@@ -1858,6 +2015,8 @@ class AudioApplication(QObject):
                 translation_process_mode="safe_argos" if event.get("safe_mode") else "isolated_ct2",
                 translation_restart_count=self.translator.restart_count,
             )
+            if state == "TRANSLATOR_READY":
+                self._lab_mark_ready("translator")
             if state in {"TRANSLATOR_LOADING", "TRANSLATOR_READY"}:
                 log(
                     f"[AUDIO {APP_VERSION_TAG}] translation_state={state} | "
@@ -2002,6 +2161,11 @@ class AudioApplication(QObject):
     def _cleanup(self) -> None:
         if not self._closing:
             self._closing = True
+        if self._lab_start_gate_path is not None:
+            try:
+                self._lab_start_gate_path.unlink(missing_ok=True)
+            except Exception:
+                pass
         self.stop_timer.stop()
         self.cloud.stop()
         self.local_live.stop()

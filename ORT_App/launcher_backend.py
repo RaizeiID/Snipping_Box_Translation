@@ -1348,7 +1348,13 @@ class ProcessManager:
         selected_model = model or prefs.get("model") or "ORTCore Lite IDN V3"
         selected_game = str(game or prefs.get("game") or "GFL")
         requested_language = language
+        lab_mode = str(os.environ.get("ORT_OPEN_ARCHITECTURE_LAB", "0")).lower() in {"1", "true", "yes", "on"}
+        lab_asr_provider = str(os.environ.get("ORT_OA_ASR_PROVIDER", "") or "").strip().lower()
         japanese_specialist = language in {"ja_specialist", "ja-specialist", "japanese_specialist", "japanese-specialist"}
+        if lab_mode and lab_asr_provider == "ort_japanese_specialist":
+            japanese_specialist = True
+        elif lab_mode and lab_asr_provider == "ort_faster_whisper":
+            japanese_specialist = False
         if japanese_specialist:
             language = "ja"
         # v8.9.9: keep the user's selected language as the initial primary language.
@@ -1360,6 +1366,10 @@ class ProcessManager:
             or language in {"ja", "auto"}
             or language_correction != "off"
         )
+        if lab_mode and lab_asr_provider == "ort_faster_whisper":
+            japanese_specialist_enabled = False
+        elif lab_mode and lab_asr_provider == "ort_japanese_specialist":
+            japanese_specialist_enabled = True
         cloud_source_locale = normalize_source_locale(language)
         realtime_policy = resolve_live_media_policy(requested_audio_usage, cloud_source_locale, profile.key)
         if effective_audio_engine == "azure" and cloud_source_locale.lower() in {"", "auto", "auto_detect"}:

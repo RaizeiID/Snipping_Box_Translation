@@ -4,16 +4,17 @@ from dataclasses import dataclass
 from typing import Any, Dict
 
 
-VERSION = (9, 0, 0)
+VERSION = (9, 0, 1)
 VERSION_SUFFIX = ""
 APP_VERSION = ".".join(str(part) for part in VERSION) + VERSION_SUFFIX
 APP_VERSION_TAG = f"v{APP_VERSION}"
 APP_NAME = "ORT Translation"
 APP_DISPLAY_NAME = f"{APP_NAME} {APP_VERSION_TAG}"
-RELEASE_NAME = "Open Architecture Foundation & Clean Project Layout"
-RELEASE_CHANNEL = "v9-0-0-open-architecture-clean-layout"
-BASE_RELEASE_CHANNEL = "v8-9-9-r2-f2-long-turn-japanese-context"
+RELEASE_NAME = "Audio Lab Preload, Watchdog & Diagnostics"
+RELEASE_CHANNEL = "v9-0-1-audio-lab-preload-watchdog"
+BASE_RELEASE_CHANNEL = "v9-0-0-open-architecture-clean-layout"
 COMPAT_RELEASE_CHANNELS = (
+    "v9-0-0-open-architecture-clean-layout",
     "v8-9-9-r2-f2-long-turn-japanese-context",
     "v8-9-9-r2-f1-hybrid-subtitle-continuity",
     "v8-9-9-r2-gpu-runtime-normal-realtime",
