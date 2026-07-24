@@ -10,6 +10,7 @@ import sys
 import tempfile
 import threading
 import time
+from dataclasses import replace
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -78,6 +79,16 @@ def _write_audio_status(**updates: Any) -> None:
         "open_architecture_lab": str(os.environ.get("ORT_OPEN_ARCHITECTURE_LAB", "0")).lower() in {"1", "true", "yes", "on"},
         "lab_streaming_policy": os.environ.get("ORT_AUDIO_STREAMING_POLICY", "ort_rolling_context"),
         "lab_translation_route": os.environ.get("ORT_AUDIO_TRANSLATION_ROUTE", "ortcore_fast_v2"),
+        "resource_policy": os.environ.get("ORT_AUDIO_RESOURCE_POLICY", "normal"),
+        "asr_provider": os.environ.get("ORT_AUDIO_ASR_PROVIDER", "kotoba_bilingual"),
+        "model_lock": str(os.environ.get("ORT_AUDIO_MODEL_LOCK", "1")).lower() in {"1", "true", "yes", "on"},
+        "delivery_mode": os.environ.get("ORT_AUDIO_DELIVERY_MODE", "offline"),
+        "cloud_provider": os.environ.get("ORT_AUDIO_CLOUD_PROVIDER", "azure"),
+        "dual_stream": str(os.environ.get("ORT_AUDIO_DUAL_STREAM", "0")).lower() in {"1", "true", "yes", "on"},
+        "provider_audio_capture": "PyAudioWPatch/WASAPI",
+        "provider_asr_backend": "Faster-Whisper/CTranslate2",
+        "provider_translation_backend": "OPUS-MT/CTranslate2",
+        "provider_vad": "ORT RMS + semantic no-speech gate",
     }
     try:
         path = BASE_DIR / "status" / "audio_runtime.json"
@@ -308,6 +319,65 @@ class AudioOverlay(QWidget):
         self._apply_text_font(text)
         self._refresh_geometry()
 
+    def apply_preview_config(self, config: dict, *, initial: bool = False) -> None:
+        """Apply overlay controls without closing the preview process."""
+        mode = str(config.get("mode") or self.overlay_mode or "adaptive").strip().lower()
+        if mode not in {"adaptive", "fixed", "custom"}:
+            mode = "adaptive"
+        old_center = self.frameGeometry().center() if self.isVisible() else None
+        old_y = self.y() if self.isVisible() else None
+        self.overlay_mode = mode
+        self.width_percent = max(40, min(100, int(config.get("width_percent", self.width_percent) or self.width_percent)))
+        self.fixed_height = max(100, min(720, int(config.get("height_px", self.fixed_height) or self.fixed_height)))
+        self.base_font_size = max(10, min(30, int(config.get("font_size", self.base_font_size) or self.base_font_size)))
+        self.opacity_percent = max(45, min(100, int(config.get("opacity_percent", self.opacity_percent) or self.opacity_percent)))
+        self.show_source_text = bool(config.get("show_source", self.show_source_text))
+        self.text_alignment = "center" if str(config.get("alignment") or self.text_alignment).lower() == "center" else "left"
+        self.setWindowOpacity(self.opacity_percent / 100.0)
+        self.translation_label.setAlignment(
+            (Qt.AlignHCenter if self.text_alignment == "center" else Qt.AlignLeft) | Qt.AlignVCenter
+        )
+        self.size_grip.setVisible(mode == "custom")
+        # Undo a previous fixed-size constraint before applying another mode.
+        self.setMinimumSize(0, 0)
+        self.setMaximumSize(16777215, 16777215)
+        screen = self._active_screen()
+        area = screen.availableGeometry() if screen is not None else None
+        if mode == "adaptive":
+            self.setMinimumWidth(720)
+            self.setMaximumWidth(1120)
+            self._locked_x = None
+            self.adjustSize()
+        elif area is not None:
+            width = max(420, min(area.width(), int(area.width() * self.width_percent / 100.0)))
+            height = max(100, min(area.height(), self.fixed_height))
+            if mode == "fixed":
+                self.setFixedSize(width, height)
+            else:
+                self.setMinimumSize(420, 100)
+                self.setMaximumSize(area.width(), area.height())
+                self.resize(width, height)
+        source = str(config.get("source_text") or "This is a realtime overlay preview.")
+        translation = str(config.get("translation_text") or "Ini adalah pratinjau box terjemahan secara realtime.")
+        self.mode_label.setText(f"PREVIEW · {mode.upper()}")
+        self.status_label.setText("Realtime preview · perubahan UI langsung diterapkan")
+        self.source_label.setText("Preview EN: " + source)
+        self.source_label.setVisible(self.show_source_text)
+        self.translation_label.setText(translation)
+        self._apply_text_font(translation)
+        if initial or not self.isVisible():
+            self.show_centered_bottom()
+        elif old_center is not None:
+            target_x = int(old_center.x() - self.width() / 2)
+            target_y = int(old_y if old_y is not None else self.y())
+            if area is not None:
+                target_x = max(area.x(), min(target_x, area.x() + area.width() - self.width()))
+                target_y = max(area.y(), min(target_y, area.y() + area.height() - self.height()))
+            self._locked_x = target_x if mode == "fixed" else None
+            self.move(target_x, target_y)
+            self.show()
+            self.raise_()
+
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             self._drag_origin = event.globalPos() - self.frameGeometry().topLeft()
@@ -517,6 +587,21 @@ class RealtimeLocalBridge(QObject):
         plan = resolve_audio_plan(requested_mode, profile.key)
         use_gpu = effective_mode in {"gpu", "hybrid"}
         active_spec = plan.primary if use_gpu else (plan.fallback or plan.primary)
+        selected_provider = str(os.environ.get("ORT_AUDIO_ASR_PROVIDER", "kotoba_bilingual") or "kotoba_bilingual").strip().lower()
+        # SenseVoice sherpa-onnx is CPU-only in v9.0.4. Hard model lock allows
+        # a device correction for the same provider, never a provider substitution.
+        if selected_provider == "sensevoice_small" and active_spec.device != "cpu":
+            active_spec = plan.fallback or active_spec
+            if active_spec.device != "cpu":
+                active_spec = replace(
+                    active_spec,
+                    device="cpu",
+                    compute_type="int8",
+                    cpu_threads=max(1, profile.cpu_threads),
+                    minimum_free_vram_mb=0,
+                )
+            os.environ["ORT_AUDIO_EFFECTIVE_MODE"] = "cpu"
+            os.environ["ORT_AUDIO_PROVIDER_DEVICE_CORRECTION"] = "sensevoice_cpu_only"
         python_key = "ORT_AUDIO_GPU_PYTHON" if active_spec.device == "cuda" else "ORT_AUDIO_CPU_PYTHON"
         runtime_python = Path(str(os.environ.get(python_key, "") or ""))
         if not runtime_python.exists():
@@ -532,6 +617,8 @@ class RealtimeLocalBridge(QObject):
             "--model-root", os.environ.get("ORT_AUDIO_MODEL_ROOT", str(BASE_DIR / "_runtime" / "audio_models")),
             "--model-size", active_spec.model_size,
             "--fallback-model-size", fallback_model,
+            "--asr-provider", os.environ.get("ORT_AUDIO_ASR_PROVIDER", "kotoba_bilingual"),
+            "--model-lock",
             "--asr-device", active_spec.device,
             "--compute-type", active_spec.compute_type,
             "--cpu-threads", str(active_spec.cpu_threads),
@@ -936,6 +1023,11 @@ class TranslationCoordinator(QObject):
         self._latest_segment_id = ""
         self._inflight_started_at = 0.0
         self._watchdog_fired_generation = 0
+        self._timeout_restart_requested = False
+        self._consecutive_failures = 0
+        self._allow_argos_recovery = str(os.environ.get("ORT_AUDIO_ALLOW_ARGOS_RECOVERY", "0")).lower() in {
+            "1", "true", "yes", "on"
+        }
         self._watchdog_policy = TranslationWatchdogPolicy.for_profile(os.environ.get("ORT_AUDIO_PROFILE", "normal"))
         self._watchdog_stop = threading.Event()
         self._watchdog_thread = threading.Thread(target=self._watchdog_loop, name="ort-translation-watchdog", daemon=True)
@@ -968,9 +1060,11 @@ class TranslationCoordinator(QObject):
                     continue
                 proc = self._proc
                 self._watchdog_fired_generation = generation
+                self._timeout_restart_requested = True
             self.log_received.emit(
                 f"[AUDIO {APP_VERSION_TAG}][TRANSLATION WATCHDOG] generation={generation} "
-                f"elapsed_ms={int(elapsed * 1000)} timeout_ms={int(self._watchdog_policy.timeout_s * 1000)}; restarting translator"
+                f"elapsed_ms={int(elapsed * 1000)} timeout_ms={int(self._watchdog_policy.timeout_s * 1000)}; "
+                "restarting CT2 worker with latest request"
             )
             self.runtime_event.emit({
                 "type": "TRANSLATION_WATCHDOG_TIMEOUT",
@@ -1155,7 +1249,7 @@ class TranslationCoordinator(QObject):
                     self._dispatch_locked()
                     busy = self._inflight is not None
                 if not busy:
-                    mode = "Argos recovery" if event.get("safe_mode") else "ORTCore Fast V2"
+                    mode = ("Argos recovery" if self._allow_argos_recovery else "ORTCore Fast V2 · low pressure") if event.get("safe_mode") else "ORTCore Fast V2"
                     self.state_changed.emit(f"Penerjemah siap · {mode}")
             elif state == "TRANSLATOR_LOADING":
                 self.state_changed.emit("Memuat penerjemah · mode aman" if event.get("safe_mode") else "Memuat penerjemah · CPU")
@@ -1169,6 +1263,8 @@ class TranslationCoordinator(QObject):
                 original = self._inflight or {}
                 self._inflight = None
                 self._inflight_started_at = 0.0
+                self._consecutive_failures = 0
+                self._timeout_restart_requested = False
                 payload = {**original, **event}
                 segment_id = str(payload.get("segment_id") or "")
                 last_emitted = int(self._last_emitted_by_segment.get(segment_id, 0) or 0)
@@ -1215,13 +1311,19 @@ class TranslationCoordinator(QObject):
             self._ready = False
             self._inflight_started_at = 0.0
             if self._inflight is not None:
-                if self._pending is None or int(self._inflight.get("generation_id", 0)) >= int(self._pending.get("generation_id", 0)):
+                # Latest-wins: retain a newer pending ASR revision and only
+                # requeue the old inflight request when nothing newer exists.
+                if self._pending is None:
                     self._pending = self._inflight
                 self._inflight = None
-            if not self._stopping.is_set() and not safe_mode:
+            if not self._stopping.is_set() and self._consecutive_failures < 3:
                 self._restart_count += 1
+                self._consecutive_failures += 1
+                # Safe mode in v9.0.3 means low-thread CT2. Argos is used only
+                # when explicitly enabled by a developer.
                 self._safe_mode = True
                 restart = True
+                self._timeout_restart_requested = False
             elif not self._stopping.is_set() and self._pending is not None:
                 item = self._pending
                 self._pending = None
@@ -1247,8 +1349,12 @@ class TranslationCoordinator(QObject):
             "restart_count": self._restart_count,
         })
         if restart:
-            self.log_received.emit(f"[AUDIO {APP_VERSION_TAG}] translation process exit {label}; restarting with isolated Argos recovery")
-            self.state_changed.emit("Memulihkan penerjemah · mode aman")
+            recovery = "isolated Argos recovery" if self._allow_argos_recovery else "CT2 low-pressure recovery"
+            self.log_received.emit(
+                f"[AUDIO {APP_VERSION_TAG}] translation process exit {label}; restarting with {recovery} "
+                f"({self._consecutive_failures}/3)"
+            )
+            self.state_changed.emit("Memulihkan penerjemah · CT2 low pressure")
             with self._lock:
                 if not self._stopping.is_set() and (self._proc is None or self._proc.poll() is not None):
                     try:
@@ -1895,13 +2001,24 @@ class AudioApplication(QObject):
                 "STOPPED": "ASR berhenti",
             }
             self.overlay.set_state(labels.get(state, state.replace("_", " ").title()))
-            _write_audio_status(
-                status="RUNNING" if state != "STOPPED" else "STOP",
-                audio_state=state,
-                asr_device=str(event.get("device") or ""),
-                asr_compute_type=event.get("compute_type", ""),
-                asr_model=event.get("model", ""),
-            )
+            state_updates = {
+                "status": "RUNNING" if state != "STOPPED" else "STOP",
+                "audio_state": state,
+                "asr_device": str(event.get("device") or event.get("effective_device") or ""),
+                "asr_compute_type": event.get("compute_type", ""),
+                "asr_model": event.get("model", event.get("effective_model", "")),
+            }
+            if state in {"RESOURCE_POLICY_DECISION", "OPTIMAL_GPU_PREFLIGHT_DEGRADED", "LOCAL_REALTIME_READY"}:
+                state_updates.update({
+                    "resource_policy": event.get("resource_policy", os.environ.get("ORT_AUDIO_RESOURCE_POLICY", "normal")),
+                    "resource_decision": event.get("reason", event.get("resource_decision", "")),
+                    "requested_asr_device": event.get("requested_device", ""),
+                    "effective_asr_device": event.get("effective_device", event.get("device", "")),
+                    "gpu_memory": event.get("gpu_memory") or {},
+                    "dual_stream": bool(event.get("dual_stream", False)),
+                    "japanese_specialist": bool(event.get("japanese_specialist", False)),
+                })
+            _write_audio_status(**state_updates)
             log(f"[AUDIO {APP_VERSION_TAG}] asr_state={state} | {json.dumps(event, ensure_ascii=False)}")
         elif event_type in {"partial_transcript", "transcript"}:
             source = str(event.get("text") or "").strip()
@@ -2080,16 +2197,20 @@ class AudioApplication(QObject):
             state = str(event.get("state") or "").upper()
             _write_audio_status(
                 translation_process_state=state,
-                translation_process_mode="safe_argos" if event.get("safe_mode") else "isolated_ct2",
+                translation_process_mode=("safe_argos" if self.translator._allow_argos_recovery else "ct2_safe") if event.get("safe_mode") else "isolated_ct2",
                 translation_restart_count=self.translator.restart_count,
+                source_bridge_required=bool(event.get("source_bridge_required")),
+                source_bridge_ready=bool(event.get("source_bridge_ready")),
+                source_bridge_warmup_ms=int(event.get("source_bridge_warmup_ms", 0) or 0),
             )
             if state == "TRANSLATOR_READY":
                 self._lab_mark_ready("translator")
             if state in {"TRANSLATOR_LOADING", "TRANSLATOR_READY"}:
                 log(
                     f"[AUDIO {APP_VERSION_TAG}] translation_state={state} | "
-                    f"mode={'safe_argos' if event.get('safe_mode') else 'isolated_ct2'} | "
-                    f"engine={event.get('engine', '-')}"
+                    f"mode={('safe_argos' if self.translator._allow_argos_recovery else 'ct2_safe') if event.get('safe_mode') else 'isolated_ct2'} | "
+                    f"engine={event.get('engine', '-')} | bridge_ready={event.get('source_bridge_ready', '-')} | "
+                    f"bridge_warmup_ms={event.get('source_bridge_warmup_ms', 0)}"
                 )
         elif event_type == "TRANSLATION_PROCESS_EXIT":
             _write_audio_status(
@@ -2097,13 +2218,13 @@ class AudioApplication(QObject):
                 translation_process_exit_code=event.get("exit_code"),
                 translation_process_exit_label=event.get("exit_label", ""),
                 translation_native_access_violation=bool(event.get("native_access_violation")),
-                translation_process_mode="safe_argos" if event.get("safe_mode") else "isolated_ct2",
+                translation_process_mode=("safe_argos" if self.translator._allow_argos_recovery else "ct2_safe") if event.get("safe_mode") else "isolated_ct2",
                 translation_restart_count=event.get("restart_count", 0),
             )
         elif event_type == "TRANSLATION_PROCESS_STARTED":
             _write_audio_status(
                 translation_process_state="STARTING",
-                translation_process_mode="safe_argos" if event.get("safe_mode") else "isolated_ct2",
+                translation_process_mode=("safe_argos" if self.translator._allow_argos_recovery else "ct2_safe") if event.get("safe_mode") else "isolated_ct2",
                 translation_restart_count=event.get("restart_count", 0),
             )
         _append_audio_event(event_type or "AUDIO_TRANSLATION_RUNTIME_EVENT", event)
@@ -2117,6 +2238,13 @@ class AudioApplication(QObject):
             )
             return
         translated = str(payload.get("translation") or source)
+        translation_meta = payload.get("translation_meta") if isinstance(payload.get("translation_meta"), dict) else {}
+        bridge_preview = str(
+            translation_meta.get("preview_text")
+            or translation_meta.get("bridge_text")
+            or payload.get("bridge_text")
+            or source
+        )
         if "[Terjemahan ditahan:" in translated:
             # Keep the last useful subtitle visible instead of replacing it with
             # a guard diagnostic. Diagnostics remain available in status/log.
@@ -2134,7 +2262,7 @@ class AudioApplication(QObject):
         local_live = bool(payload.get("local_realtime"))
         stable = bool(payload.get("stable", True))
         if local_live:
-            self.overlay.set_cloud_translation(source, translated, stable, int(payload.get("total_ms", 0) or 0))
+            self.overlay.set_cloud_translation(bridge_preview, translated, stable, int(payload.get("total_ms", 0) or 0))
             if payload.get("specialist_correction"):
                 label = "Kotoba · koreksi final"
             elif payload.get("provisional"):
@@ -2151,13 +2279,14 @@ class AudioApplication(QObject):
             audio_state=("LOCAL_REALTIME_FINAL" if stable else "LOCAL_REALTIME_INTERIM") if local_live else "DISPLAYED",
             generation_id=payload.get("generation_id"),
             last_transcript=source,
+            last_bridge_preview=bridge_preview,
             last_translation=translated,
             translation_engine=engine,
             cache=payload.get("cache", "MISS"),
             asr_ms=int(payload.get("asr_ms", 0) or 0),
             translation_ms=int(payload.get("translation_ms", 0) or 0),
             total_ms=int(payload.get("total_ms", 0) or 0),
-            translation_process_mode="safe_argos" if payload.get("translation_safe_mode") else "isolated_ct2",
+            translation_process_mode=("safe_argos" if self.translator._allow_argos_recovery else "ct2_safe") if payload.get("translation_safe_mode") else "isolated_ct2",
             translation_restart_count=self.translator.restart_count,
             requested_mode=self.requested_mode,
             effective_mode=self.effective_mode,
@@ -2184,6 +2313,7 @@ class AudioApplication(QObject):
         _append_audio_event("AUDIO_TRANSLATION_DISPLAYED", {
             "generation_id": payload.get("generation_id"),
             "source": source,
+            "bridge_preview": bridge_preview,
             "translation": translated,
             "engine": engine,
             "cache": payload.get("cache", "MISS"),
@@ -2204,7 +2334,7 @@ class AudioApplication(QObject):
             f"source_lang={payload.get('source_language') or payload.get('detected_language') or '-'} | "
             f"bridge={payload.get('bridge_language', 'en')} | task={payload.get('asr_task', '-')} | "
             f"context_words={payload.get('turn_context_words', 0)} | display_words={payload.get('turn_display_words', 0)} | "
-            f"total_ms={payload.get('total_ms')} | translation={translated}"
+            f"total_ms={payload.get('total_ms')} | preview_en={bridge_preview} | translation={translated}"
         )
 
     def _capture_finished(self, code: int) -> None:
@@ -2250,8 +2380,57 @@ class AudioApplication(QObject):
         log(f"[AUDIO {APP_VERSION_TAG}] shutdown complete")
 
 
+class OverlayPreviewApplication:
+    def __init__(self, app: QApplication, config_path: Path):
+        self.app = app
+        self.config_path = Path(config_path)
+        self.overlay = AudioOverlay()
+        self._last_signature = ""
+        self.timer = QTimer()
+        self.timer.setInterval(120)
+        self.timer.timeout.connect(self.refresh)
+        self.overlay.close_requested.connect(self.app.quit)
+
+    def _read(self) -> dict:
+        try:
+            data = json.loads(self.config_path.read_text(encoding="utf-8-sig"))
+            return data if isinstance(data, dict) else {}
+        except Exception:
+            return {}
+
+    def refresh(self) -> None:
+        config = self._read()
+        if config and not bool(config.get("active", True)):
+            self.app.quit()
+            return
+        signature = json.dumps(config, ensure_ascii=False, sort_keys=True)
+        if signature == self._last_signature:
+            return
+        self._last_signature = signature
+        self.overlay.apply_preview_config(config, initial=not self.overlay.isVisible())
+
+    def start(self) -> None:
+        self.refresh()
+        self.timer.start()
+
+
+def _preview_config_from_argv() -> Optional[Path]:
+    flag = "--overlay-preview-config"
+    if flag not in sys.argv:
+        return None
+    index = sys.argv.index(flag)
+    if index + 1 >= len(sys.argv):
+        return None
+    return Path(sys.argv[index + 1]).expanduser().resolve()
+
+
 def main() -> int:
-    app = QApplication(sys.argv)
+    preview_config = _preview_config_from_argv()
+    app = QApplication([sys.argv[0]]) if preview_config is not None else QApplication(sys.argv)
+    if preview_config is not None:
+        preview = OverlayPreviewApplication(app, preview_config)
+        preview.start()
+        return int(app.exec_())
     controller = AudioApplication(app)
 
     def request_shutdown(*_args: Any) -> None:

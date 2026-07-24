@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 import time
 
 
@@ -47,12 +48,21 @@ class TranslationWatchdogPolicy:
 
     @classmethod
     def for_profile(cls, profile: str) -> "TranslationWatchdogPolicy":
+        override = str(os.environ.get("ORT_TRANSLATION_WATCHDOG_SECONDS", "") or "").strip()
+        if override:
+            try:
+                return cls(timeout_s=max(6.0, min(60.0, float(override))))
+            except ValueError:
+                pass
         key = str(profile or "normal").strip().lower()
+        # v9.0.3: seven seconds was too aggressive for a busy CPU/GPU system.
+        # A single slow CT2 request must not immediately force the whole session
+        # into the much slower Argos recovery path.
         if key in {"speed", "instant", "fast"}:
-            return cls(timeout_s=7.0)
+            return cls(timeout_s=12.0)
         if key in {"accurate", "quality"}:
-            return cls(timeout_s=16.0)
-        return cls(timeout_s=10.0)
+            return cls(timeout_s=22.0)
+        return cls(timeout_s=15.0)
 
 
 class PartialTranslationGate:

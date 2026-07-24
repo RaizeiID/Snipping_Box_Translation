@@ -1305,6 +1305,23 @@ def _oa_provider_device(provider_id: str, audio_mode: str) -> tuple[str, Path]:
     return "cpu", AUDIO_CPU_PYTHON
 
 
+def _oa_delivery_mode_updates(delivery_mode: str, cloud_provider: str):
+    mode = str(delivery_mode or "offline").strip().lower()
+    if mode not in {"offline", "online", "hybrid"}:
+        mode = "offline"
+    cloud = str(cloud_provider or "azure").strip().lower()
+    if cloud not in {"azure", "google", "aws"}:
+        cloud = "azure"
+    _save_ui_pref(oa_delivery_mode=mode, oa_cloud_provider=cloud)
+    messages = {
+        "offline": "**Offline:** seluruh ASR dan terjemahan berjalan lokal. Cloud provider tidak digunakan.",
+        "online": "**Online:** Azure menjadi provider live pada v9.0.4. Google dan AWS tersedia sebagai katalog benchmark, belum sebagai live adapter.",
+        "hybrid": "**Hybrid delivery:** Azure primary dengan local locked-provider fallback. Model lokal yang dipilih tetap dikunci dan tidak diganti.",
+    }
+    extra = "" if cloud == "azure" or mode == "offline" else "\n\n> Provider ini catalog-only; Start akan diblokir sampai Azure dipilih."
+    return messages[mode] + extra
+
+
 def _oa_human_bytes(value: int | float) -> str:
     size = float(value or 0)
     for unit in ("B", "KB", "MB", "GB", "TB"):

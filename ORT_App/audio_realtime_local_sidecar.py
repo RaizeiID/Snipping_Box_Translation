@@ -5,6 +5,7 @@ import json
 import os
 import queue
 import signal
+import subprocess
 import sys
 import threading
 import time
@@ -18,6 +19,16 @@ import numpy as np
 
 from app.audio.cuda_bootstrap import activate_cuda_dll_search
 from app.audio.turn_context import RollingTurnContext
+from app.audio.asr_provider_registry import (
+    PROVIDERS,
+    PROVIDER_KOTOBA,
+    PROVIDER_REAZON,
+    PROVIDER_SENSEVOICE,
+    PROVIDER_WHISPER_BASE,
+    PROVIDER_WHISPER_SMALL,
+    normalize_provider_id,
+)
+from app.audio.locked_asr_adapter import LockedASRProviderAdapter
 
 CUDA_BOOTSTRAP = activate_cuda_dll_search()
 
@@ -55,6 +66,35 @@ def _install_signal_handlers() -> None:
 def _clean_text(value: Any) -> str:
     return " ".join(str(value or "").strip().split())
 
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    raw = os.environ.get(name)
+    if raw is None:
+        return bool(default)
+    return str(raw).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _gpu_memory_snapshot() -> dict[str, int | str]:
+    """Read current NVIDIA memory without importing torch into the sidecar."""
+    try:
+        result = subprocess.run(
+            [
+                "nvidia-smi",
+                "--query-gpu=memory.free,memory.total",
+                "--format=csv,noheader,nounits",
+            ],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=3,
+            check=False,
+        )
+        line = (result.stdout or "").strip().splitlines()[0]
+        free_text, total_text = [item.strip() for item in line.split(",", 1)]
+        return {"free_mb": int(float(free_text)), "total_mb": int(float(total_text)), "source": "nvidia-smi"}
+    except Exception as exc:
+        return {"free_mb": -1, "total_mb": -1, "source": f"unavailable:{type(exc).__name__}"}
 
 
 def _has_semantic_text(value: Any) -> bool:
@@ -601,12 +641,17 @@ class ModelAdapter:
         )
         self.language_locked = bool(language_locked)
         self.profile = str(profile or "normal").strip().lower()
+        self.resource_policy = str(os.environ.get("ORT_AUDIO_RESOURCE_POLICY", "normal") or "normal").strip().lower()
+        if self.resource_policy not in {"efficient", "normal", "optimal"}:
+            self.resource_policy = "normal"
         self._last_reject_reasons: list[str] = []
         self.fast_preview_model: Any = None
         self.fast_preview_model_size = self.fallback_model_size
         self.fast_preview_model_path = ""
         self.dual_stream_cpu_specialist = False
         self._specialist_lock = threading.RLock()
+        self.preflight_warmup_ms = 0
+        self.preflight_steady_ms = 0
 
     def _model_location(self, size: str) -> str:
         candidates = [
@@ -712,6 +757,8 @@ class ModelAdapter:
             # execute inference and make the preload real rather than cosmetic.
             list(segments)
             timings.append(max(0, int((time.perf_counter() - tick) * 1000.0)))
+        self.preflight_warmup_ms = timings[0]
+        self.preflight_steady_ms = timings[-1]
         emit_event(
             "state",
             state=f"{state_prefix}_PREFLIGHT_PASSED",
@@ -746,7 +793,10 @@ class ModelAdapter:
                 local_realtime=True,
             )
             self.dual_stream_cpu_specialist = bool(
-                self.specialist_active and device == "cpu" and self.profile not in {"accurate", "quality"}
+                self.specialist_active
+                and device == "cpu"
+                and self.profile not in {"accurate", "quality"}
+                and _env_bool("ORT_AUDIO_DUAL_STREAM", False)
             )
             if self.dual_stream_cpu_specialist:
                 self._ensure_fast_preview_model()
@@ -1261,8 +1311,11 @@ class StreamingInferenceWorker:
         self.profile = profile
         # Subtitle context is intentionally bounded. Long monologues are rolled
         # into new subtitle windows instead of growing one paragraph forever.
-        display_words = 48 if profile in {"accurate", "quality"} else 36 if profile == "normal" else 28
-        self.turn_context = RollingTurnContext(max_history_words=96, display_words=display_words)
+        default_history = 48 if str(os.environ.get("ORT_AUDIO_RESOURCE_POLICY", "normal")).lower() == "efficient" else 72
+        history_words = max(24, min(160, int(os.environ.get("ORT_AUDIO_CONTEXT_WORDS", str(default_history)) or default_history)))
+        display_words = 42 if profile in {"accurate", "quality"} else 32 if profile == "normal" else 24
+        display_words = min(display_words, history_words)
+        self.turn_context = RollingTurnContext(max_history_words=history_words, display_words=display_words)
         self.final_done: dict[str, threading.Event] = {}
         self.correction_worker: Optional[SpecialistCorrectionWorker] = None
         if bool(getattr(model, "specialist_correction_enabled", False)):
@@ -1458,6 +1511,7 @@ class UtteranceController:
         self.semantic_silence_since = 0.0
         self.semantic_no_speech_count = 0
         self.last_semantic_text = ""
+        self.false_speech_cooldown_until = 0.0
 
     def _consume_inference_feedback(self, now: float) -> None:
         for row in self.worker.drain_feedback():
@@ -1488,11 +1542,13 @@ class UtteranceController:
         return False, ""
 
     def _rollover_ready(self, duration: float) -> tuple[bool, str]:
+        if not self.last_semantic_text:
+            if self.semantic_no_speech_count >= max(3, self.policy.semantic_no_speech_passes + 1) and duration >= 1.4:
+                return True, "false_speech_reject"
+            return False, ""
         if duration >= self.policy.hard_turn_s:
             return True, "hard_turn_limit"
         if duration < self.policy.subtitle_window_s:
-            return False, ""
-        if not self.last_semantic_text:
             return False, ""
         sentence_end = self.last_semantic_text.rstrip().endswith((".", "!", "?", "…"))
         if sentence_end or self.semantic_no_speech_count > 0:
@@ -1561,7 +1617,8 @@ class UtteranceController:
 
     def _finish(self, now: float, carry: bool) -> str:
         result_id = self.active_result_id
-        snapshot = self._snapshot(True, now)
+        false_speech = bool(not self.last_semantic_text and self.semantic_no_speech_count >= self.policy.semantic_no_speech_passes)
+        snapshot = None if false_speech else self._snapshot(True, now)
         carry_samples = max(0, int(self.policy.carry_over_s * TARGET_SAMPLE_RATE))
         carry_chunk = np.empty(0, dtype=np.float32)
         if carry and self.active_chunks and carry_samples:
@@ -1581,7 +1638,16 @@ class UtteranceController:
         self.last_semantic_text = ""
         self.pre_roll.clear()
         self.pre_roll_samples = 0
-        if carry and carry_chunk.size:
+        if false_speech:
+            self.false_speech_cooldown_until = now + 1.25
+            emit_event(
+                "metric",
+                name="false_speech_cooldown",
+                segment_id=result_id,
+                cooldown_ms=1250,
+                local_realtime=True,
+            )
+        if carry and carry_chunk.size and not false_speech:
             self.pre_roll.append(carry_chunk)
             self.pre_roll_samples = len(carry_chunk)
             self._start(now)
@@ -1602,10 +1668,12 @@ class UtteranceController:
 
         started_now = False
         if not self.active_result_id:
-            if speech:
+            if speech and current >= self.false_speech_cooldown_until:
                 self._start(current)
                 started_now = True
             else:
+                if current < self.false_speech_cooldown_until:
+                    self.noise_floor = max(self.noise_floor, min(0.02, level * 0.55))
                 return
 
         if not started_now:
@@ -1778,32 +1846,118 @@ def _wait_for_start_gate(path_value: str, timeout_s: float = 180.0) -> None:
     raise RuntimeError("Audio Lab dihentikan sebelum capture diaktifkan.")
 
 
+def _provider_for_request(value: str, requested_language: str) -> str:
+    token = str(value or os.environ.get("ORT_AUDIO_ASR_PROVIDER", "") or "").strip()
+    if token:
+        return normalize_provider_id(token, japanese=_language_code(requested_language) in {None, "ja"})
+    if _is_japanese_specialist_mode(requested_language):
+        return PROVIDER_KOTOBA
+    language = _language_code(requested_language)
+    return PROVIDER_WHISPER_BASE if language == "en" else PROVIDER_KOTOBA
+
+
 def run_stream(args: argparse.Namespace) -> int:
     requested_language = str(args.language or "auto")
-    language = _language_code(requested_language)
-    japanese_specialist = _is_japanese_specialist_mode(requested_language) or (
-        language in {None, "ja"}
-        and str(os.environ.get("ORT_AUDIO_JA_SPECIALIST", "auto")).lower() in {"1", "true", "yes", "on", "auto"}
+    language = _language_code(requested_language) or "ja"
+    resource_policy = str(os.environ.get("ORT_AUDIO_RESOURCE_POLICY", "normal") or "normal").strip().lower()
+    if resource_policy not in {"efficient", "normal", "optimal"}:
+        resource_policy = "normal"
+
+    provider_id = _provider_for_request(args.asr_provider, requested_language)
+    model_lock = bool(args.model_lock or _env_bool("ORT_AUDIO_MODEL_LOCK", True))
+    if model_lock and provider_id == "auto":
+        raise RuntimeError("Model lock requires an explicit provider; Auto is blocked.")
+    spec = PROVIDERS[provider_id]
+
+    requested_device = str(args.asr_device or "cpu")
+    effective_device = requested_device
+    decision_reason = "locked_provider_requested_configuration"
+    gpu_memory = _gpu_memory_snapshot() if requested_device == "cuda" else {
+        "free_mb": -1, "total_mb": -1, "source": "not_requested"
+    }
+
+    if requested_device not in spec.supported_devices:
+        if "cpu" in spec.supported_devices:
+            effective_device = "cpu"
+            decision_reason = f"locked_provider_{provider_id}_cpu_only"
+        else:
+            raise RuntimeError(
+                f"Locked provider {provider_id} does not support {requested_device}; "
+                f"supported={spec.supported_devices}"
+            )
+
+    if resource_policy == "optimal" and requested_device == "cuda" and effective_device == "cuda":
+        minimum_free_mb = max(900, int(os.environ.get("ORT_AUDIO_VRAM_MIN_FREE_MB", "1800") or 1800))
+        free_mb = int(gpu_memory.get("free_mb", -1) or -1)
+        if free_mb >= 0 and free_mb < minimum_free_mb:
+            if "cpu" not in spec.supported_devices:
+                raise RuntimeError(
+                    f"VRAM headroom is {free_mb} MB and locked provider {provider_id} has no CPU implementation."
+                )
+            effective_device = "cpu"
+            decision_reason = (
+                f"locked_provider_preserved_vram_guard_{free_mb}mb_below_{minimum_free_mb}mb"
+            )
+        else:
+            decision_reason = "locked_provider_gpu_headroom_ok"
+
+    effective_compute_type = "int8_float16" if effective_device == "cuda" else "int8"
+    emit_event(
+        "state",
+        state="RESOURCE_POLICY_DECISION",
+        resource_policy=resource_policy,
+        requested_device=requested_device,
+        effective_device=effective_device,
+        requested_provider=provider_id,
+        effective_provider=provider_id,
+        model_lock=model_lock,
+        provider_changed=False,
+        gpu_memory=gpu_memory,
+        reason=decision_reason,
+        dual_stream=False,
+        local_realtime=True,
     )
-    policy = resolve_policy(args.profile, args.asr_device)
-    model = ModelAdapter(
+
+    policy = resolve_policy(args.profile, effective_device)
+    model = LockedASRProviderAdapter(
         model_root=Path(args.model_root).expanduser().resolve(),
-        model_size=args.model_size,
-        fallback_model_size=args.fallback_model_size,
-        device=args.asr_device,
-        compute_type=args.compute_type,
+        provider_id=provider_id,
+        device=effective_device,
+        compute_type=effective_compute_type,
         cpu_threads=args.cpu_threads,
-        language=language,
-        allow_cpu_fallback=bool(args.allow_cpu_fallback),
-        game=args.game,
+        source_language=language,
         requested_language=requested_language,
-        japanese_specialist=japanese_specialist,
-        language_correction_mode=args.language_correction,
-        language_locked=bool(args.language_lock),
         profile=args.profile,
+        emit_event=emit_event,
     )
     try:
         model.load()
+        if resource_policy == "optimal" and model.device == "cuda":
+            maximum_steady_ms = max(
+                450,
+                int(os.environ.get("ORT_AUDIO_PREFLIGHT_MAX_STEADY_MS", "1200") or 1200),
+            )
+            if int(model.preflight_steady_ms or 0) > maximum_steady_ms:
+                if "cpu" not in model.supported_devices:
+                    raise RuntimeError(
+                        f"Locked provider {provider_id} GPU preflight is {model.preflight_steady_ms} ms "
+                        "and CPU is unsupported."
+                    )
+                emit_event(
+                    "state",
+                    state="OPTIMAL_GPU_PREFLIGHT_DEGRADED",
+                    provider_id=provider_id,
+                    model_lock=True,
+                    steady_ms=int(model.preflight_steady_ms or 0),
+                    threshold_ms=maximum_steady_ms,
+                    action="switch_same_provider_to_cpu",
+                    local_realtime=True,
+                )
+                model.switch_device("cpu")
+                decision_reason = (
+                    f"locked_provider_preserved_gpu_preflight_{int(model.preflight_steady_ms or 0)}ms"
+                )
+
         active_policy = resolve_policy(args.profile, model.device)
         worker = StreamingInferenceWorker(model)
         worker.start()
@@ -1812,17 +1966,27 @@ def run_stream(args: argparse.Namespace) -> int:
             "state",
             state="LOCAL_REALTIME_READY",
             model=model.model_size,
+            provider_id=model.provider_id,
+            provider_owner=model.spec.owner,
+            provider_backend=model.spec.backend,
+            model_lock=True,
             device=model.device,
             compute_type=model.compute_type,
-            language=language or "auto",
+            language=language,
             requested_language=requested_language,
-            bridge_language="en",
-            asr_task=("transcribe" if language == "en" else "translate"),
+            bridge_language=model.spec.bridge_language,
+            asr_task=model.spec.task,
             japanese_specialist=bool(model.specialist_active),
-            language_correction=model.language_watchdog.policy.mode,
-            language_locked=model.language_locked,
+            language_correction="provider_lock",
+            language_locked=True,
             continuous_turn_context=True,
-            context_history_words=96,
+            context_history_words=max(
+                24, min(160, int(os.environ.get("ORT_AUDIO_CONTEXT_WORDS", "64") or 64))
+            ),
+            resource_policy=resource_policy,
+            resource_decision=decision_reason,
+            gpu_memory=gpu_memory,
+            dual_stream=False,
             local_realtime=True,
             **active_policy.as_dict(),
         )
@@ -1838,19 +2002,82 @@ def run_stream(args: argparse.Namespace) -> int:
         if final_id:
             worker.wait_final(final_id, 4.0)
         worker.stop()
-        emit_event("state", state="STOPPED", local_realtime=True)
+        emit_event(
+            "state",
+            state="STOPPED",
+            provider_id=provider_id,
+            model_lock=True,
+            local_realtime=True,
+        )
         return 0
     except Exception as exc:
         emit_event(
             "error",
-            stage="local_realtime_stream",
-            code="LOCAL_REALTIME_STREAM_FAILED",
-            message=str(exc),
-            fatal=True,
+            code="LOCAL_REALTIME_ASR_FAILED",
+            provider_id=provider_id,
+            model_lock=model_lock,
+            message=f"{type(exc).__name__}: {exc}",
             local_realtime=True,
         )
         return 1
 
+
+def run_provider_benchmark(args: argparse.Namespace) -> int:
+    test_path = Path(args.test_file).expanduser().resolve()
+    if not test_path.is_file():
+        print(json.dumps({"passed": False, "error": f"file not found: {test_path}"}, ensure_ascii=False))
+        return 2
+    provider_id = _provider_for_request(args.asr_provider, args.language)
+    language = _language_code(args.language) or "ja"
+    model = LockedASRProviderAdapter(
+        model_root=Path(args.model_root).expanduser().resolve(),
+        provider_id=provider_id,
+        device=str(args.asr_device or "cpu"),
+        compute_type=str(args.compute_type or "int8"),
+        cpu_threads=args.cpu_threads,
+        source_language=language,
+        requested_language=args.language,
+        profile=args.profile,
+        emit_event=lambda *_args, **_kwargs: None,
+    )
+    started = time.perf_counter()
+    try:
+        model.load()
+        with wave.open(str(test_path), "rb") as handle:
+            channels = handle.getnchannels()
+            rate = handle.getframerate()
+            width = handle.getsampwidth()
+            if width != 2:
+                raise ValueError("Benchmark WAV must be PCM16.")
+            payload = handle.readframes(handle.getnframes())
+        audio = _resample_linear(_mono_float_from_pcm16(payload, channels), rate)
+        text, meta = model.transcribe(audio, stable=True)
+        asr_ms = int(meta.get("asr_ms", (time.perf_counter() - started) * 1000) or 0)
+        result = {
+            "passed": bool(text),
+            "provider_id": provider_id,
+            "model": model.model_size,
+            "device": model.device,
+            "compute_type": model.compute_type,
+            "model_lock": True,
+            "text": text,
+            "asr_ms": asr_ms,
+            "bridge_language": meta.get("bridge_language"),
+            "asr_task": meta.get("asr_task"),
+            "error": "" if text else ",".join(meta.get("quality_reject_reasons") or []),
+        }
+        print(json.dumps(result, ensure_ascii=False, indent=2), flush=True)
+        return 0 if result["passed"] else 1
+    except Exception as exc:
+        print(json.dumps({
+            "passed": False,
+            "provider_id": provider_id,
+            "device": args.asr_device,
+            "model_lock": True,
+            "text": "",
+            "error": f"{type(exc).__name__}: {exc}",
+        }, ensure_ascii=False, indent=2), flush=True)
+        return 1
 
 def run_self_test() -> int:
     global _EVENT_SINK
@@ -1935,10 +2162,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="ORT local rolling-partial real-time ASR sidecar")
     parser.add_argument("--stream-json", action="store_true")
     parser.add_argument("--self-test-json", action="store_true")
+    parser.add_argument("--benchmark-json", action="store_true")
     parser.add_argument("--profile", default="normal")
     parser.add_argument("--language", default="auto")
     parser.add_argument("--model-root", default="")
     parser.add_argument("--model-size", default="base")
+    parser.add_argument("--asr-provider", default=os.environ.get("ORT_AUDIO_ASR_PROVIDER", ""))
+    parser.add_argument("--model-lock", action="store_true", default=_env_bool("ORT_AUDIO_MODEL_LOCK", True))
     parser.add_argument("--fallback-model-size", default="base")
     parser.add_argument("--asr-device", choices=["cpu", "cuda"], default="cpu")
     parser.add_argument("--compute-type", default="int8")
@@ -1959,9 +2189,11 @@ def main() -> int:
     args = build_parser().parse_args()
     if args.self_test_json:
         return run_self_test()
+    if args.benchmark_json:
+        return run_provider_benchmark(args)
     if args.stream_json:
         return run_stream(args)
-    print("Use --stream-json or --self-test-json", file=sys.stderr)
+    print("Use --stream-json, --benchmark-json, or --self-test-json", file=sys.stderr)
     return 2
 
 

@@ -4,16 +4,19 @@ from dataclasses import dataclass
 from typing import Any, Dict
 
 
-VERSION = (9, 0, 2)
+VERSION = (9, 0, 4)
 VERSION_SUFFIX = ""
 APP_VERSION = ".".join(str(part) for part in VERSION) + VERSION_SUFFIX
 APP_VERSION_TAG = f"v{APP_VERSION}"
 APP_NAME = "ORT Translation"
 APP_DISPLAY_NAME = f"{APP_NAME} {APP_VERSION_TAG}"
-RELEASE_NAME = "Adaptive Dialogue Segmentation & Overlay Layout"
-RELEASE_CHANNEL = "v9-0-2-adaptive-dialogue-overlay-layout"
-BASE_RELEASE_CHANNEL = "v9-0-0-open-architecture-clean-layout"
+RELEASE_NAME = "Cloud & Locked Provider Benchmark Lab"
+RELEASE_CHANNEL = "v9-0-4-cloud-locked-provider-benchmark-lab"
+BASE_RELEASE_CHANNEL = "v9-0-3-stability-realtime-diagnostics"
 COMPAT_RELEASE_CHANNELS = (
+    "v9-0-3-stability-realtime-diagnostics",
+    "v9-0-2-adaptive-dialogue-overlay-layout",
+    "v9-0-1-audio-lab-stability",
     "v9-0-0-open-architecture-clean-layout",
     "v8-9-9-r2-f2-long-turn-japanese-context",
     "v8-9-9-r2-f1-hybrid-subtitle-continuity",
@@ -22,7 +25,7 @@ COMPAT_RELEASE_CHANNELS = (
 BUILD_DATE = "2026-07-24"
 STATUS_SCHEMA_VERSION = 3
 PROJECT_LAYOUT_SCHEMA_VERSION = 9
-OPEN_ARCHITECTURE_SCHEMA_VERSION = 1
+OPEN_ARCHITECTURE_SCHEMA_VERSION = 3
 
 
 @dataclass(frozen=True)

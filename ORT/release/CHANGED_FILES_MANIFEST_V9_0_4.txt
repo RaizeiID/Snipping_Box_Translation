@@ -1,0 +1,31 @@
+ORT v9.0.4 — Changed Files Manifest
+=====================================
+
+Release: Cloud & Locked Provider Benchmark Lab
+Source required: v9.0.3 (v9.0.4 reinstall is also allowed)
+
+Changed/created payload files:
+- ORT/docs/changelog/CHANGELOG_V9_0_4.md
+- ORT/docs/v9/OPEN_ARCHITECTURE_LAB.md
+- ORT/maintenance/VERIFY_ORT_V9_0_4.bat
+- ORT_App/ORTCORE_VERSION.txt
+- ORT_App/TITANCORE_VERSION.txt
+- ORT_App/app/audio/asr_provider_registry.py
+- ORT_App/app/audio/locked_asr_adapter.py
+- ORT_App/app/audio/provider_benchmark.py
+- ORT_App/app/open_architecture/executor.py
+- ORT_App/app/open_architecture/overlay_preview.py
+- ORT_App/app/open_architecture/runtime_control.py
+- ORT_App/audio_main.py
+- ORT_App/audio_realtime_local_sidecar.py
+- ORT_App/audio_translation_sidecar.py
+- ORT_App/build_info.py
+- ORT_App/tools/setup_v9_0_4_audio_providers.py
+- ORT_App/tools/v9_0_0_open_architecture_layout_test.py
+- ORT_App/tools/v9_0_1_audio_lab_stability_test.py
+- ORT_App/tools/v9_0_2_adaptive_turn_overlay_test.py
+- ORT_App/tools/v9_0_3_stability_realtime_diagnostics_test.py
+- ORT_App/tools/v9_0_4_cloud_locked_provider_benchmark_test.py
+- ORT_App/tools/verify_v9_0_0_install.py
+- ORT_App/webui.py
+- VERSION.txt

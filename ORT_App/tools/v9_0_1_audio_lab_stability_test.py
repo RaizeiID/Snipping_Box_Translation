@@ -18,7 +18,7 @@ from audio_realtime_local_sidecar import _wait_for_start_gate
 
 
 def main() -> int:
-    assert APP_VERSION_TAG == "v9.0.2"
+    assert APP_VERSION_TAG == "v9.0.4"
 
     barrier = PreloadBarrier()
     barrier.begin(now=100.0)

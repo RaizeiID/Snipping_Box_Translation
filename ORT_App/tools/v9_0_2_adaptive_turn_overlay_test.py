@@ -83,7 +83,7 @@ def _load_translation_sidecar():
 
 
 def main() -> int:
-    assert APP_VERSION_TAG == "v9.0.2"
+    assert APP_VERSION_TAG == "v9.0.4"
 
     webui = (APP_ROOT / "webui.py").read_text(encoding="utf-8-sig")
     audio_main = (APP_ROOT / "audio_main.py").read_text(encoding="utf-8-sig")

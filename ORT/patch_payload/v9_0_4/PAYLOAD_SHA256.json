@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "version": "v9.0.4",
+  "release": "Cloud & Locked Provider Benchmark Lab",
+  "files": {
+    "ORT/docs/changelog/CHANGELOG_V9_0_4.md": "c420a2c77782440d512d1e307d4e9f717eadf1690dc84d208c91dfc63f085f2d",
+    "ORT/docs/v9/OPEN_ARCHITECTURE_LAB.md": "83fa8d65f2c22dd003b7a0098c5d9cd47d30538192dc7ec1251d2fd6312b7e3c",
+    "ORT/maintenance/VERIFY_ORT_V9_0_4.bat": "ef05abb30c1fa9020419418caead013ee88d2ac35e42541a730d2204f7effbfe",
+    "ORT_App/ORTCORE_VERSION.txt": "fb878ff572b507504119bbde2230b10817ac5df589a75a315ab8e9562d0ffc42",
+    "ORT_App/TITANCORE_VERSION.txt": "fb878ff572b507504119bbde2230b10817ac5df589a75a315ab8e9562d0ffc42",
+    "ORT_App/app/audio/asr_provider_registry.py": "23ef99402e8380b94438b6b4f28bf6aca4ae7d90cf9d64cf44eb11f0aa30a9c0",
+    "ORT_App/app/audio/locked_asr_adapter.py": "9bd6ad34012f3af89283bb1c785b7ea3fc6603b8079b1f3d5e0b406992bf6fd0",
+    "ORT_App/app/audio/provider_benchmark.py": "1910997ffbb046d4df5c0679cab173e21485e8013043679a3e388160c42b4ec8",
+    "ORT_App/app/open_architecture/executor.py": "8a5898f9546b705c101d692cf5389461846ae9b91746c4efb40a44e7a170dc16",
+    "ORT_App/app/open_architecture/overlay_preview.py": "7e922b7dc7ce1da44688d9b100d3d237c399b9c130bb89403eabd1df2f5262da",
+    "ORT_App/app/open_architecture/runtime_control.py": "b5816202c71e0aeea67b752ea0f20ee7ca9de0fe40320db0f567e8c1a0083cb0",
+    "ORT_App/audio_main.py": "165fe5eee969bd1796921ef1580fc43fc9d7fb697f3e0c857ba45378b8b0def7",
+    "ORT_App/audio_realtime_local_sidecar.py": "fc6ae3a9cedf8abf566a43cd0e39564701428a1fc4b8df4c7a5daf59ad6ca223",
+    "ORT_App/audio_translation_sidecar.py": "e464e03b2acd06ddbd7df93db68fa8b6406f0f75eeeab28eaa1320ada645fd77",
+    "ORT_App/build_info.py": "a7f7bc3a047b5381d375eba6ac876371c0034365d9fb52868f070f0a23ff33c6",
+    "ORT_App/tools/setup_v9_0_4_audio_providers.py": "7b6b690346477e2d84303283be525c9ebdccbf6c709aa59d42eb0ff3086e2a70",
+    "ORT_App/tools/v9_0_0_open_architecture_layout_test.py": "fa52acf63cf5a7ce047952735c346e9403a1c37eeecf3ca6b161263d0a6d6c2d",
+    "ORT_App/tools/v9_0_1_audio_lab_stability_test.py": "4fe96a57ef231ce3f52faae4617977ac6d81738f5b413dfc5cf0116a0317f440",
+    "ORT_App/tools/v9_0_2_adaptive_turn_overlay_test.py": "4965d536236ca61e6c065e20a195e99dadd7ecfff051e30bf0f913d961ff0994",
+    "ORT_App/tools/v9_0_3_stability_realtime_diagnostics_test.py": "ac11f2c457ba589e01642c2713fcc33b7879e57de0ea8a8935047e68be76880d",
+    "ORT_App/tools/v9_0_4_cloud_locked_provider_benchmark_test.py": "cf9d1ec475542c73913d70459ab96d780e29bbd384b3a3129c06e1a81b9e7188",
+    "ORT_App/tools/verify_v9_0_0_install.py": "edb5e704c71a835885a7353a434ddf59fc950dc29b3675209584ca6666a748c7",
+    "ORT_App/webui.py": "2aa253514606fc178cad25698ab6214ff3fa0f6994785942d11dbb74470640b0",
+    "VERSION.txt": "fb878ff572b507504119bbde2230b10817ac5df589a75a315ab8e9562d0ffc42"
+  },
+  "revision": "R2_REAZONSPEECH_CUDA_SETUP"
+}

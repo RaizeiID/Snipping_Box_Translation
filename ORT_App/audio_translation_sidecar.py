@@ -39,8 +39,16 @@ def configure_native_runtime() -> bool:
     os.environ.setdefault("ORT_HARD_STRICT_CT2_STORY", "0")
     os.environ.setdefault("ORT_AUDIO_SOURCE", "1")
     os.environ.setdefault("ORT_TRANSLATION_SOURCE", "audio")
-    if safe_mode:
+    # v9.0.3: safe mode reduces thread pressure but keeps the validated CT2
+    # engine available. Argos recovery is opt-in because switching the whole
+    # session to Argos after one timeout caused minute-long subtitle stalls.
+    allow_argos_recovery = str(os.environ.get("ORT_AUDIO_ALLOW_ARGOS_RECOVERY", "0")).lower() in {
+        "1", "true", "yes", "on"
+    }
+    if safe_mode and allow_argos_recovery:
         os.environ["ORT_DISABLE_CT2"] = "1"
+    else:
+        os.environ.pop("ORT_DISABLE_CT2", None)
     return safe_mode
 
 
@@ -71,9 +79,17 @@ class AudioTranslator:
     def __init__(self, safe_mode: bool):
         self.safe_mode = bool(safe_mode)
         self._argos_translation = None
+        self._argos_pairs: dict[tuple[str, str], Any] = {}
         self._engine = None
         self._segments: dict[str, SegmentTranslationState] = {}
         self._segment_limit = 32
+        self._source_bridge_cache: dict[tuple[str, str], str] = {}
+        self._source_bridge_cache_limit = 256
+        self._source_bridge_required = str(os.environ.get("ORT_AUDIO_ASR_PROVIDER", "") or "").strip().lower() in {
+            "reazonspeech_k2", "sensevoice_small"
+        }
+        self._source_bridge_ready = False
+        self._source_bridge_warmup_ms = 0
         self._init_engine()
 
     def _init_engine(self) -> None:
@@ -84,30 +100,116 @@ class AudioTranslator:
             self._engine.warmup(None)
         except Exception as exc:
             log(f"[AUDIO TRANSLATION] warmup skipped: {exc}")
+        self._prepare_source_bridge()
+
+    def _argos_pair(self, source_code: str, target_code: str):
+        key = (str(source_code or "").lower(), str(target_code or "").lower())
+        if key in self._argos_pairs:
+            return self._argos_pairs[key]
+        try:
+            import argostranslate.translate
+
+            installed = argostranslate.translate.get_installed_languages()
+            source = next((lang for lang in installed if getattr(lang, "code", "") == key[0]), None)
+            target = next((lang for lang in installed if getattr(lang, "code", "") == key[1]), None)
+            value = source.get_translation(target) if source and target else False
+        except Exception as exc:
+            log(f"[AUDIO TRANSLATION] Argos pair {key[0]}->{key[1]} unavailable: {exc}")
+            value = False
+        self._argos_pairs[key] = value
+        return value
+
+    def _argos_translate_pair(self, text: str, source_code: str, target_code: str) -> str:
+        translator = self._argos_pair(source_code, target_code)
+        if translator:
+            started = time.perf_counter()
+            try:
+                output = str(translator.translate(text) or "").strip()
+                elapsed_ms = int((time.perf_counter() - started) * 1000)
+                if elapsed_ms >= 1000:
+                    log(f"[AUDIO TRANSLATION] bridge {source_code}->{target_code} slow | {elapsed_ms}ms")
+                return output
+            except Exception as exc:
+                log(f"[AUDIO TRANSLATION] Argos {source_code}->{target_code} failed: {exc}")
+        return ""
+
+    def _prepare_source_bridge(self) -> None:
+        if not self._source_bridge_required:
+            return
+        started = time.perf_counter()
+        translator = self._argos_pair("ja", "en")
+        if not translator:
+            raise RuntimeError(
+                "Japanese preview bridge ja->en tidak tersedia pada runtime Audio aktif. "
+                "Jalankan Siapkan model yang dipilih untuk CPU/GPU yang digunakan."
+            )
+        sample = self._argos_translate_pair("これはテストです", "ja", "en")
+        if not sample or sample == "これはテストです":
+            raise RuntimeError("Japanese preview bridge ja->en gagal functional warm-up")
+        self._source_bridge_ready = True
+        self._source_bridge_warmup_ms = int((time.perf_counter() - started) * 1000)
+        self._source_bridge_cache[("ja", "これはテストです")] = sample
+        log(
+            f"[AUDIO TRANSLATION] Japanese preview bridge ready | "
+            f"engine=argos_ja_en | warmup_ms={self._source_bridge_warmup_ms} | sample={sample}"
+        )
+
+    def _bridge_to_english(self, text: str, source_code: str) -> str:
+        clean = " ".join(str(text or "").strip().split())
+        key = (str(source_code or "").lower(), clean)
+        cached = self._source_bridge_cache.get(key)
+        if cached is not None:
+            return cached
+        output = " ".join(self._argos_translate_pair(clean, key[0], "en").split())
+        if output:
+            if len(self._source_bridge_cache) >= self._source_bridge_cache_limit:
+                self._source_bridge_cache.pop(next(iter(self._source_bridge_cache)), None)
+            self._source_bridge_cache[key] = output
+        return output
 
     def _argos_translate(self, text: str) -> str:
-        try:
-            if self._argos_translation is None:
-                import argostranslate.translate
-
-                installed = argostranslate.translate.get_installed_languages()
-                source = next((lang for lang in installed if getattr(lang, "code", "") == "en"), None)
-                target = next((lang for lang in installed if getattr(lang, "code", "") == "id"), None)
-                self._argos_translation = source.get_translation(target) if source and target else False
-            if self._argos_translation:
-                return str(self._argos_translation.translate(text) or "").strip()
-        except Exception as exc:
-            log(f"[AUDIO TRANSLATION] Argos fallback unavailable: {exc}")
-        return str(text or "").strip()
+        output = self._argos_translate_pair(text, "en", "id")
+        return output or str(text or "").strip()
 
     def engine_label(self) -> str:
-        if self.safe_mode:
-            return "argos_recovery"
         if self._engine is not None and getattr(self._engine, "ct2", None) is not None:
-            return "ct2_fast"
-        return "argos_offline"
+            return "ct2_safe" if self.safe_mode else "ct2_fast"
+        return "argos_recovery" if self.safe_mode else "argos_offline"
 
-    def _translate_clause(self, clause: str) -> tuple[str, dict]:
+    def _translate_clause(self, clause: str, source_language: str = "en") -> tuple[str, dict]:
+        source_code = str(source_language or "en").lower().split("-", 1)[0]
+        if source_code != "en":
+            # ReazonSpeech/SenseVoice return Japanese transcription. Always build
+            # the English preview first, then send that English text through the
+            # validated CT2 EN->ID engine. Do not attempt a hidden JA->ID Argos
+            # composite because its first lazy load can exceed the watchdog and
+            # it provides no English preview for the overlay.
+            bridge = self._bridge_to_english(clause, source_code)
+            if not bridge or bridge.casefold() == clause.casefold():
+                return clause, {
+                    "engine": f"{source_code}_bridge_unavailable",
+                    "source_language": source_code,
+                    "bridge_language": "-",
+                    "preview_language": "-",
+                    "translation_unavailable": True,
+                    "cache": "MISS",
+                }
+            output, meta = self._engine.translate(bridge, bridge=None)
+            meta = dict(meta or {})
+            meta.update({
+                "source_language": source_code,
+                "bridge_language": "en",
+                "bridge_text": bridge,
+                "preview_text": bridge,
+                "preview_language": "en",
+                "target_language": "id",
+                "bridge_engine": f"argos_{source_code}_en",
+                "source_bridge_ready": self._source_bridge_ready,
+                "source_bridge_warmup_ms": self._source_bridge_warmup_ms,
+            })
+            clean = " ".join(str(output or "").strip().split())
+            return clean or bridge, meta
+
         output, meta = self._engine.translate(clause, bridge=None)
         meta = dict(meta or {})
         clean = " ".join(str(output or "").strip().split())
@@ -128,7 +230,14 @@ class AudioTranslator:
         for key, _state in oldest[: max(1, len(self._segments) - self._segment_limit)]:
             self._segments.pop(key, None)
 
-    def translate(self, text: str, *, segment_id: str = "", stable: bool = False) -> tuple[str, dict]:
+    def translate(
+        self,
+        text: str,
+        *,
+        segment_id: str = "",
+        stable: bool = False,
+        source_language: str = "en",
+    ) -> tuple[str, dict]:
         if self._engine is None:
             return text, {"engine": "source_fallback", "cache": "MISS"}
         source = " ".join(str(text or "").strip().split())
@@ -170,7 +279,7 @@ class AudioTranslator:
         ):
             suffix = source[len(previous.source):].strip(" ,.;:-")
             if len(suffix.split()) >= 2:
-                tail_output, tail_meta = self._translate_clause(suffix)
+                tail_output, tail_meta = self._translate_clause(suffix, source_language)
                 outputs = [" ".join([previous.outputs[0], tail_output]).strip()]
                 metas = [tail_meta]
                 reuse = 1
@@ -178,7 +287,7 @@ class AudioTranslator:
 
         if not delta_mode:
             for clause in clauses[reuse:]:
-                output, meta = self._translate_clause(clause)
+                output, meta = self._translate_clause(clause, source_language)
                 outputs.append(output)
                 metas.append(meta)
 
@@ -197,6 +306,16 @@ class AudioTranslator:
         merged["audio_translated_clauses"] = 1 if delta_mode else max(0, len(clauses) - reuse)
         merged["audio_delta_mode"] = delta_mode
         merged["audio_segment_final"] = bool(stable)
+        bridge_parts = [str(item.get("bridge_text") or item.get("preview_text") or "").strip() for item in metas]
+        bridge_parts = [item for item in bridge_parts if item]
+        if bridge_parts:
+            prior_bridge = ""
+            if previous is not None and reuse > 0:
+                prior_bridge = str(previous.meta.get("bridge_text") or previous.meta.get("preview_text") or "").strip()
+            combined_bridge = " ".join([item for item in [prior_bridge, *bridge_parts] if item]).strip()
+            merged["bridge_text"] = combined_bridge
+            merged["preview_text"] = combined_bridge
+            merged["preview_language"] = "en"
 
         self._segments[key] = SegmentTranslationState(
             source=source,
@@ -228,6 +347,7 @@ def process_request(translator: AudioTranslator, request: Dict[str, Any]) -> Non
             source,
             segment_id=str(request.get("segment_id") or ""),
             stable=bool(request.get("stable")),
+            source_language=str(request.get("bridge_language") or request.get("source_language") or "en"),
         )
         translation_ms = int((time.perf_counter() - started) * 1000)
         request_payload = dict(request)
@@ -306,6 +426,9 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
         engine=translator.engine_label(),
         packed_gemm=False,
         threads=int(os.environ.get("OMP_NUM_THREADS", "1") or 1),
+        source_bridge_required=translator._source_bridge_required,
+        source_bridge_ready=translator._source_bridge_ready,
+        source_bridge_warmup_ms=translator._source_bridge_warmup_ms,
     )
     for request in iter_requests(sys.stdin):
         request_type = str(request.get("type") or "").lower()

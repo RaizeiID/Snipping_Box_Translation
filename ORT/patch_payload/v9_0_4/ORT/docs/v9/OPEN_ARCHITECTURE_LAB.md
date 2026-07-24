@@ -149,3 +149,7 @@ Japanese source was an Indonesian translation.
 Google Cloud and AWS are visible as benchmark/catalog candidates in v9.0.4, but
 are blocked for live start until their streaming adapters and credential health
 checks are implemented. Credentials remain outside source control.
+
+### ReazonSpeech K2 CPU/CUDA setup
+
+Tombol setup mengikuti Perangkat ASR. CPU memasang runtime CPU, GPU memasang sherpa-onnx CUDA, dan Hybrid menyiapkan keduanya. Model K2 tidak diduplikasi; cache weight yang sama dipakai oleh kedua runtime. Setup CUDA harus dijalankan saat game ditutup agar warm-up mendapat VRAM yang cukup.

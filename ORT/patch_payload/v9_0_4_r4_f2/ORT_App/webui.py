@@ -1305,6 +1305,23 @@ def _oa_provider_device(provider_id: str, audio_mode: str) -> tuple[str, Path]:
     return "cpu", AUDIO_CPU_PYTHON
 
 
+def _oa_delivery_mode_updates(delivery_mode: str, cloud_provider: str):
+    mode = str(delivery_mode or "offline").strip().lower()
+    if mode not in {"offline", "online", "hybrid"}:
+        mode = "offline"
+    cloud = str(cloud_provider or "azure").strip().lower()
+    if cloud not in {"azure", "google", "aws"}:
+        cloud = "azure"
+    _save_ui_pref(oa_delivery_mode=mode, oa_cloud_provider=cloud)
+    messages = {
+        "offline": "**Offline:** seluruh ASR dan terjemahan berjalan lokal. Cloud provider tidak digunakan.",
+        "online": "**Online:** Azure menjadi provider live pada v9.0.4. Google dan AWS tersedia sebagai katalog benchmark, belum sebagai live adapter.",
+        "hybrid": "**Hybrid delivery:** Azure primary dengan local locked-provider fallback. Model lokal yang dipilih tetap dikunci dan tidak diganti.",
+    }
+    extra = "" if cloud == "azure" or mode == "offline" else "\n\n> Provider ini catalog-only; Start akan diblokir sampai Azure dipilih."
+    return messages[mode] + extra
+
+
 def _oa_human_bytes(value: int | float) -> str:
     size = float(value or 0)
     for unit in ("B", "KB", "MB", "GB", "TB"):
@@ -1363,6 +1380,19 @@ def _oa_provider_status_ui(provider_id: str, audio_mode: str | None = None) -> s
         f"<b>{html.escape(spec.backend)}</b> · Output: <b>{html.escape(spec.output_language)}</b></div>"
         "</div>"
     )
+
+
+
+def _oa_refresh_provider_status_ui(provider_id: str, audio_mode: str | None = None) -> str:
+    """Run a fresh CPU/GPU probe when the user explicitly checks model status.
+
+    `_oa_provider_status_ui` already reads the persistent setup manifests, validates
+    model files, probes the selected runtime modules, checks CUDA-vs-CPU wheels,
+    and verifies the Japanese translation bridge. Keeping the explicit refresh
+    callback as a thin wrapper avoids stale UI wiring while preserving one source
+    of truth for status rendering.
+    """
+    return _oa_provider_status_ui(provider_id, audio_mode)
 
 
 def _oa_progress_html(state: dict | None = None) -> str:

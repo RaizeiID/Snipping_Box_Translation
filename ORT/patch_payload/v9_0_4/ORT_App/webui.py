@@ -3,7 +3,6 @@ from __future__ import annotations
 import html
 import json
 import os
-import queue
 import subprocess
 import sys
 import threading
@@ -148,38 +147,6 @@ CSS = """
 .oa-badge-ready,.oa-badge-warn { display:inline-flex; border-radius:999px; padding:3px 8px; font-size:11px; font-weight:900; }
 .oa-badge-ready { color:#a7f3d0; background:rgba(6,95,70,.35); }
 .oa-badge-warn { color:#fde68a; background:rgba(120,53,15,.35); }
-
-.provider-status-panel { border:1px solid rgba(96,165,250,.24); background:rgba(8,17,32,.82); border-radius:18px; padding:15px; margin:8px 0 12px; }
-.provider-status-head { display:flex; justify-content:space-between; gap:12px; align-items:center; }
-.provider-status-head small { color:#60a5fa; font-weight:900; letter-spacing:.9px; }
-.provider-status-head h3 { margin:3px 0 0; }
-.provider-lock-pill { display:inline-flex; border-radius:999px; padding:7px 13px; background:rgba(30,64,175,.42); color:#dbeafe; font-size:11px; font-weight:900; }
-.provider-device-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:12px; }
-.provider-device-card { border:1px solid rgba(148,163,184,.18); border-radius:999px; padding:10px 16px; background:rgba(15,23,42,.72); min-height:66px; }
-.provider-device-title { display:flex; justify-content:space-between; gap:8px; align-items:center; }
-.provider-device-pill { display:inline-flex; border-radius:999px; padding:5px 11px; font-size:10px; font-weight:950; letter-spacing:.25px; }
-.provider-pill-ready { color:#d1fae5; background:rgba(5,150,105,.36); border:1px solid rgba(52,211,153,.42); }
-.provider-pill-missing { color:#fee2e2; background:rgba(153,27,27,.34); border:1px solid rgba(248,113,113,.38); }
-.provider-pill-partial,.provider-pill-checking { color:#fef3c7; background:rgba(146,64,14,.34); border:1px solid rgba(251,191,36,.38); }
-.provider-pill-unsupported { color:#cbd5e1; background:rgba(51,65,85,.52); border:1px solid rgba(148,163,184,.3); }
-.provider-device-size { color:#bfdbfe; font-size:12px; font-weight:800; margin-top:4px; }
-.provider-device-detail { color:#94a3b8; font-size:11px; margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.provider-meta { color:#94a3b8; font-size:12px; margin-top:11px; }
-.setup-progress-card { border-radius:16px; padding:13px 15px; border:1px solid rgba(148,163,184,.22); background:rgba(15,23,42,.74); margin:8px 0; }
-.setup-progress-head,.setup-progress-meta { display:flex; align-items:center; justify-content:space-between; gap:10px; }
-.setup-progress-head span { border-radius:999px; padding:4px 9px; font-size:10px; font-weight:900; }
-.setup-progress-meta { color:#bfdbfe; font-size:12px; margin-top:8px; }
-.setup-progress-track { height:12px; border-radius:999px; background:rgba(30,41,59,.95); overflow:hidden; margin-top:9px; }
-.setup-progress-fill { height:100%; border-radius:inherit; transition:width .2s ease; background:linear-gradient(90deg,#2563eb,#22d3ee); }
-.setup-progress-success { border-color:rgba(52,211,153,.36); }
-.setup-progress-success .setup-progress-fill { background:linear-gradient(90deg,#059669,#34d399); }
-.setup-progress-failed { border-color:rgba(248,113,113,.4); }
-.setup-progress-failed .setup-progress-fill { background:linear-gradient(90deg,#b91c1c,#fb7185); }
-.setup-progress-running .setup-progress-head span { color:#dbeafe; background:rgba(30,64,175,.42); }
-.setup-progress-success .setup-progress-head span { color:#d1fae5; background:rgba(5,150,105,.36); }
-.setup-progress-failed .setup-progress-head span { color:#fee2e2; background:rgba(153,27,27,.34); }
-.setup-progress-idle .setup-progress-head span { color:#cbd5e1; background:rgba(51,65,85,.52); }
-@media (max-width:760px) { .provider-device-grid { grid-template-columns:1fr; } .provider-device-card { border-radius:18px; } }
 
 .mode-buffer-help { border:1px solid rgba(96,165,250,.22); background:rgba(15,23,42,.55); color:#dbeafe; border-radius:14px; padding:10px 12px; margin-top:-4px; }
 .mode-buffer-help .q { display:inline-flex; width:22px; height:22px; align-items:center; justify-content:center; border-radius:999px; background:#1d4ed8; color:white; font-weight:900; margin-left:8px; cursor:help; }
@@ -1305,242 +1272,119 @@ def _oa_provider_device(provider_id: str, audio_mode: str) -> tuple[str, Path]:
     return "cpu", AUDIO_CPU_PYTHON
 
 
-def _oa_human_bytes(value: int | float) -> str:
-    size = float(value or 0)
-    for unit in ("B", "KB", "MB", "GB", "TB"):
-        if size < 1024 or unit == "TB":
-            return f"{size:.2f} {unit}"
-        size /= 1024
-    return f"{size:.2f} TB"
-
-
-def _oa_device_pill(device: str, item: dict) -> str:
-    level = str(item.get("status_level") or ("ready" if item.get("ready") else "missing"))
-    labels = {
-        "ready": ("READY", "provider-pill-ready"),
-        "partial": ("BELUM TERVERIFIKASI", "provider-pill-partial"),
-        "unsupported": ("TIDAK DIDUKUNG", "provider-pill-unsupported"),
-        "missing": ("BELUM TERPASANG", "provider-pill-missing"),
-    }
-    label, css = labels.get(level, labels["missing"])
-    downloaded = int(item.get("model_downloaded_bytes", 0) or 0)
-    total = int(item.get("model_total_bytes", 0) or 0)
-    size_text = "Ukuran belum diketahui"
-    if total:
-        size_text = f"{_oa_human_bytes(downloaded)} / {_oa_human_bytes(total)}"
-    bridge = item.get("bridge_ready")
-    bridge_text = ""
-    if bridge is True:
-        bridge_text = " · Bridge READY"
-    elif bridge is False:
-        bridge_text = " · Bridge belum siap"
-    detail = "; ".join(item.get("errors") or item.get("warnings") or []) or item.get("recommended_for") or "-"
-    return (
-        "<div class='provider-device-card'>"
-        f"<div class='provider-device-title'><b>{html.escape(device.upper())}</b>"
-        f"<span class='provider-device-pill {css}'>{html.escape(label)}</span></div>"
-        f"<div class='provider-device-size'>{html.escape(size_text + bridge_text)}</div>"
-        f"<div class='provider-device-detail'>{html.escape(str(detail))}</div>"
-        "</div>"
-    )
-
-
-def _oa_provider_status_ui(provider_id: str, audio_mode: str | None = None) -> str:
+def _oa_provider_status_ui(provider_id: str, audio_mode: str) -> str:
     provider = normalize_asr_model_provider(provider_id)
     _save_ui_pref(oa_asr_model_provider=provider)
     spec = ASR_PROVIDERS[provider]
-    cpu = asr_model_provider_status(AUDIO_MODEL_ROOT, provider, "cpu", AUDIO_CPU_PYTHON)
-    cuda = asr_model_provider_status(AUDIO_MODEL_ROOT, provider, "cuda", AUDIO_GPU_PYTHON)
-    return (
-        "<div class='provider-status-panel'>"
-        f"<div class='provider-status-head'><div><small>MODEL HARD LOCK</small><h3>{html.escape(spec.label)}</h3></div>"
-        "<span class='provider-lock-pill'>TERKUNCI</span></div>"
-        "<p>Periksa status membaca instalasi CPU dan GPU secara terpisah. Model tidak akan diganti otomatis saat sesi berjalan.</p>"
-        "<div class='provider-device-grid'>"
-        f"{_oa_device_pill('cpu', cpu)}{_oa_device_pill('gpu', cuda)}"
-        "</div>"
-        f"<div class='provider-meta'>Pemilik: <b>{html.escape(spec.owner)}</b> · Backend: "
-        f"<b>{html.escape(spec.backend)}</b> · Output: <b>{html.escape(spec.output_language)}</b></div>"
-        "</div>"
-    )
+    requested_device, runtime_python = _oa_provider_device(provider, audio_mode)
+    checks = []
+    for device, python_path in (("cpu", AUDIO_CPU_PYTHON), ("cuda", AUDIO_GPU_PYTHON)):
+        if device not in spec.supported_devices or not python_path.is_file():
+            continue
+        item = asr_model_provider_status(AUDIO_MODEL_ROOT, provider, device, python_path)
+        state = "READY" if item.get("ready") else "SETUP REQUIRED"
+        detail = "; ".join(item.get("errors") or []) or item.get("recommended_for") or "-"
+        checks.append(f"| {device} | {state} | `{item.get('model_path') or '-'}` | {detail} |")
+    if not checks:
+        checks.append("| - | SETUP REQUIRED | `-` | Runtime provider belum tersedia. |")
+    return "\n".join([
+        f"### 🔒 Model dikunci: {spec.label}",
+        "Provider tidak akan diganti otomatis selama sesi. Resource Mode hanya boleh memindahkan device untuk provider yang sama.",
+        "",
+        f"Pemilik: **{spec.owner}** · Backend: **{spec.backend}** · Output: **{spec.output_language}** · Task: **{spec.task}**",
+        f"Device yang diminta saat ini: **{requested_device}**",
+        "",
+        "| Device | Status | Model/cache | Detail |",
+        "|---|---|---|---|",
+        *checks,
+    ])
 
 
-def _oa_progress_html(state: dict | None = None) -> str:
-    data = state or {}
-    percent = max(0.0, min(100.0, float(data.get("percent", 0.0) or 0.0)))
-    total = int(data.get("total_bytes", 0) or 0)
-    downloaded = int(data.get("downloaded_bytes", 0) or 0)
-    phase = str(data.get("phase") or "Belum ada proses setup")
-    device = str(data.get("device") or "-").upper()
-    status = str(data.get("status") or "idle")
-    status_label = {
-        "idle": "MENUNGGU",
-        "running": "BERJALAN",
-        "success": "BERHASIL",
-        "failed": "GAGAL",
-    }.get(status, status.upper())
-    css = {
-        "idle": "setup-progress-idle",
-        "running": "setup-progress-running",
-        "success": "setup-progress-success",
-        "failed": "setup-progress-failed",
-    }.get(status, "setup-progress-idle")
-    if total:
-        amount = f"{_oa_human_bytes(downloaded)} dari {_oa_human_bytes(total)}"
-    else:
-        amount = "Ukuran model sedang diperiksa" if status == "running" else "Belum ada unduhan"
-    return (
-        f"<div class='setup-progress-card {css}'>"
-        f"<div class='setup-progress-head'><b>{html.escape(phase)}</b><span>{html.escape(status_label)}</span></div>"
-        f"<div class='setup-progress-meta'><span>Target: {html.escape(device)}</span><span>{html.escape(amount)}</span>"
-        f"<strong>{percent:.1f}%</strong></div>"
-        f"<div class='setup-progress-track'><div class='setup-progress-fill' style='width:{percent:.2f}%'></div></div>"
-        "</div>"
-    )
+def _oa_delivery_mode_updates(delivery_mode: str, cloud_provider: str):
+    mode = str(delivery_mode or "offline").strip().lower()
+    if mode not in {"offline", "online", "hybrid"}:
+        mode = "offline"
+    cloud = str(cloud_provider or "azure").strip().lower()
+    if cloud not in {"azure", "google", "aws"}:
+        cloud = "azure"
+    _save_ui_pref(oa_delivery_mode=mode, oa_cloud_provider=cloud)
+    messages = {
+        "offline": "**Offline:** seluruh ASR dan terjemahan berjalan lokal. Cloud provider tidak digunakan.",
+        "online": "**Online:** Azure menjadi provider live pada v9.0.4. Google dan AWS tersedia sebagai katalog benchmark, belum sebagai live adapter.",
+        "hybrid": "**Hybrid delivery:** Azure primary dengan local locked-provider fallback. Model lokal yang dipilih tetap dikunci dan tidak diganti.",
+    }
+    extra = "" if cloud == "azure" or mode == "offline" else "\n\n> Provider ini catalog-only; Start akan diblokir sampai Azure dipilih."
+    return messages[mode] + extra
 
 
-def _oa_setup_devices(setup_target: str | None, provider: str) -> list[tuple[str, Path]]:
-    target = str(setup_target or "").strip().lower()
-    if target not in {"cpu", "gpu", "both"}:
-        raise ValueError("Pilih target setup: CPU, GPU, atau Keduanya sebelum memulai.")
-    spec = ASR_PROVIDERS[provider]
-    requested = ["cpu", "cuda"] if target == "both" else (["cuda"] if target == "gpu" else ["cpu"])
-    targets: list[tuple[str, Path]] = []
-    for device in requested:
-        if device not in spec.supported_devices:
-            raise ValueError(f"{spec.label} tidak mendukung target {device.upper()}.")
-        runtime = AUDIO_GPU_PYTHON if device == "cuda" else AUDIO_CPU_PYTHON
-        if not runtime.is_file():
-            raise FileNotFoundError(f"Runtime {device.upper()} tidak ditemukan: {runtime}")
-        targets.append((device, runtime))
-    return targets
-
-
-def _oa_setup_command(python_path: Path, provider: str, device: str) -> list[str]:
-    return [
+def _oa_run_setup_command(
+    python_path: Path,
+    provider: str,
+    *,
+    device: str = "cpu",
+    cuda_variant: str = "auto",
+) -> str:
+    command = [
         str(python_path), str(AUDIO_PROVIDER_SETUP), provider,
         "--runtime-root", str(AUDIO_RUNTIME_ROOT),
         "--model-root", str(AUDIO_MODEL_ROOT),
-        "--status-root", str(AUDIO_RUNTIME_ROOT / "provider_setup_status"),
         "--python", str(python_path),
-        "--device", "cuda" if device == "cuda" else "cpu",
-        "--cuda-variant", "auto",
+        "--device", "cuda" if str(device).lower() == "cuda" else "cpu",
+        "--cuda-variant", str(cuda_variant or "auto"),
     ]
-
-
-def _oa_parse_setup_event(line: str) -> dict | None:
-    prefix = "ORT_SETUP_EVENT "
-    if not line.startswith(prefix):
-        return None
-    try:
-        value = json.loads(line[len(prefix):].strip())
-        return value if isinstance(value, dict) else None
-    except Exception:
-        return None
-
-
-def _oa_stream_setup_process(command: list[str], timeout_seconds: int = 3600):
-    env = os.environ.copy()
-    env["PYTHONUTF8"] = "1"
-    env["PYTHONIOENCODING"] = "utf-8"
-    process = subprocess.Popen(
-        command, cwd=str(PROJECT_ROOT), env=env,
-        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-        text=True, encoding="utf-8", errors="replace", bufsize=1,
+    result = subprocess.run(
+        command,
+        cwd=str(PROJECT_ROOT),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=1800,
+        check=False,
     )
-    output_queue: queue.Queue[str | None] = queue.Queue()
-
-    def reader() -> None:
-        assert process.stdout is not None
-        for raw in process.stdout:
-            output_queue.put(raw.rstrip("\r\n"))
-        output_queue.put(None)
-
-    thread = threading.Thread(target=reader, daemon=True)
-    thread.start()
-    started = time.monotonic()
-    finished_reader = False
-    while process.poll() is None or not finished_reader or not output_queue.empty():
-        if time.monotonic() - started > timeout_seconds:
-            process.kill()
-            raise TimeoutError("Setup provider melewati batas 60 menit.")
-        try:
-            line = output_queue.get(timeout=0.25)
-        except queue.Empty:
-            continue
-        if line is None:
-            finished_reader = True
-            continue
-        yield line
-    thread.join(timeout=3)
-    if process.returncode != 0:
-        raise RuntimeError(f"Proses setup berhenti dengan exit code {process.returncode}.")
+    output = (result.stdout or "") + ("\n" + result.stderr if result.stderr else "")
+    if result.returncode != 0:
+        raise RuntimeError(f"Setup gagal ({python_path.name}, exit={result.returncode}):\n{output[-6000:]}")
+    return output[-6000:]
 
 
-def _oa_setup_selected_provider_ui(provider_id: str, setup_target: str | None):
+def _oa_setup_selected_provider_ui(provider_id: str, audio_mode: str):
     provider = normalize_asr_model_provider(provider_id)
-    logs: list[str] = []
-    state = {"status": "running", "phase": "Memulai setup provider", "device": setup_target or "-", "percent": 0.0}
-    last_logged_percent = -10
+    logs = [f"ORT {APP_VERSION_TAG} provider setup · locked={provider}"]
     try:
-        targets = _oa_setup_devices(setup_target, provider)
+        if provider == PROVIDER_REAZON:
+            selected_mode = str(audio_mode or "cpu").strip().lower()
+            targets: list[tuple[str, Path]] = []
+            if selected_mode in {"cpu", "hybrid"}:
+                targets.append(("cpu", AUDIO_CPU_PYTHON))
+            if selected_mode in {"gpu", "hybrid"}:
+                targets.append(("cuda", AUDIO_GPU_PYTHON))
+            if not targets:
+                targets.append(("cpu", AUDIO_CPU_PYTHON))
+            for target_device, runtime_python in targets:
+                if not runtime_python.is_file():
+                    raise FileNotFoundError(
+                        f"Runtime {target_device} tidak ditemukan: {runtime_python}"
+                    )
+                logs.append(
+                    f"Menyiapkan ReazonSpeech K2 {target_device.upper()} pada {runtime_python}"
+                )
+                logs.append(
+                    _oa_run_setup_command(
+                        runtime_python, PROVIDER_REAZON, device=target_device,
+                        cuda_variant="auto",
+                    )
+                )
+            logs.append(_oa_run_setup_command(Path(sys.executable), "argos_bridge", device="cpu"))
+        elif provider == PROVIDER_SENSEVOICE:
+            logs.append(_oa_run_setup_command(AUDIO_CPU_PYTHON, PROVIDER_SENSEVOICE, device="cpu"))
+            logs.append(_oa_run_setup_command(Path(sys.executable), "argos_bridge", device="cpu"))
+        else:
+            logs.append("Provider menggunakan runtime/model existing. Tidak ada download otomatis tambahan pada v9.0.4.")
+        logs.append("SETUP: PASS")
     except Exception as exc:
-        message = f"SETUP: GAGAL · {type(exc).__name__}: {exc}"
-        logs.append(message)
-        state.update(status="failed", phase="Setup tidak dimulai")
-        yield _oa_progress_html(state), "\n".join(logs), _oa_provider_status_ui(provider), gr.update(visible=True), gr.update(value=None), ""
-        return
-
-    logs.append(f"ORT {APP_VERSION_TAG} Setup Provider · model terkunci={provider}")
-    logs.append("Target yang dipilih: " + ", ".join(device.upper() for device, _ in targets))
-    yield _oa_progress_html(state), "\n".join(logs), _oa_provider_status_ui(provider), gr.update(visible=True), gr.update(), ""
-
-    try:
-        for device, runtime_python in targets:
-            state.update(status="running", phase=f"Menyiapkan {ASR_PROVIDERS[provider].label} {device.upper()}", device=device, percent=0.0, total_bytes=0, downloaded_bytes=0)
-            commands = [_oa_setup_command(runtime_python, provider, device)]
-            if ASR_PROVIDERS[provider].output_language == "ja":
-                commands.append(_oa_setup_command(runtime_python, "argos_bridge", device))
-            for command in commands:
-                for line in _oa_stream_setup_process(command):
-                    event = _oa_parse_setup_event(line)
-                    if event:
-                        kind = str(event.get("event") or "")
-                        if kind in {"model_info", "download_progress", "download_complete"}:
-                            state.update(
-                                total_bytes=int(event.get("total_bytes", state.get("total_bytes", 0)) or 0),
-                                downloaded_bytes=int(event.get("downloaded_bytes", state.get("downloaded_bytes", 0)) or 0),
-                                percent=float(event.get("percent", state.get("percent", 0.0)) or 0.0),
-                            )
-                            current_bucket = int(float(state.get("percent", 0)) // 10 * 10)
-                            if current_bucket >= last_logged_percent + 10:
-                                last_logged_percent = current_bucket
-                                logs.append(
-                                    f"DOWNLOAD {device.upper()}: {_oa_human_bytes(state['downloaded_bytes'])} / "
-                                    f"{_oa_human_bytes(state['total_bytes'])} ({state['percent']:.1f}%)"
-                                )
-                        elif kind == "phase":
-                            state["phase"] = str(event.get("message") or event.get("phase") or state["phase"])
-                            logs.append(f"FASE {device.upper()}: {state['phase']}")
-                        elif kind == "setup_start":
-                            state["device"] = str(event.get("device") or device)
-                        elif kind in {"device_ready", "bridge_ready"}:
-                            logs.append(f"STATUS {device.upper()}: {kind.upper()} = READY")
-                        elif kind == "setup_failed":
-                            logs.append("ERROR: " + str(event.get("error") or "Setup gagal"))
-                    elif line.strip():
-                        logs.append(line)
-                    if len(logs) > 900:
-                        logs = logs[-900:]
-                    yield _oa_progress_html(state), "\n".join(logs), _oa_provider_status_ui(provider), gr.update(visible=True), gr.update(), ""
-            logs.append(f"TARGET {device.upper()}: BERHASIL")
-        state.update(status="success", phase="Model dan runtime berhasil disiapkan", percent=100.0)
-        logs.append("SETUP: BERHASIL")
-    except BaseException as exc:
-        state.update(status="failed", phase="Setup provider gagal")
-        logs.append(f"SETUP: GAGAL · {type(exc).__name__}: {exc}")
-    yield _oa_progress_html(state), "\n".join(logs), _oa_provider_status_ui(provider), gr.update(visible=bool(logs)), gr.update(value=None), ""
-
+        logs.append(f"SETUP: FAILED · {type(exc).__name__}: {exc}")
+    return "\n\n".join(logs), _oa_provider_status_ui(provider, audio_mode)
 
 
 def _oa_benchmark_providers_ui(test_file, providers, device: str):
@@ -2368,19 +2212,12 @@ with gr.Blocks(title=APP_DISPLAY_NAME) as demo:
                         value=True,
                         interactive=False,
                     )
-                oa_provider_status = gr.HTML(
+                oa_provider_status = gr.Markdown(
                     _oa_provider_status_ui(INITIAL_OA_ASR_MODEL_PROVIDER, INITIAL_AUDIO_MODE)
                 )
-                oa_setup_target = gr.Radio(
-                    label="Target setup/download · wajib dipilih setiap kali",
-                    choices=[("CPU", "cpu"), ("GPU", "gpu"), ("CPU + GPU", "both")],
-                    value=None,
-                    info="Pilihan ini hanya mengatur model/runtime yang akan dipasang. Perangkat ASR untuk sesi tetap dipilih pada pengaturan di atas.",
-                )
                 with gr.Row():
-                    oa_setup_provider_btn = gr.Button("Siapkan model yang dipilih", variant="secondary")
+                    oa_setup_provider_btn = gr.Button("Siapkan model sesuai CPU/GPU/Hybrid", variant="secondary")
                     oa_refresh_provider_btn = gr.Button("Periksa status model")
-                oa_provider_progress = gr.HTML(_oa_progress_html())
                 with gr.Row():
                     oa_delivery_mode = gr.Radio(
                         label="Mode delivery",
@@ -2396,16 +2233,8 @@ with gr.Blocks(title=APP_DISPLAY_NAME) as demo:
                     _oa_delivery_mode_updates(INITIAL_OA_DELIVERY_MODE, INITIAL_OA_CLOUD_PROVIDER)
                 )
                 oa_provider_setup_log = gr.Textbox(
-                    label="Log unduhan & setup provider",
-                    value="",
-                    interactive=False,
-                    lines=14,
-                    elem_classes=["mono"],
-                    info="Log ini terisi otomatis saat setup dimulai dan menunjukkan fase download, ukuran, persentase, verifikasi, keberhasilan, atau kegagalan.",
+                    label="Setup provider", interactive=False, lines=10, elem_classes=["mono"]
                 )
-                with gr.Row():
-                    oa_copy_provider_log_btn = gr.Button("Salin log setup provider", visible=False)
-                    oa_provider_copy_message = gr.Markdown("")
                 with gr.Accordion("Provider Benchmark Lab · WAV yang sama", open=False):
                     oa_benchmark_file = gr.File(
                         label="Klip benchmark WAV PCM", file_types=["audio"], type="filepath"
@@ -2689,28 +2518,11 @@ with gr.Blocks(title=APP_DISPLAY_NAME) as demo:
     )
     oa_setup_provider_btn.click(
         _oa_setup_selected_provider_ui,
-        inputs=[oa_asr_model_provider, oa_setup_target],
-        outputs=[
-            oa_provider_progress,
-            oa_provider_setup_log,
-            oa_provider_status,
-            oa_copy_provider_log_btn,
-            oa_setup_target,
-            oa_provider_copy_message,
-        ],
-    )
-    oa_copy_provider_log_btn.click(
-        fn=None,
-        inputs=[oa_provider_setup_log],
-        outputs=[oa_provider_copy_message],
-        js="""(text) => {
-            if (!text || !text.trim()) return 'Log setup masih kosong.';
-            navigator.clipboard.writeText(text);
-            return 'Log setup provider sudah disalin.';
-        }""",
+        inputs=[oa_asr_model_provider, oa_lab_audio_mode],
+        outputs=[oa_provider_setup_log, oa_provider_status],
     )
     oa_refresh_provider_btn.click(
-        _oa_refresh_provider_status_ui,
+        _oa_provider_status_ui,
         inputs=[oa_asr_model_provider, oa_lab_audio_mode],
         outputs=[oa_provider_status],
     )
