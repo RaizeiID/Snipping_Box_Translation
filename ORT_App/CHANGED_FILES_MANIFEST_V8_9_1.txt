@@ -1,0 +1,26 @@
+# CHANGED FILES MANIFEST — ORT Translation v8.9.1 Hotfix
+
+## Changed / Added
+- ORTCORE_VERSION.txt
+- TITANCORE_VERSION.txt
+- webui.py
+- launcher_backend.py
+- TITANMAIN.py
+- fast_model_manager.py
+- translation_engine.py
+- app/runtime/prediction_guard.py
+- app/runtime/ui_dialog_filter.py
+- app/runtime/overlay_language_guard.py
+- app/runtime/recording_telemetry.py
+- app/runtime/overlay_commit_gate.py
+- app/runtime/dialogue_stability.py
+- app/translation/ocr_text_repair.py
+- configs/gfl2_entity_registry_v8_9_1.json
+- tools/v8_9_1_regression_test.py
+- docs/changelog/CHANGELOG_V8_9_1.md
+- docs/test_reports/ORT_V8_9_1_HOTFIX_TEST_REPORT.md
+- docs/handoff/ORT_MASTER_PROJECT_MEMORY_HANDOFF_V8_9_1_ADDENDUM.md
+
+## Notes
+- Built on ORT v8.9.0 FIXED full project.
+- Use this changed-files patch over v8.9.0 FIXED.

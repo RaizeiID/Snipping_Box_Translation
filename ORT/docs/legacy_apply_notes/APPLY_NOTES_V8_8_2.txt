@@ -1,0 +1,13 @@
+ORT Translation v8.8.2 Apply Notes
+
+1. Apply this patch over ORT Translation v8.8.1 R3.
+2. Extract with overwrite/replace.
+3. Recommended live tests:
+   - Auto mode on GFL2 story with low OCR model.
+   - Freeze mode to verify 100% OCR override.
+   - Interval mode with manual story click and VA story timing.
+   - Scene with Phaetusa(?) to confirm no duplicated speaker in body.
+4. Expected behavior:
+   - Less overlay flicker in Auto.
+   - Better full-sentence final output.
+   - Shorter/noisier OCR frames should not downgrade a better source.

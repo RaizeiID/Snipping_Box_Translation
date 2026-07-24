@@ -1,0 +1,38 @@
+ORT Translation v8.8.4 — Apply Notes
+====================================
+
+Patch type:
+- Changed-files patch over v8.8.3.
+- Runtime behavior update: Final Completeness & Never-Empty Overlay.
+
+How to apply:
+1. Extract this ZIP into your existing ORT_Translation_v8_8_1 folder.
+2. Choose Replace/Overwrite for all files.
+3. Confirm VERSION.txt shows v8.8.4.
+4. Run: cd ORT\runtime_app && python tools\v8_8_4_regression_test.py
+
+Recommended test setting after applying:
+- Game: GFL2_EXILIUM
+- Model: ORTCore IDN V2 or ORTCore V1
+- Mode: Auto
+- OCR: 65–70%
+- Engine: CT2 active
+
+Expected healthy log indicators:
+- IDN-over-CT2 literal engine active / Fast CT2 engine active
+- engine=ct2_fast or engine=ct2_trusted_preview
+- [COMMIT v8.8.4] suppress only for duplicate/small/min-visible output
+- [COMMIT v8.8.4] reuse_last_good when a held/new-turn fragment would otherwise blank overlay
+- [REC v8.8.4] final_complete_ratio, last_good_reused, source_longer_but_suppressed counters
+
+Primary goal:
+- Reduce incomplete overlay output caused by v8.8.3 being too aggressive with MIN_VISIBLE suppression.
+- Prevent blank/empty overlay while dialogue is still present.
+- Make Freeze/Interval more stable without making Auto Story sluggish.
+
+
+v8.8.4 R2 Hotfix:
+- Fixes ModuleNotFoundError: No module named 'app' when running:
+  python tools\v8_8_4_regression_test.py
+- Runtime behavior is unchanged.
+- Only the regression test import path is corrected.

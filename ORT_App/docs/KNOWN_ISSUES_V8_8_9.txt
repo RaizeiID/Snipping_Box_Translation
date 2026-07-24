@@ -1,0 +1,6 @@
+ORT v8.8.9 Known Issues / Follow-up Watchlist
+
+- FullOutputGuard source-safe preview may show English source below/inside output when translation coverage is too low. This is intentional no-cache fallback to avoid stale previous subtitle, but should be monitored visually.
+- Bathilde/Balthilde canonical still depends on final visual confirmation from game. v8.8.9 keeps both exact/alias-family behavior but maps common OCR typo family to Balthilde because that was the existing registry canonical.
+- UI filter is fuzzy but conservative; new UI leakage patterns from future story/menu screens should be added from logs.
+- If source fallback appears too often, inspect CT2 coverage, IDN polish, and semantic fidelity logs rather than weakening anti-hallucination globally.

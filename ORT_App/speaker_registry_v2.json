@@ -1,0 +1,1938 @@
+{
+  "schema_version": "v8_7_7_faithful_complete_ct2_registry_v5",
+  "generated_at": "2026-05-26",
+  "settings_defaults": {
+    "simple_view_enabled": true,
+    "auto_reset_candidates": true,
+    "auto_live_candidate_label": false,
+    "trust_legacy_npc": false,
+    "show_story_spoilers": false
+  },
+  "games": {
+    "GFL2_EXILIUM": {
+      "protected_character": [
+        {
+          "canonical_id": "dp12",
+          "display_name": "DP-12",
+          "category": "protected_character",
+          "aliases": [
+            "Dp-12",
+            "dp-12"
+          ],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "ksvk",
+          "display_name": "KSVK",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "helen",
+          "display_name": "Helen",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "helena",
+          "display_name": "Helena",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "melanie",
+          "display_name": "Melanie",
+          "category": "protected_character",
+          "aliases": [
+            "elanie",
+            "Melanle"
+          ],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "balthilde",
+          "display_name": "Balthilde",
+          "category": "protected_character",
+          "aliases": [
+            "Bathilde"
+          ],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "phaetusa",
+          "display_name": "Phaetusa",
+          "category": "protected_character",
+          "aliases": [
+            "Phaedusa"
+          ],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "dushevnaya",
+          "display_name": "Dushevnaya",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "suomi",
+          "display_name": "Suomi",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "lentine",
+          "display_name": "Lentine",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "dandelion",
+          "display_name": "Dandelion",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "descenderzero",
+          "display_name": "Descender Zero",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        }
+      ],
+      "user_configured": [
+        {
+          "canonical_id": "alyakujou",
+          "display_name": "Alya Kujou",
+          "category": "user_configured",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "user_default_commander",
+          "spoiler": false
+        }
+      ],
+      "approved_role_speaker": [
+        {
+          "canonical_id": "berryfield",
+          "display_name": "Berryfield",
+          "category": "approved_role_speaker",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "ct2_live_v8_7_6_user_approved",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "cocoon",
+          "display_name": "Cocoon",
+          "category": "approved_role_speaker",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "ct2_live_v8_7_6_user_approved",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "carmen",
+          "display_name": "Carmen",
+          "category": "approved_role_speaker",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "ct2_live_v8_7_6_user_approved",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "anotherunfamiliarworker",
+          "display_name": "Another Unfamiliar Worker",
+          "category": "approved_role_speaker",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "ct2_live_v8_7_6_user_approved",
+          "spoiler": false
+        }
+      ],
+      "reviewed_alias": [
+        {
+          "ocr_form": "Berryfleld",
+          "canonical_name": "Berryfield",
+          "scope": "name_roi_only",
+          "status": "review_roi_only",
+          "origin_view": "v8_7_7_review_queue"
+        },
+        {
+          "ocr_form": "Berrfield",
+          "canonical_name": "Berryfield",
+          "scope": "name_roi_only",
+          "status": "review_roi_only",
+          "origin_view": "v8_7_7_review_queue"
+        },
+        {
+          "ocr_form": "Berrfleld",
+          "canonical_name": "Berryfield",
+          "scope": "name_roi_only",
+          "status": "review_roi_only",
+          "origin_view": "v8_7_7_review_queue"
+        },
+        {
+          "ocr_form": "Carmon",
+          "canonical_name": "Carmen",
+          "scope": "name_roi_only",
+          "status": "review_roi_only",
+          "origin_view": "v8_7_7_review_queue"
+        },
+        {
+          "ocr_form": "Duyhevnaya",
+          "canonical_name": "Dushevnaya",
+          "scope": "name_roi_only",
+          "status": "review_roi_only",
+          "origin_view": "v8_7_7_review_queue"
+        },
+        {
+          "ocr_form": "Lentlne",
+          "canonical_name": "Lentine",
+          "scope": "name_roi_only",
+          "status": "review_roi_only",
+          "origin_view": "v8_7_7_review_queue"
+        },
+        {
+          "ocr_form": "Lentle",
+          "canonical_name": "Lentine",
+          "scope": "name_roi_only",
+          "status": "review_roi_only",
+          "origin_view": "v8_7_7_review_queue"
+        },
+        {
+          "ocr_form": "DP 12",
+          "canonical_name": "DP-12",
+          "scope": "name_roi_only",
+          "status": "review_roi_only",
+          "origin_view": "v8_7_7_review_queue"
+        },
+        {
+          "ocr_form": "D-12",
+          "canonical_name": "DP-12",
+          "scope": "name_roi_only",
+          "status": "review_roi_only",
+          "origin_view": "v8_7_7_review_queue"
+        },
+        {
+          "ocr_form": "0P-12",
+          "canonical_name": "DP-12",
+          "scope": "name_roi_only",
+          "status": "review_roi_only",
+          "origin_view": "v8_7_7_review_queue"
+        }
+      ],
+      "unsorted_protected": [],
+      "pending_session_candidate": [],
+      "legacy_untrusted": [
+        "DP",
+        "Dp",
+        "Dontworry",
+        "Hereyes",
+        "Asimple",
+        "Noticing",
+        "Griffin's",
+        {
+          "canonical_id": "mysteriouspicture",
+          "display_name": "Mysterious Picture",
+          "category": "legacy_untrusted",
+          "aliases": [],
+          "source": "legacy_review_required",
+          "origin_view": "detail",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "raizei",
+          "display_name": "Raizei",
+          "category": "legacy_untrusted",
+          "aliases": [],
+          "source": "legacy_review_required",
+          "origin_view": "detail",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "vivi",
+          "display_name": "Vivi",
+          "category": "legacy_untrusted",
+          "aliases": [],
+          "source": "legacy_review_required",
+          "origin_view": "detail",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "chiloveig",
+          "display_name": "Chiloveig",
+          "category": "legacy_untrusted",
+          "aliases": [],
+          "source": "legacy_review_required",
+          "origin_view": "detail",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "girard",
+          "display_name": "Girard",
+          "category": "legacy_untrusted",
+          "aliases": [],
+          "source": "legacy_review_required",
+          "origin_view": "detail",
+          "faction": "",
+          "spoiler": false
+        }
+      ],
+      "special_terms": [
+        "Armed Personnel",
+        "Automated Defense System",
+        "Blusphere",
+        "Conglomerate",
+        "Culture Fluid",
+        "ELID",
+        "ELIDs",
+        "Enemy Soldier",
+        "Green Zone",
+        "Griffin",
+        "Griffin & Kryuger",
+        "Lviv",
+        "Mangi Security",
+        "Marionette Doll",
+        "Mysterious Figure",
+        "Neural Cloud",
+        "Nyto",
+        "ODE-01",
+        "Odesa",
+        "Project Eden",
+        "Signal Jammer",
+        "T-Doll",
+        "URNC",
+        "Yellow Zone"
+      ],
+      "blacklist": [
+        "Asimple",
+        "Dontworry",
+        "Hereyes",
+        "Noticing"
+      ],
+      "original_identity_map": {
+        "Groza": "OTs-14",
+        "Alva": "AN-94",
+        "Voymastina": "AK-15",
+        "Leva": "UMP45",
+        "Klukai": "HK416",
+        "Sabrina": "SPAS-12",
+        "Daiyan": "Type 95",
+        "Suomi": "Suomi KP/-31",
+        "Nagant": "Nagant Revolver",
+        "Vector": "Vector",
+        "Springfield": "M1903 Springfield",
+        "DP-12": "DP-12",
+        "KSVK": "KSVK"
+      },
+      "spoiler_story_catalog_enabled": false,
+      "verified_character_speaker_exact": [
+        {
+          "canonical_id": "alva",
+          "display_name": "Alva",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "andoris",
+          "display_name": "Andoris",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "balthilde",
+          "display_name": "Balthilde",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "basti",
+          "display_name": "Basti",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "belka",
+          "display_name": "Belka",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "centaureissi",
+          "display_name": "Centaureissi",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "cheeta",
+          "display_name": "Cheeta",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "cheyanne",
+          "display_name": "Cheyanne",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "colphne",
+          "display_name": "Colphne",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": true,
+          "observed_status": "observed_recent_story",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "commander",
+          "display_name": "Commander",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "daiyan",
+          "display_name": "Daiyan",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "dandelion",
+          "display_name": "Dandelion",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "descenderzero",
+          "display_name": "Descender Zero",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "dp12",
+          "display_name": "DP-12",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "dushevnaya",
+          "display_name": "Dushevnaya",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "faye",
+          "display_name": "Faye",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "florence",
+          "display_name": "Florence",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "groza",
+          "display_name": "Groza",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": true,
+          "observed_status": "observed_recent_story",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "harpsy",
+          "display_name": "Harpsy",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": true,
+          "observed_status": "priority_transition_retest",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "helen",
+          "display_name": "Helen",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "helena",
+          "display_name": "Helena",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "jiangyu",
+          "display_name": "Jiangyu",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "klukai",
+          "display_name": "Klukai",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "krolik",
+          "display_name": "Krolik",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": true,
+          "observed_status": "observed_recent_story",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "ksenia",
+          "display_name": "Ksenia",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "ksvk",
+          "display_name": "KSVK",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "lainie",
+          "display_name": "Lainie",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "lenna",
+          "display_name": "Lenna",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "lentine",
+          "display_name": "Lentine",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "leva",
+          "display_name": "Leva",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "lewis",
+          "display_name": "Lewis",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "lind",
+          "display_name": "Lind",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "littara",
+          "display_name": "Littara",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "liushih",
+          "display_name": "Liushih",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "loreley",
+          "display_name": "Loreley",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "lotta",
+          "display_name": "Lotta",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "makiatto",
+          "display_name": "Makiatto",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "mayling",
+          "display_name": "Mayling",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": true,
+          "observed_status": "observed_recent_story",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "mechty",
+          "display_name": "Mechty",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "melanie",
+          "display_name": "Melanie",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "mityl",
+          "display_name": "Mityl",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "mosinnagant",
+          "display_name": "Mosin-Nagant",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "nagant",
+          "display_name": "Nagant",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "nemesis",
+          "display_name": "Nemesis",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": true,
+          "observed_status": "observed_recent_story",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "nemesisgnosis",
+          "display_name": "Nemesis Gnosis",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "nikketa",
+          "display_name": "Nikketa",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": true,
+          "observed_status": "observed_recent_story",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "ots14",
+          "display_name": "OTs-14",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "papasha",
+          "display_name": "Papasha",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "peri",
+          "display_name": "Peri",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": true,
+          "observed_status": "observed_recent_story",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "peritya",
+          "display_name": "Peritya",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "phaetusa",
+          "display_name": "Phaetusa",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "qiongjiu",
+          "display_name": "Qiongjiu",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "qiuhua",
+          "display_name": "Qiuhua",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "robella",
+          "display_name": "Robella",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "sabrina",
+          "display_name": "Sabrina",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": true,
+          "observed_status": "observed_recent_story",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "sakura",
+          "display_name": "Sakura",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "sextans",
+          "display_name": "Sextans",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "sharkry",
+          "display_name": "Sharkry",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "soppo",
+          "display_name": "Soppo",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "springfield",
+          "display_name": "Springfield",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "suomi",
+          "display_name": "Suomi",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "tololo",
+          "display_name": "Tololo",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "ullrid",
+          "display_name": "Ullrid",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": true,
+          "observed_status": "observed_recent_story",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "vector",
+          "display_name": "Vector",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": true,
+          "observed_status": "priority_retest_from_v8_7_4_video",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "vepley",
+          "display_name": "Vepley",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "voymastina",
+          "display_name": "Voymastina",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": true,
+          "observed_status": "observed_recent_story",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "welrod",
+          "display_name": "Welrod",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "yoohee",
+          "display_name": "Yoohee",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": false,
+          "observed_status": "catalog_only",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "zhaohui",
+          "display_name": "Zhaohui",
+          "category": "verified_character_speaker_exact",
+          "aliases": [],
+          "source": "reference_catalog_entries_v8_7_7",
+          "origin_view": "catalog_exact",
+          "observed_recent_story": true,
+          "observed_status": "priority_retest_from_v8_7_4_video",
+          "faction": "",
+          "spoiler": false
+        }
+      ]
+    },
+    "GFL": {
+      "protected_character": [
+        {
+          "canonical_id": "ak12",
+          "display_name": "AK-12",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "an94",
+          "display_name": "AN-94",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "ak15",
+          "display_name": "AK-15",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "m4a1",
+          "display_name": "M4A1",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "m4sopmodii",
+          "display_name": "M4 SOPMOD II",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "star15",
+          "display_name": "ST AR-15",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "ump45",
+          "display_name": "UMP45",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "hk416",
+          "display_name": "HK416",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "dandelion",
+          "display_name": "Dandelion",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "commander",
+          "display_name": "Commander",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "kalina",
+          "display_name": "Kalina",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "kryuger",
+          "display_name": "Kryuger",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "helian",
+          "display_name": "Helian",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "persica",
+          "display_name": "Persica",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "william",
+          "display_name": "William",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        }
+      ],
+      "user_configured": [],
+      "approved_role_speaker": [],
+      "reviewed_alias": [],
+      "unsorted_protected": [],
+      "pending_session_candidate": [],
+      "legacy_untrusted": [
+        {
+          "canonical_id": "tokarev",
+          "display_name": "Tokarev",
+          "category": "legacy_untrusted",
+          "aliases": [],
+          "source": "legacy_review_required",
+          "origin_view": "detail",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "groza",
+          "display_name": "Groza",
+          "category": "legacy_untrusted",
+          "aliases": [],
+          "source": "legacy_review_required",
+          "origin_view": "detail",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "ar15",
+          "display_name": "AR-15",
+          "category": "legacy_untrusted",
+          "aliases": [],
+          "source": "legacy_review_required",
+          "origin_view": "detail",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "ro635",
+          "display_name": "RO635",
+          "category": "legacy_untrusted",
+          "aliases": [],
+          "source": "legacy_review_required",
+          "origin_view": "detail",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "ump9",
+          "display_name": "UMP9",
+          "category": "legacy_untrusted",
+          "aliases": [],
+          "source": "legacy_review_required",
+          "origin_view": "detail",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "g11",
+          "display_name": "G11",
+          "category": "legacy_untrusted",
+          "aliases": [],
+          "source": "legacy_review_required",
+          "origin_view": "detail",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "m16a1",
+          "display_name": "M16A1",
+          "category": "legacy_untrusted",
+          "aliases": [],
+          "source": "legacy_review_required",
+          "origin_view": "detail",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "angelina",
+          "display_name": "Angelina",
+          "category": "legacy_untrusted",
+          "aliases": [],
+          "source": "legacy_review_required",
+          "origin_view": "detail",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "ange",
+          "display_name": "Ange",
+          "category": "legacy_untrusted",
+          "aliases": [],
+          "source": "legacy_review_required",
+          "origin_view": "detail",
+          "faction": "",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "lunasia",
+          "display_name": "Lunasia",
+          "category": "legacy_untrusted",
+          "aliases": [],
+          "source": "legacy_review_required",
+          "origin_view": "detail",
+          "faction": "",
+          "spoiler": false
+        }
+      ],
+      "special_terms": [
+        "Black Nyto",
+        "DEFY",
+        "Diergate",
+        "ELID",
+        "Griffin & Kryuger",
+        "IOP",
+        "Neural Cloud",
+        "Nyto",
+        "Paradeus",
+        "Sangvis Ferri",
+        "T-Doll",
+        "Task Force DEFY",
+        "White Nyto"
+      ],
+      "blacklist": [
+        "gFn",
+        "GFsystem",
+        "ngf",
+        "nifn",
+        "SUNBORN"
+      ],
+      "original_identity_map": {},
+      "spoiler_story_catalog_enabled": false
+    },
+    "WUWA": {
+      "protected_character": [
+        {
+          "canonical_id": "calcharo",
+          "display_name": "Calcharo",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "encore",
+          "display_name": "Encore",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "jianxin",
+          "display_name": "Jianxin",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "jiyan",
+          "display_name": "Jiyan",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "lingyang",
+          "display_name": "Lingyang",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "rover",
+          "display_name": "Rover",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "verina",
+          "display_name": "Verina",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "yinlin",
+          "display_name": "Yinlin",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "jinhsi",
+          "display_name": "Jinhsi",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "changli",
+          "display_name": "Changli",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "zhezhi",
+          "display_name": "Zhezhi",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "xiangliyao",
+          "display_name": "Xiangli Yao",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "shorekeeper",
+          "display_name": "Shorekeeper",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "camellya",
+          "display_name": "Camellya",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "carlotta",
+          "display_name": "Carlotta",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "roccia",
+          "display_name": "Roccia",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "phoebe",
+          "display_name": "Phoebe",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "cantarella",
+          "display_name": "Cantarella",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "zani",
+          "display_name": "Zani",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "ciaccona",
+          "display_name": "Ciaccona",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "cartethyia",
+          "display_name": "Cartethyia",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "lupa",
+          "display_name": "Lupa",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "phrolova",
+          "display_name": "Phrolova",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "augusta",
+          "display_name": "Augusta",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "iuno",
+          "display_name": "Iuno",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "galbrena",
+          "display_name": "Galbrena",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "qiuyuan",
+          "display_name": "Qiuyuan",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "chisa",
+          "display_name": "Chisa",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "lynae",
+          "display_name": "Lynae",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "mornye",
+          "display_name": "Mornye",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "aemeath",
+          "display_name": "Aemeath",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "luukherssen",
+          "display_name": "Luuk Herssen",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "sigrika",
+          "display_name": "Sigrika",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "aalto",
+          "display_name": "Aalto",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "baizhi",
+          "display_name": "Baizhi",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "chixia",
+          "display_name": "Chixia",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "danjin",
+          "display_name": "Danjin",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "mortefi",
+          "display_name": "Mortefi",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "sanhua",
+          "display_name": "Sanhua",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "taoqi",
+          "display_name": "Taoqi",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "yangyang",
+          "display_name": "Yangyang",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "yuanwu",
+          "display_name": "Yuanwu",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "youhu",
+          "display_name": "Youhu",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "lumi",
+          "display_name": "Lumi",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        },
+        {
+          "canonical_id": "buling",
+          "display_name": "Buling",
+          "category": "protected_character",
+          "aliases": [],
+          "faction": "",
+          "origin_view": "built_in",
+          "spoiler": false
+        }
+      ],
+      "user_configured": [],
+      "approved_role_speaker": [],
+      "reviewed_alias": [],
+      "unsorted_protected": [],
+      "pending_session_candidate": [],
+      "legacy_untrusted": [
+        {
+          "canonical_id": "brant",
+          "display_name": "Brant",
+          "category": "legacy_untrusted",
+          "aliases": [],
+          "source": "legacy_review_required",
+          "origin_view": "detail",
+          "faction": "",
+          "spoiler": false
+        }
+      ],
+      "special_terms": [
+        "Black Shores",
+        "Echo",
+        "Forte",
+        "Fractsidus",
+        "Huanglong",
+        "Jinzhou",
+        "Lament",
+        "Overture",
+        "Resonance",
+        "Resonator",
+        "Solaris-3",
+        "Sonoro Sphere",
+        "Tacet Discord",
+        "Tacetite",
+        "Terminal",
+        "Waveworn Phenomenon"
+      ],
+      "blacklist": [],
+      "original_identity_map": {},
+      "spoiler_story_catalog_enabled": false
+    },
+    "CUSTOM": {
+      "protected_character": [],
+      "user_configured": [],
+      "approved_role_speaker": [],
+      "reviewed_alias": [],
+      "unsorted_protected": [],
+      "pending_session_candidate": [],
+      "legacy_untrusted": [],
+      "special_terms": [],
+      "blacklist": [],
+      "original_identity_map": {},
+      "spoiler_story_catalog_enabled": false
+    }
+  },
+  "created_at": 1779784489,
+  "migration_notes": [
+    {
+      "version": "v8.7.6",
+      "ts": 1779836598.939412,
+      "change": "official exact-speaker alignment + observed priority metadata; aliases remain review-only"
+    },
+    {
+      "version": "v8.7.7",
+      "ts": 1779894396.6515403,
+      "change": "official exact alignment + CT2-live approved exact additions + special terms; commander names excluded globally"
+    }
+  ]
+}

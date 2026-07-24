@@ -1,0 +1,4 @@
+azure-cognitiveservices-speech>=1.49,<2
+keyring>=25,<27
+numpy>=1.23,<3
+PyAudioWPatch==0.2.12.8; sys_platform == "win32"

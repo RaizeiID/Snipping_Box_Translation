@@ -1,0 +1,22 @@
+ORT Translation v8.8.2 Changed Files Patch
+
+Changed/new files:
+- VERSION.txt
+- README.md
+- CHANGELOG.md
+- ORT/runtime_app/ORTCORE_VERSION.txt
+- ORT/runtime_app/TITANCORE_VERSION.txt
+- ORT/runtime_app/TITANMAIN.py
+- ORT/runtime_app/launcher_backend.py
+- ORT/runtime_app/webui.py
+- ORT/runtime_app/app/runtime/story_dialogue_scheduler.py
+- ORT/runtime_app/app/runtime/dialogue_stability.py
+- ORT/runtime_app/app/identity/speaker_registry.py
+- ORT/runtime_app/docs/ORT_V8_8_2_CHANGELOG_AND_APPLY_NOTES_2026-05-30.md
+- ORT/runtime_app/docs/ORT_V8_8_2_VALIDATION_REPORT_2026-05-30.md
+- ORT/runtime_app/tools/v8_8_2_regression_test.py
+- ORT/docs/handoff/ORT_MASTER_PROJECT_MEMORY_HANDOFF_CURRENT.md
+- ORT/runtime_app/docs/ORT_MASTER_PROJECT_MEMORY_HANDOFF_CURRENT.md
+
+Patch type: changed-files over v8.8.1 R3.
+Runtime behavior: mode policy / OCR smoothness / accumulator refactor.

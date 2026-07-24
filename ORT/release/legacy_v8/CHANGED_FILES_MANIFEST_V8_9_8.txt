@@ -1,0 +1,24 @@
+ORT Translation v8.9.8 — Changed Files Manifest
+Base: ORT v8.9.7 complete
+Release: Multilingual Instant & Japanese Specialist
+
+README.md
+CHANGELOG.md
+README_APPLY_PATCH_V8_9_8.txt
+VERSION.txt
+VERIFY_ORT_V8_9_8.bat
+SETUP_JAPANESE_SPECIALIST_V8_9_8.bat
+CHECK_AUDIO_GPU_V8_9_8.bat
+ORT/runtime_app/ORTCORE_VERSION.txt
+ORT/runtime_app/TITANCORE_VERSION.txt
+ORT/runtime_app/build_info.py
+ORT/runtime_app/launcher_backend.py
+ORT/runtime_app/webui.py
+ORT/runtime_app/audio_main.py
+ORT/runtime_app/audio_realtime_local_sidecar.py
+ORT/runtime_app/tools/setup_japanese_specialist_v8_9_8.py
+ORT/runtime_app/tools/check_audio_gpu_v8_9_8.py
+ORT/runtime_app/tools/verify_v8_9_8_install.py
+ORT/runtime_app/tools/v8_9_8_multilingual_instant_integration_test.py
+ORT/runtime_app/docs/changelog/CHANGELOG_V8_9_8.md
+ORT/runtime_app/docs/test_reports/ORT_V8_9_8_MULTILINGUAL_INSTANT_VALIDATION_REPORT.md

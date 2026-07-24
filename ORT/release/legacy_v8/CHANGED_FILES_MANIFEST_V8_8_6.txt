@@ -1,0 +1,33 @@
+ORT Translation v8.8.6 Changed Files Manifest
+
+Base: v8.8.5
+Type: changed-files patch
+
+Changed/added files:
+- VERSION.txt
+- CHANGELOG.md
+- README.md
+- APPLY_NOTES_V8_8_6.txt
+- CHANGED_FILES_MANIFEST_V8_8_6.txt
+- ORT/runtime_app/ORTCORE_VERSION.txt
+- ORT/runtime_app/TITANCORE_VERSION.txt
+- ORT/runtime_app/TITANMAIN.py
+- ORT/runtime_app/translation_engine.py
+- ORT/runtime_app/fast_model_manager.py
+- ORT/runtime_app/launcher_backend.py
+- ORT/runtime_app/webui.py
+- ORT/runtime_app/app/runtime/temporal_ocr_consensus.py
+- ORT/runtime_app/app/runtime/mode_buffer_policy.py
+- ORT/runtime_app/app/runtime/low_ocr_visual_rescue.py
+- ORT/runtime_app/app/runtime/render_signature.py
+- ORT/runtime_app/app/runtime/dialogue_stability.py
+- ORT/runtime_app/app/runtime/overlay_commit_gate.py
+- ORT/runtime_app/app/runtime/recording_telemetry.py
+- ORT/runtime_app/app/runtime/ocr_churn_rescue.py
+- ORT/runtime_app/app/runtime/turn_finalizer.py
+- ORT/runtime_app/app/runtime/bad_cache_shield.py
+- ORT/runtime_app/tools/v8_8_6_regression_test.py
+- ORT/docs/changelog/ORT_V8_8_6_CHANGELOG.md
+- ORT/docs/test_reports/ORT_V8_8_6_VALIDATION_REPORT.md
+- ORT/docs/handoff/ORT_MASTER_PROJECT_MEMORY_HANDOFF_CURRENT.md
+- ORT/docs/handoff/ORT_V8_8_6_STRATEGY_MEMORY_MODE_BUFFER_PREDICTION_REPLAY_2026-06-01.md

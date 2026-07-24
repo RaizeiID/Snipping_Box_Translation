@@ -1,0 +1,23 @@
+# ORT Translation v8.8.8 R2 — Apply Notes
+
+Patch type: hotfix changed-files patch on top of v8.8.8.
+
+Apply target:
+D:\AI TRANSLATOR\ORT_Translation_v8_8_1
+
+How to apply:
+1. Extract this ZIP into the root project folder.
+2. Choose Replace / Overwrite.
+3. Confirm VERSION.txt = v8.8.8-r2.
+4. Run:
+   cd "D:\AI TRANSLATOR\ORT_Translation_v8_8_1\ORT\runtime_app"
+   python tools\v8_8_8_r2_regression_test.py
+
+Hotfix focus:
+- Fix false-positive Prediction Guard spam such as `Hell -> Heli` appearing on unrelated lines.
+- Activate exact speaker/entity label handling for Raizei, Darture, Poludnitsa, Anfiya Sharapova, Shadow Figure, etc.
+- Add visible confidence badge on speaker label: green/yellow/red dot.
+- Merge v8.8.8 entity registry into runtime NPC/term databases at boot.
+- Activate Mode Policy telemetry for Auto / Interval / Freeze.
+- Connect Interval Fast-Skip Safety to held dialogue path.
+- Preserve OCR 40% improvements from v8.8.6/v8.8.7/v8.8.8.

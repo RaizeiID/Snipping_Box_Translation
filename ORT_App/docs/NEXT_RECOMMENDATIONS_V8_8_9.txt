@@ -1,0 +1,7 @@
+Next Recommendations after v8.8.9
+
+1. Test GFL2 story in Auto and Interval with manual fast-click behavior.
+2. Watch whether `[PREDICT v8.8.9] bathildel -> Balthilde` and `Kenny -> Kenny` appear in live log.
+3. Watch overlay behavior when a new dialogue appears: it should show new source/preview rather than old last-good.
+4. If source-safe fallback appears often, collect log/video; next patch should tune FullOutputGuard and CT2/IDN coverage rather than OCR thresholds.
+5. Continue preserving OCR 40–50% readability; do not raise all low profiles to 55% as a workaround.

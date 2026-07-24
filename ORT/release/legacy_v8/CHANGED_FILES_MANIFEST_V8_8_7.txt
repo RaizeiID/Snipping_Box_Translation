@@ -1,0 +1,21 @@
+# ORT Translation v8.8.7 Changed Files Manifest
+
+Runtime modules:
+- TITANMAIN.py
+- prediction_guard.py
+- ui_dialog_filter.py
+- dialogue_timeout_safety.py
+- candidate_extractor.py
+- commander_profile_resolver.py
+- recording_telemetry.py
+
+Configs:
+- configs/gfl2_entity_registry_v8_8_7.json
+- configs/prediction_candidates_v8_8_7.json
+- configs/prediction_review_queue.json
+
+Docs/tests:
+- tools/v8_8_7_regression_test.py
+- ORT_V8_8_7_CHANGELOG.md
+- ORT_V8_8_7_VALIDATION_REPORT.md
+- handoff memory updated

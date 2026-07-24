@@ -1,0 +1,65 @@
+{
+  "version": "v8.8.8",
+  "note": "Review candidates from v8.8.7 recordings without logs. Yellow/Red candidates must not be promoted into final cache without guard.",
+  "green": [
+    {
+      "ocr": "Raizei",
+      "candidate": "Raizei",
+      "type": "main_commander"
+    },
+    {
+      "ocr": "Mangi Security Team Leader",
+      "candidate": "Mangi Security Team Leader",
+      "type": "speaker_label"
+    },
+    {
+      "ocr": "Shadow Figure",
+      "candidate": "Shadow Figure",
+      "type": "masked_speaker_label"
+    },
+    {
+      "ocr": "Shadowy Figure",
+      "candidate": "Shadowy Figure",
+      "type": "masked_speaker_label"
+    }
+  ],
+  "yellow": [
+    {
+      "ocr": "Anfiya Sharapova",
+      "candidate": "Anfiya Sharapova",
+      "type": "character_relation_name"
+    },
+    {
+      "ocr": "Hell",
+      "candidate": "Heli",
+      "type": "character_name_ambiguous"
+    },
+    {
+      "ocr": "Tlazo",
+      "candidate": "Tlazo",
+      "type": "unique_term_not_npc"
+    },
+    {
+      "ocr": "Chlovey",
+      "candidate": "Chlovey",
+      "type": "term"
+    },
+    {
+      "ocr": "Varjagers",
+      "candidate": "Varjagers",
+      "type": "term"
+    }
+  ],
+  "red_blocked": [
+    {
+      "ocr": "Alya Sharapova",
+      "candidate": "Anfiya Sharapova",
+      "type": "wrong_read_from_prior_analysis"
+    },
+    {
+      "ocr": "Hlon/heln/helm/hlena/elena/helna",
+      "candidate": "Helen/Helena/Heli",
+      "type": "ambiguous_name_collision"
+    }
+  ]
+}

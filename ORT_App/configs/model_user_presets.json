@@ -1,0 +1,58 @@
+{
+  "ORTCore Fast IDN": {
+    "mode": "auto",
+    "engine": "hybrid",
+    "interval_ms": 150,
+    "ocr_resolution": 55,
+    "updated_at": "2026-06-23 20:09:58",
+    "version": "v8.7.2"
+  },
+  "ORTCore IDN V3": {
+    "mode": "auto",
+    "engine": "cpu",
+    "interval_ms": 445,
+    "ocr_resolution": 75,
+    "updated_at": "2026-07-20 00:45:07",
+    "version": "v8.7.2"
+  },
+  "ORTCore IDN V4": {
+    "mode": "auto",
+    "engine": "hybrid",
+    "interval_ms": 410,
+    "ocr_resolution": 70,
+    "updated_at": "2026-06-03 21:50:39",
+    "version": "v8.7.2"
+  },
+  "ORTCore IDN V1": {
+    "mode": "auto",
+    "engine": "hybrid",
+    "interval_ms": 450,
+    "ocr_resolution": 65,
+    "updated_at": "2026-06-23 20:10:08",
+    "version": "v8.7.2"
+  },
+  "ORTCore Fast V2": {
+    "mode": "auto",
+    "engine": "hybrid",
+    "interval_ms": 405,
+    "ocr_resolution": 45,
+    "updated_at": "2026-07-23 00:30:23",
+    "version": "v8.7.2"
+  },
+  "ORTCore Lite V1": {
+    "mode": "auto",
+    "engine": "cpu",
+    "interval_ms": 260,
+    "ocr_resolution": 40,
+    "updated_at": "2026-07-20 00:57:48",
+    "version": "v8.7.2"
+  },
+  "ORTCore Fast V1": {
+    "mode": "auto",
+    "engine": "hybrid",
+    "interval_ms": 135,
+    "ocr_resolution": 40,
+    "updated_at": "2026-07-23 00:29:54",
+    "version": "v8.7.2"
+  }
+}
