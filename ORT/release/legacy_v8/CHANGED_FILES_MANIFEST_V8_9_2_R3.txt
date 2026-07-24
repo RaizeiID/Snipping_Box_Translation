@@ -1,0 +1,57 @@
+ORT Translation v8.9.2-R3 — Changed Files Manifest
+==================================================
+
+Basis pemasangan: ORT Translation v8.9.2-R2
+
+ROOT
+----
+CHANGELOG.md
+README.md
+README_APPLY_PATCH_V8_9_2_R3.txt
+VERSION.txt
+CHANGED_FILES_MANIFEST_V8_9_2_R3.txt
+
+ORT\runtime_app
+---------------
+ORTCORE_VERSION.txt
+TITANCORE_VERSION.txt
+audio_asr_sidecar.py
+audio_main.py
+audio_runtime_backend.py
+build_info.py
+launcher_backend.py
+requirements_audio_cpu.txt
+status_manager.py
+translation_engine.py
+webui.py
+
+ORT\runtime_app\app\audio
+--------------------------
+__init__.py
+profiles.py
+streaming.py
+
+ORT\runtime_app\docs\changelog
+--------------------------------
+CHANGELOG_V8_9_2_R3.md
+
+ORT\runtime_app\docs\test_reports
+----------------------------------
+ORT_V8_9_2_R3_AUDIO_VALIDATION_REPORT.md
+
+ORT\runtime_app\tools
+---------------------
+v8_9_2_regression_test.py
+v8_9_2_r2_ui_regression_test.py
+v8_9_2_r3_audio_regression_test.py
+
+TOTAL
+-----
+24 file aplikasi/dokumentasi baru atau diperbarui.
+SHA256SUMS_V8_9_2_R3.txt ditambahkan saat paket dibangun.
+
+TIDAK DISERTAKAN
+----------------
+Model ASR/OCR, runtime Python, cache, log, status, backup, .pyc, __pycache__,
+data identitas aktif, webui_prefs.json, user_config.json, dan konfigurasi
+pengguna lainnya.

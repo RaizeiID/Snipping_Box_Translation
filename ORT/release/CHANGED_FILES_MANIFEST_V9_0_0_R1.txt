@@ -1,0 +1,8 @@
+ORT Translation v9.0.0 R1 — Changed Files Manifest
+Base required: ORT v9.0.0 extracted over ORT v8.9.9 R2 F2
+
+ORT v9 Setup.bat
+ORT/runtime_app/tools/migrate_v9_structure.py
+ORT/release/SHA256SUMS_V9_0_0.json
+ORT/docs/v9/V9_0_0_R1_PATH_HOTFIX.md
+README_APPLY_V9_0_0_R1_PATH_HOTFIX.txt

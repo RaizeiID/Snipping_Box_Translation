@@ -1,0 +1,22 @@
+# ORT Translation v8.8.8 — Apply Notes
+
+Patch type: changed-files patch on top of v8.8.7.
+
+Apply target:
+D:\AI TRANSLATOR\ORT_Translation_v8_8_1
+
+How to apply:
+1. Extract this ZIP into the root project folder.
+2. Choose Replace / Overwrite when asked.
+3. Confirm VERSION.txt = v8.8.8.
+4. Run:
+   cd "D:\AI TRANSLATOR\ORT_Translation_v8_8_1\ORT\runtime_app"
+   python tools\v8_8_8_regression_test.py
+
+Main focus:
+- Offline Replay Benchmark tool.
+- Long Session Analyzer.
+- Mode policy separation foundation for Auto / Interval / Freeze.
+- Registry expansion from v8.8.7 recordings.
+- Interval Fast-Skip Safety foundation.
+- Preserve v8.8.6/v8.8.7 low-OCR 40% improvement.

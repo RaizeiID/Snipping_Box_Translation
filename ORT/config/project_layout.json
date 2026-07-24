@@ -1,0 +1,23 @@
+{
+  "schema": 9,
+  "version": "v9.0.0",
+  "project_root": "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1",
+  "application_root": "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT_App",
+  "runtime_root": "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT_Runtime",
+  "support_root": "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT",
+  "folders": {
+    "docs": "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT\\docs",
+    "plugins": "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT\\plugins",
+    "logs": "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT\\logs",
+    "cache": "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT\\cache",
+    "status": "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT\\status",
+    "maintenance": "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT\\maintenance",
+    "exports": "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT\\exports",
+    "release": "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT\\release"
+  },
+  "root_policy": "launchers_only",
+  "compatibility": {
+    "legacy_app_path": "ORT/runtime_app",
+    "fallback_supported_by_root_launchers": true
+  }
+}

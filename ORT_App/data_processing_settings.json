@@ -1,0 +1,9 @@
+{
+  "popup_on_stop": true,
+  "auto_reset_candidates": true,
+  "simple_view_enabled": false,
+  "auto_live_candidate_label": false,
+  "trust_legacy_npc": false,
+  "show_story_spoilers": false,
+  "schema_version": "v8_7_3_safe_defaults"
+}

@@ -1,0 +1,22 @@
+ORT Translation v8.9.7 — changed files only
+Apply on top of a complete ORT Translation v8.9.6 installation.
+
+CHANGELOG.md
+README.md
+README_APPLY_PATCH_V8_9_7.txt
+CHANGED_FILES_MANIFEST_V8_9_7.txt
+SHA256SUMS_V8_9_7.txt
+VERIFY_ORT_V8_9_7.bat
+VERSION.txt
+ORT/runtime_app/ORTCORE_VERSION.txt
+ORT/runtime_app/TITANCORE_VERSION.txt
+ORT/runtime_app/app/audio/cloud_streaming.py
+ORT/runtime_app/audio_main.py
+ORT/runtime_app/audio_realtime_local_sidecar.py
+ORT/runtime_app/build_info.py
+ORT/runtime_app/launcher_backend.py
+ORT/runtime_app/webui.py
+ORT/runtime_app/docs/changelog/CHANGELOG_V8_9_7.md
+ORT/runtime_app/docs/test_reports/ORT_V8_9_7_CONTINUOUS_REALTIME_VALIDATION_REPORT.md
+ORT/runtime_app/tools/v8_9_7_continuous_realtime_integration_test.py
+ORT/runtime_app/tools/verify_v8_9_7_install.py

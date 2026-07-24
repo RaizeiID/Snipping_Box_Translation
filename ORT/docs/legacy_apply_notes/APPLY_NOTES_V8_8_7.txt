@@ -1,0 +1,25 @@
+# ORT Translation v8.8.7 — Apply Notes
+
+Patch type: changed-files patch on top of v8.8.6.
+
+Apply target:
+D:\AI TRANSLATOR\ORT_Translation_v8_8_1
+
+How to apply:
+1. Extract this ZIP into the root project folder.
+2. Choose Replace / Overwrite when asked.
+3. Confirm VERSION.txt = v8.8.7.
+4. Run:
+   cd "D:\AI TRANSLATOR\ORT_Translation_v8_8_1\ORT\runtime_app"
+   python tools\v8_8_7_regression_test.py
+
+Main focus:
+- Name/Term Prediction Guard with Green/Yellow/Red confidence labels.
+- General Name/Term Ambiguity Guard, not only Helen/Helena.
+- Commander Profile Resolver: Raizei is main Commander; ARVITA/ATVITA/AFVITA is alternate/example.
+- Mangi Security Team Leader as exact speaker/NPC display label.
+- Tlazo as unique term/review Yellow, not NPC global.
+- UI/Loading/Battle Text Filter v2 before translation/cache.
+- Dialogue Timeout Safety / Emergency Commit.
+- Stale Last-Good Limit v2.
+- Keep v8.8.6 low-OCR 40% gains intact.

@@ -1,0 +1,68 @@
+ORT Translation v8.9.4 — Changed Files Manifest
+================================================
+
+Basis pemasangan: ORT Translation v8.9.3
+
+ROOT
+----
+CHANGELOG.md
+README.md
+README_APPLY_PATCH_V8_9_4.txt
+VERSION.txt
+CHANGED_FILES_MANIFEST_V8_9_4.txt
+
+ORT\docs\handoff
+-----------------
+ORT_MASTER_PROJECT_MEMORY_HANDOFF_CURRENT.md
+
+ORT\runtime_app
+---------------
+ORTCORE_VERSION.txt
+TITANCORE_VERSION.txt
+audio_cloud_backend.py
+audio_cloud_sidecar.py
+audio_main.py
+build_info.py
+launcher_backend.py
+requirements_audio_cloud.txt
+webui.py
+
+ORT\runtime_app\app\audio
+--------------------------
+cloud_streaming.py
+
+ORT\runtime_app\profiles\games\GFL2_EXILIUM
+------------------------------------------------
+audio_glossary.json
+
+ORT\runtime_app\docs\changelog
+--------------------------------
+CHANGELOG_V8_9_4.md
+
+ORT\runtime_app\docs\test_reports
+-----------------------------------
+ORT_V8_9_4_CLOUD_LIVE_MEDIA_VALIDATION_REPORT.md
+
+ORT\runtime_app\tools
+----------------------
+v8_9_2_regression_test.py
+v8_9_2_r2_ui_regression_test.py
+v8_9_2_r3_audio_regression_test.py
+v8_9_2_r4_audio_model_recovery_test.py
+v8_9_2_r5_audio_model_compatibility_test.py
+v8_9_2_r6_audio_native_crash_isolation_test.py
+v8_9_3_audio_trimode_regression_test.py
+v8_9_4_cloud_live_media_regression_test.py
+
+TOTAL
+-----
+26 file aplikasi/dokumentasi baru atau diperbarui.
+CHANGED_FILES_MANIFEST_V8_9_4.txt dan SHA256SUMS_V8_9_4.txt ditambahkan
+sebagai metadata paket.
+
+TIDAK DISERTAKAN
+----------------
+Azure Speech SDK, runtime Python, API key, konfigurasi cloud, model ASR/OCR,
+cache, log, status, spool audio, marker validasi GPU, backup, .pyc,
+__pycache__, data identitas aktif, webui_prefs.json, user_config.json,
+online_assist_config.json, dan konfigurasi pengguna lainnya.

@@ -1,0 +1,72 @@
+ORT Translation v8.9.3 — Changed Files Manifest
+================================================
+
+Basis pemasangan: ORT Translation v8.9.2-R6
+
+ROOT
+----
+CHANGELOG.md
+README.md
+README_APPLY_PATCH_V8_9_3.txt
+VERSION.txt
+CHANGED_FILES_MANIFEST_V8_9_3.txt
+
+ORT\docs\handoff
+-----------------
+ORT_MASTER_PROJECT_MEMORY_HANDOFF_CURRENT.md
+
+ORT\runtime_app
+---------------
+ORTCORE_VERSION.txt
+TITANCORE_VERSION.txt
+audio_asr_sidecar.py
+audio_capture_sidecar.py
+audio_main.py
+audio_runtime_backend.py
+audio_translation_sidecar.py
+build_info.py
+launcher_backend.py
+requirements_audio_gpu.txt
+webui.py
+
+ORT\runtime_app\app\audio
+--------------------------
+glossary.py
+profiles.py
+quality_gate.py
+runtime_modes.py
+segment_ledger.py
+streaming.py
+
+ORT\runtime_app\profiles\games\GFL2_EXILIUM
+------------------------------------------------
+audio_glossary.json
+
+ORT\runtime_app\docs\changelog
+--------------------------------
+CHANGELOG_V8_9_3.md
+
+ORT\runtime_app\docs\test_reports
+-----------------------------------
+ORT_V8_9_3_AUDIO_TRIMODE_VALIDATION_REPORT.md
+
+ORT\runtime_app\tools
+----------------------
+v8_9_2_regression_test.py
+v8_9_2_r2_ui_regression_test.py
+v8_9_2_r3_audio_regression_test.py
+v8_9_2_r4_audio_model_recovery_test.py
+v8_9_2_r5_audio_model_compatibility_test.py
+v8_9_2_r6_audio_native_crash_isolation_test.py
+v8_9_3_audio_trimode_regression_test.py
+
+TOTAL
+-----
+33 file aplikasi/dokumentasi baru atau diperbarui.
+SHA256SUMS_V8_9_3.txt ditambahkan saat paket dibangun.
+
+TIDAK DISERTAKAN
+----------------
+Model ASR/OCR, runtime Python, cache, log, status, spool audio, marker validasi GPU,
+backup, .pyc, __pycache__, data identitas aktif, webui_prefs.json, user_config.json,
+dan konfigurasi pengguna lainnya.

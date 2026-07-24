@@ -1,0 +1,18 @@
+{
+  "schema": 9,
+  "version": "v9.0.0",
+  "application_root": "<PROJECT_ROOT>/ORT_App",
+  "runtime_root": "<PROJECT_ROOT>/ORT_Runtime",
+  "support_root": "<PROJECT_ROOT>/ORT",
+  "root_policy": "launchers_only",
+  "heavy_folders_excluded_from_source_export": [
+    "ORT_Runtime",
+    "models",
+    "venv",
+    "logs",
+    "cache",
+    "status",
+    "user_data",
+    "exports"
+  ]
+}

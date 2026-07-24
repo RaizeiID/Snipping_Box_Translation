@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "version": "v9.0.0",
+  "policy": "production_pipeline_untouched",
+  "runtime_payload_root": "ORT_Runtime/open_architecture",
+  "providers": [
+    {"id": "silero_vad", "origin": "Adapted Open Source", "license": "MIT", "bundled": false},
+    {"id": "confirmed_prefix", "origin": "Clean ORT implementation from MIT concept", "license": "ORT Project", "bundled": true},
+    {"id": "local_agreement", "origin": "Clean ORT implementation from MIT concept", "license": "ORT Project", "bundled": true},
+    {"id": "whisperlive_worker", "origin": "Optional adapter", "license": "MIT upstream", "bundled": false},
+    {"id": "multi_region_ocr", "origin": "ORT adapter inspired by MORT architecture", "license": "ORT Project", "bundled": false},
+    {"id": "external_text_hook", "origin": "External connector", "license": "GPL application remains external", "bundled": false}
+  ]
+}

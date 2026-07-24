@@ -1,0 +1,33 @@
+ORT Translation v9.0.0 — Changed Files Manifest
+Base required: ORT v8.9.9 R2 F2
+
+Root launchers and clean-layout setup:
+  START_HERE.bat
+  Start WebUI.bat
+  Start OCR.bat
+  Runtime.bat
+  ORT v9 Setup.bat
+  VERSION.txt
+  .gitignore
+
+Application changes (installed initially under ORT/runtime_app and moved to ORT_App by setup):
+  webui.py
+  build_info.py
+  launcher_backend.py
+  RUNTIME.bat
+  Start_ORT_Translation.bat
+  app/open_architecture/**
+  tools/migrate_v9_structure.py
+  tools/export_source_light_v9.py
+  tools/verify_v9_0_0_install.py
+  tools/v9_0_0_open_architecture_layout_test.py
+
+Lightweight support tree:
+  ORT/docs/**
+  ORT/plugins/open_architecture/**
+  ORT/maintenance/**
+  ORT/config/project_layout.template.json
+  ORT/release/SHA256SUMS_V9_0_0.json
+
+Heavy/local folders are not included:
+  ORT_Runtime, models, virtual environments, logs, cache, status, user_data, credentials, exports.

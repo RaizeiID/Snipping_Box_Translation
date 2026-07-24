@@ -1,0 +1,26 @@
+# ORT Translation v8.8.8 Changed Files Manifest
+
+Runtime:
+- app/runtime/mode_policy_manager.py
+- app/runtime/interval_fast_skip_safety.py
+- app/runtime/prediction_guard.py
+- app/runtime/recording_telemetry.py
+- app/runtime/candidate_extractor.py
+- app/runtime/commander_profile_resolver.py
+- TITANMAIN.py
+
+Tools:
+- tools/offline_replay_benchmark_v8_8_8.py
+- tools/long_session_analyzer_v8_8_8.py
+- tools/v8_8_8_regression_test.py
+
+Configs:
+- configs/gfl2_entity_registry_v8_8_8.json
+- configs/gfl2_entity_registry_v8_8_7.json
+- configs/prediction_candidates_v8_8_8.json
+
+Docs:
+- APPLY_NOTES_V8_8_8.txt
+- ORT_V8_8_8_CHANGELOG.md
+- ORT_V8_8_8_VALIDATION_REPORT.md
+- ORT_V8_8_8_STRATEGY_MEMORY_OFFLINE_REPLAY_MODE_POLICY_2026-06-02.md

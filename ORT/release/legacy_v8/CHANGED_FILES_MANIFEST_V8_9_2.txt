@@ -1,0 +1,42 @@
+ORT Translation v8.9.2 — Changed Files Manifest
+================================================
+
+Basis wajib: ORT Translation v8.9.1
+Jenis paket: selective replacement patch
+
+File baru/diperbarui (23):
+
+CHANGELOG.md
+CHANGED_FILES_MANIFEST_V8_9_2.txt
+README.md
+README_APPLY_PATCH_V8_9_2.txt
+VERSION.txt
+ORT/runtime_app/ORTCORE_VERSION.txt
+ORT/runtime_app/TITANCORE_VERSION.txt
+ORT/runtime_app/TITANMAIN.py
+ORT/runtime_app/app/ocr/text_roi_change_gate.py
+ORT/runtime_app/app/runtime/overlay_commit_gate.py
+ORT/runtime_app/app/runtime/recording_telemetry.py
+ORT/runtime_app/app/runtime/turn_state_machine.py
+ORT/runtime_app/app/telemetry/atomic_jsonl.py
+ORT/runtime_app/build_info.py
+ORT/runtime_app/docs/changelog/CHANGELOG_V8_9_2.md
+ORT/runtime_app/docs/test_reports/ORT_V8_9_2_VALIDATION_REPORT.md
+ORT/runtime_app/fast_model_manager.py
+ORT/runtime_app/launcher_backend.py
+ORT/runtime_app/session_event_paths.py
+ORT/runtime_app/session_log_manager.py
+ORT/runtime_app/tools/v8_9_2_regression_test.py
+ORT/runtime_app/translation_engine.py
+ORT/runtime_app/webui.py
+
+SHA256SUMS_V8_9_2.txt dibuat saat packaging dan berisi checksum seluruh file
+di atas. File tersebut adalah metadata paket, bukan file runtime.
+
+Tidak disertakan:
+- model dan dependency runtime;
+- cache, __pycache__, .pyc, serta file sementara;
+- log sesi, status runtime, dan benchmark pengguna;
+- konfigurasi serta preferensi pengguna;
+- file sumber yang tidak berubah dari basis v8.9.1;
+- fitur Mode Audio/VAD/Isolasi Suara.

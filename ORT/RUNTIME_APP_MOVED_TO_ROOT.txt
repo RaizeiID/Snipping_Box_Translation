@@ -1,0 +1,2 @@
+ORT/runtime_app telah dipindahkan ke folder surface ORT_App pada v9.0.0.
+Gunakan launcher root; jangan menyalin ORT_Runtime ketika membuat ZIP source.

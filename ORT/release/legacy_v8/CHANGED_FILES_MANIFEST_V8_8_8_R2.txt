@@ -1,0 +1,25 @@
+# ORT Translation v8.8.8 R2 Changed Files Manifest
+
+Runtime fixes:
+- TITANMAIN.py
+- prediction_guard.py
+- candidate_extractor.py
+- commander_profile_resolver.py
+- mode_policy_manager.py
+- recording_telemetry.py
+- launcher_backend.py
+
+Configs:
+- gfl2_entity_registry_v8_8_8_r2.json
+- gfl2_entity_registry_v8_8_8.json
+- gfl2_entity_registry_v8_8_7.json
+- prediction_candidates_v8_8_8_r2.json
+
+Tools:
+- offline_replay_benchmark_v8_8_8.py
+- v8_8_8_r2_regression_test.py
+
+Docs:
+- APPLY_NOTES_V8_8_8_R2.txt
+- ORT_V8_8_8_R2_HOTFIX_REPORT.md
+- ORT_V8_8_8_R2_VALIDATION_REPORT.md
