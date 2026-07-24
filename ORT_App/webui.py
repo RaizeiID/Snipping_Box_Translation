@@ -1138,6 +1138,17 @@ def _oa_ui_mode_updates(mode: str):
     return gr.update(value=help_html), gr.update(visible=token == "developer")
 
 
+def _oa_overlay_mode_updates(mode: str):
+    token = str(mode or "adaptive").strip().lower()
+    if token not in {"adaptive", "fixed", "custom"}:
+        token = "adaptive"
+    _save_ui_pref(oa_overlay_mode=token)
+    return (
+        gr.update(visible=token in {"fixed", "custom"}),
+        gr.update(visible=token == "custom"),
+    )
+
+
 def _oa_apply_preset_ui(preset_id: str, language: str, agreement_passes: int, ui_mode: str):
     values = architecture_apply_preset(preset_id)
     validation = architecture_runtime_validation_text(
@@ -1184,7 +1195,6 @@ def _oa_runtime_validation_ui(
 
 
 def _oa_start_audio_ui(
-    model: str,
     game: str,
     input_mode: str,
     device_index: str,
@@ -1203,14 +1213,29 @@ def _oa_start_audio_ui(
     language_correction: str,
     language_lock: bool,
     ui_mode: str,
+    overlay_mode: str,
+    overlay_width_percent: int,
+    overlay_height_px: int,
+    overlay_font_size: int,
+    overlay_opacity_percent: int,
+    overlay_show_source: bool,
+    overlay_alignment: str,
 ):
     file_path = _upload_path(test_file)
     validation = architecture_runtime_validation_text(
         source, vad, asr, streaming, translation, overlay,
         language, agreement_passes, ui_mode,
     )
+    _save_ui_pref(
+        oa_overlay_mode=str(overlay_mode or "adaptive"),
+        oa_overlay_width_percent=int(overlay_width_percent or 92),
+        oa_overlay_height_px=int(overlay_height_px or 190),
+        oa_overlay_font_size=int(overlay_font_size or 15),
+        oa_overlay_opacity_percent=int(overlay_opacity_percent or 91),
+        oa_overlay_show_source=bool(overlay_show_source),
+        oa_overlay_alignment=str(overlay_alignment or "left"),
+    )
     status, log, msg, notice = architecture_start_audio(
-        model,
         game,
         input_mode,
         device_index,
@@ -1228,6 +1253,13 @@ def _oa_start_audio_ui(
         language_correction,
         language_lock,
         preset_id,
+        overlay_mode,
+        overlay_width_percent,
+        overlay_height_px,
+        overlay_font_size,
+        overlay_opacity_percent,
+        overlay_show_source,
+        overlay_alignment,
     )
     err_md = ""
     if "ERROR" in str(status or "").upper():
@@ -1357,6 +1389,9 @@ _OA_STREAMING_CHOICES = architecture_provider_choices("streaming")
 _OA_TRANSLATION_CHOICES = architecture_provider_choices("translation")
 _OA_OVERLAY_CHOICES = architecture_provider_choices("overlay")
 INITIAL_OA_UI_MODE = "developer" if str(PREFS.get("oa_ui_mode", "normal")).lower() in {"developer", "expert"} else "normal"
+INITIAL_OA_OVERLAY_MODE = str(PREFS.get("oa_overlay_mode", "adaptive") or "adaptive").lower()
+if INITIAL_OA_OVERLAY_MODE not in {"adaptive", "fixed", "custom"}:
+    INITIAL_OA_OVERLAY_MODE = "adaptive"
 _OA_INITIAL_RUNTIME_STATUS = architecture_runtime_validation_text(
     _OA_INITIAL[0], _OA_INITIAL[1], _OA_INITIAL[2], _OA_INITIAL[3], _OA_INITIAL[4], _OA_INITIAL[5],
     "ja_specialist", 2, INITIAL_OA_UI_MODE,
@@ -1719,18 +1754,64 @@ with gr.Blocks(title=APP_DISPLAY_NAME) as demo:
                     oa_refresh_btn = gr.Button("Validasi provider")
 
             with gr.Group(elem_classes=["workspace-card"]):
-                gr.HTML("<div class='setup-header'><div><div class='section-kicker'>Audio Lab runtime</div><div class='section-title'>Atur sesi dan mulai terjemahan</div><div class='section-copy'>Urutannya selalu sama: pilih sumber → siapkan runtime → validasi → Preload & Mulai Audio Lab. Overlay baru muncul setelah ASR dan penerjemah benar-benar siap.</div></div><span class='step-badge'>3</span></div>")
+                gr.HTML("<div class='setup-header'><div><div class='section-kicker'>Audio Lab runtime</div><div class='section-title'>Atur sesi dan mulai terjemahan</div><div class='section-copy'>Urutannya selalu sama: pilih sumber → atur box → validasi → Preload & Mulai Audio Lab. Segmentasi adaptif memisahkan jeda panjang dan menggulir subtitle saat monolog terlalu panjang.</div></div><span class='step-badge'>3</span></div>")
                 with gr.Row():
                     oa_lab_game = gr.Dropdown(
                         label="Game / profil",
                         choices=GAME_CHOICES,
                         value=PREFS.get("game", "GFL2_EXILIUM"),
                     )
-                    oa_lab_model = gr.Dropdown(
-                        label="Model terjemahan ORT",
-                        choices=basic_choices,
-                        value=default_model,
+                    oa_overlay_mode = gr.Radio(
+                        label="Mode box terjemahan",
+                        choices=[
+                            ("Adaptif · mengikuti teks", "adaptive"),
+                            ("Fix · ukuran tetap mengikuti monitor", "fixed"),
+                            ("Custom · ukuran dan layout bebas", "custom"),
+                        ],
+                        value=INITIAL_OA_OVERLAY_MODE,
                     )
+                gr.Markdown("**Mesin terjemahan Audio Lab:** ORTCore Fast V2 dipilih otomatis oleh route arsitektur. Daftar model OCR tidak lagi digunakan pada halaman ini.")
+                with gr.Group(visible=INITIAL_OA_OVERLAY_MODE in {"fixed", "custom"}) as oa_overlay_size_panel:
+                    with gr.Row():
+                        oa_overlay_width = gr.Slider(
+                            label="Lebar box terhadap monitor (%)",
+                            minimum=40,
+                            maximum=100,
+                            step=1,
+                            value=int(PREFS.get("oa_overlay_width_percent", 92)),
+                        )
+                        oa_overlay_height = gr.Slider(
+                            label="Tinggi box tetap (px)",
+                            minimum=110,
+                            maximum=420,
+                            step=5,
+                            value=int(PREFS.get("oa_overlay_height_px", 190)),
+                        )
+                        oa_overlay_opacity = gr.Slider(
+                            label="Opacity box (%)",
+                            minimum=45,
+                            maximum=100,
+                            step=1,
+                            value=int(PREFS.get("oa_overlay_opacity_percent", 91)),
+                        )
+                with gr.Group(visible=INITIAL_OA_OVERLAY_MODE == "custom") as oa_overlay_custom_panel:
+                    with gr.Row():
+                        oa_overlay_font = gr.Slider(
+                            label="Ukuran font terjemahan",
+                            minimum=10,
+                            maximum=30,
+                            step=1,
+                            value=int(PREFS.get("oa_overlay_font_size", 15)),
+                        )
+                        oa_overlay_alignment = gr.Radio(
+                            label="Perataan teks",
+                            choices=[("Kiri", "left"), ("Tengah", "center")],
+                            value=str(PREFS.get("oa_overlay_alignment", "left")),
+                        )
+                        oa_overlay_show_source = gr.Checkbox(
+                            label="Tampilkan preview Inggris",
+                            value=bool(PREFS.get("oa_overlay_show_source", True)),
+                        )
                 with gr.Row():
                     oa_lab_input_mode = gr.Radio(
                         label="Sumber audio",
@@ -2037,14 +2118,22 @@ with gr.Blocks(title=APP_DISPLAY_NAME) as demo:
         ],
         outputs=[oa_runtime_validation],
     )
+    oa_overlay_mode.change(
+        _oa_overlay_mode_updates,
+        inputs=[oa_overlay_mode],
+        outputs=[oa_overlay_size_panel, oa_overlay_custom_panel],
+    )
     oa_start_audio_btn.click(
         _oa_start_audio_ui,
         inputs=[
-            oa_lab_model, oa_lab_game, oa_lab_input_mode, oa_lab_device,
+            oa_lab_game, oa_lab_input_mode, oa_lab_device,
             oa_lab_language, oa_lab_audio_mode, oa_lab_profile, oa_lab_test_file,
             oa_preset, oa_source, oa_vad, oa_asr, oa_streaming,
             oa_translation, oa_overlay, oa_runtime_agreement,
             oa_language_correction, oa_language_lock, oa_ui_mode,
+            oa_overlay_mode, oa_overlay_width, oa_overlay_height,
+            oa_overlay_font, oa_overlay_opacity, oa_overlay_show_source,
+            oa_overlay_alignment,
         ],
         outputs=[
             oa_runtime_state, oa_runtime_summary, oa_runtime_log,

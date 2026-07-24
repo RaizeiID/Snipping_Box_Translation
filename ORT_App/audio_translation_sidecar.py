@@ -6,6 +6,7 @@ import os
 import re
 import sys
 import time
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, Optional
 
@@ -57,11 +58,22 @@ def split_audio_clauses(text: str) -> list[str]:
     return expanded or [clean]
 
 
+@dataclass
+class SegmentTranslationState:
+    source: str
+    clauses: list[str]
+    outputs: list[str]
+    meta: dict
+    last_used: float
+
+
 class AudioTranslator:
     def __init__(self, safe_mode: bool):
         self.safe_mode = bool(safe_mode)
         self._argos_translation = None
         self._engine = None
+        self._segments: dict[str, SegmentTranslationState] = {}
+        self._segment_limit = 32
         self._init_engine()
 
     def _init_engine(self) -> None:
@@ -95,26 +107,106 @@ class AudioTranslator:
             return "ct2_fast"
         return "argos_offline"
 
-    def translate(self, text: str) -> tuple[str, dict]:
+    def _translate_clause(self, clause: str) -> tuple[str, dict]:
+        output, meta = self._engine.translate(clause, bridge=None)
+        meta = dict(meta or {})
+        clean = " ".join(str(output or "").strip().split())
+        held = bool(meta.get("overlay_hold")) or "[Terjemahan ditahan:" in clean
+        if held:
+            recovered = " ".join(str(self._argos_translate(clause) or "").strip().split())
+            if recovered and recovered.casefold() != clause.casefold():
+                meta["engine"] = "argos_direct_audio_recovery"
+                meta["audio_guard_recovered"] = True
+                meta["overlay_hold"] = False
+                return recovered, meta
+        return clean or clause, meta
+
+    def _prune_segments(self) -> None:
+        if len(self._segments) <= self._segment_limit:
+            return
+        oldest = sorted(self._segments.items(), key=lambda item: item[1].last_used)
+        for key, _state in oldest[: max(1, len(self._segments) - self._segment_limit)]:
+            self._segments.pop(key, None)
+
+    def translate(self, text: str, *, segment_id: str = "", stable: bool = False) -> tuple[str, dict]:
         if self._engine is None:
             return text, {"engine": "source_fallback", "cache": "MISS"}
-        clauses = split_audio_clauses(text)
-        outputs: list[str] = []
+        source = " ".join(str(text or "").strip().split())
+        clauses = split_audio_clauses(source)
+        key = str(segment_id or "__default__")
+        previous = self._segments.get(key)
+
+        if previous is not None and previous.source.casefold() == source.casefold():
+            meta = dict(previous.meta)
+            meta.update({
+                "audio_incremental": True,
+                "audio_reused_clauses": len(previous.clauses),
+                "audio_translated_clauses": 0,
+                "cache": "HIT_SEGMENT",
+            })
+            previous.last_used = time.monotonic()
+            return " ".join(previous.outputs).strip() or source, meta
+
+        reuse = 0
+        if previous is not None:
+            maximum = min(len(previous.clauses), len(clauses))
+            while reuse < maximum and previous.clauses[reuse].casefold() == clauses[reuse].casefold():
+                reuse += 1
+
+        outputs = list(previous.outputs[:reuse]) if previous is not None else []
         metas: list[dict] = []
-        for clause in clauses:
-            output, meta = self._engine.translate(clause, bridge=None)
-            clean = " ".join(str(output or "").strip().split())
-            outputs.append(clean or clause)
-            metas.append(dict(meta or {}))
+
+        # When a single live clause only grows at the end, preserve the already
+        # translated prefix and translate the new tail. This prevents Argos from
+        # reprocessing a whole paragraph on every 300 ms ASR revision.
+        delta_mode = False
+        if (
+            previous is not None
+            and len(clauses) == 1
+            and len(previous.clauses) == 1
+            and source.casefold().startswith(previous.source.casefold())
+            and len(source) > len(previous.source)
+            and previous.outputs
+        ):
+            suffix = source[len(previous.source):].strip(" ,.;:-")
+            if len(suffix.split()) >= 2:
+                tail_output, tail_meta = self._translate_clause(suffix)
+                outputs = [" ".join([previous.outputs[0], tail_output]).strip()]
+                metas = [tail_meta]
+                reuse = 1
+                delta_mode = True
+
+        if not delta_mode:
+            for clause in clauses[reuse:]:
+                output, meta = self._translate_clause(clause)
+                outputs.append(output)
+                metas.append(meta)
+
         engines = [str(item.get("engine") or self.engine_label()) for item in metas]
         caches = [str(item.get("cache") or "MISS") for item in metas]
-        merged = dict(metas[-1] if metas else {})
+        if not engines and previous is not None:
+            engines = [str(previous.meta.get("engine") or self.engine_label())]
+        merged = dict(metas[-1] if metas else (previous.meta if previous is not None else {}))
         merged["engine"] = engines[0] if engines and len(set(engines)) == 1 else "mixed_audio_clauses"
-        merged["cache"] = "HIT" if caches and all(item.startswith("HIT") for item in caches) else "MISS"
+        merged["cache"] = "HIT" if caches and all(item.startswith("HIT") for item in caches) else ("HIT_SEGMENT" if not metas else "MISS")
         merged["audio_clause_count"] = len(clauses)
         merged["audio_clause_engines"] = engines
         merged["audio_preserve_all_clauses"] = True
-        return " ".join(outputs).strip() or text, merged
+        merged["audio_incremental"] = True
+        merged["audio_reused_clauses"] = reuse
+        merged["audio_translated_clauses"] = 1 if delta_mode else max(0, len(clauses) - reuse)
+        merged["audio_delta_mode"] = delta_mode
+        merged["audio_segment_final"] = bool(stable)
+
+        self._segments[key] = SegmentTranslationState(
+            source=source,
+            clauses=list(clauses),
+            outputs=list(outputs),
+            meta=dict(merged),
+            last_used=time.monotonic(),
+        )
+        self._prune_segments()
+        return " ".join(outputs).strip() or source, merged
 
 
 def process_request(translator: AudioTranslator, request: Dict[str, Any]) -> None:
@@ -132,7 +224,11 @@ def process_request(translator: AudioTranslator, request: Dict[str, Any]) -> Non
     )
     started = time.perf_counter()
     try:
-        output, meta = translator.translate(source)
+        output, meta = translator.translate(
+            source,
+            segment_id=str(request.get("segment_id") or ""),
+            stable=bool(request.get("stable")),
+        )
         translation_ms = int((time.perf_counter() - started) * 1000)
         request_payload = dict(request)
         request_payload.pop("type", None)

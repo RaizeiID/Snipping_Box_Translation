@@ -58,3 +58,17 @@ Provider yang belum mempunyai executor nyata tetap ditandai dan diblokir sebelum
 - Translation watchdog memulai ulang sidecar yang hidup tetapi tidak merespons.
 - Panel Lab memiliki `Copy Log Lab`; tekan Refresh Status Lab sebelum menyalin.
 - Silero VAD dan WhisperLive tetap tidak diaktifkan sebagai runtime produksi pada rilis ini. Keduanya tetap provider eksperimen sampai installer, health check, dan uji Windows selesai.
+
+## v9.0.2 — Adaptive Turn & Overlay Layout
+
+Audio Lab kini menjalankan pemisahan dialog adaptif. Jeda singkat pada klausa yang belum selesai dipertahankan sebagai turn yang sama, sedangkan akhir kalimat, jeda panjang, dan batas monolog menghasilkan segmen subtitle baru. Bukti `NO_SPEECH` dari ASR dapat menutup turn walaupun musik latar membuat energy VAD tetap aktif.
+
+Penerjemahan Indonesia tidak lagi menerjemahkan ulang seluruh paragraf pada setiap revisi. Klausa lama digunakan kembali dan hanya klausa atau tail baru yang diterjemahkan.
+
+Pilihan `Model terjemahan ORT` dihapus dari Audio Lab. Daftar tersebut berasal dari registry model OCR dan tidak memilih model Japanese ASR. Audio Lab mengunci strategi internal `ORTCore Fast V2`, sedangkan ASR, streaming policy, translation route, dan overlay tetap berasal dari provider arsitektur.
+
+Mode overlay:
+
+- `adaptive`: ukuran mengikuti hasil subtitle.
+- `fixed`: lebar/tinggi tetap berdasarkan monitor; drag dibatasi vertikal.
+- `custom`: resize dan perpindahan bebas dengan pengaturan layout tambahan.

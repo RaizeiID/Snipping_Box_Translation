@@ -155,6 +155,7 @@ def architecture_runtime_validation_text(
             f"- Agreement passes: `{report.agreement_passes}`",
             "- Pipeline produksi tidak diubah; satu ProcessManager tetap mencegah dua sesi berjalan bersamaan.",
             "- Runtime Python, model ASR, WASAPI, dan CUDA diverifikasi kembali oleh backend saat Start.",
+            "- Strategi terjemahan internal dikunci ke ORTCore Fast V2; pilihan model OCR tidak lagi ditampilkan pada Audio Lab.",
         ]
     else:
         lines = [
@@ -181,7 +182,21 @@ def architecture_runtime_validation_text(
 
 
 @contextmanager
-def _lab_environment(report: ArchitectureRuntimeValidation, preset_id: str = "custom") -> Iterator[None]:
+def _lab_environment(
+    report: ArchitectureRuntimeValidation,
+    preset_id: str = "custom",
+    *,
+    overlay_mode: str = "adaptive",
+    overlay_width_percent: int = 92,
+    overlay_height_px: int = 190,
+    overlay_font_size: int = 15,
+    overlay_opacity_percent: int = 91,
+    overlay_show_source: bool = True,
+    overlay_alignment: str = "left",
+) -> Iterator[None]:
+    mode = str(overlay_mode or "adaptive").strip().lower()
+    if mode not in {"adaptive", "fixed", "custom"}:
+        mode = "adaptive"
     updates = {
         "ORT_OPEN_ARCHITECTURE_LAB": "1",
         "ORT_OA_PRESET_ID": str(preset_id or "custom"),
@@ -194,6 +209,14 @@ def _lab_environment(report: ArchitectureRuntimeValidation, preset_id: str = "cu
         "ORT_AUDIO_STREAMING_POLICY": report.selections["streaming"],
         "ORT_AUDIO_TRANSLATION_ROUTE": report.selections["translation"],
         "ORT_AUDIO_AGREEMENT_PASSES": str(report.agreement_passes),
+        "ORT_AUDIO_SMART_SEGMENTATION": "1",
+        "ORT_AUDIO_OVERLAY_MODE": mode,
+        "ORT_AUDIO_OVERLAY_WIDTH_PERCENT": str(max(40, min(100, int(overlay_width_percent or 92)))),
+        "ORT_AUDIO_OVERLAY_HEIGHT_PX": str(max(100, min(720, int(overlay_height_px or 190)))),
+        "ORT_AUDIO_OVERLAY_FONT_SIZE": str(max(10, min(30, int(overlay_font_size or 15)))),
+        "ORT_AUDIO_OVERLAY_OPACITY_PERCENT": str(max(45, min(100, int(overlay_opacity_percent or 91)))),
+        "ORT_AUDIO_OVERLAY_SHOW_SOURCE": "1" if overlay_show_source else "0",
+        "ORT_AUDIO_OVERLAY_ALIGNMENT": "center" if str(overlay_alignment or "left").lower() == "center" else "left",
     }
     previous = {key: os.environ.get(key) for key in updates}
     try:
@@ -208,7 +231,6 @@ def _lab_environment(report: ArchitectureRuntimeValidation, preset_id: str = "cu
 
 
 def architecture_start_audio(
-    model: str,
     game: str,
     input_mode: str,
     device_index: str,
@@ -226,6 +248,13 @@ def architecture_start_audio(
     language_correction: str = "balanced",
     language_lock: bool = False,
     preset_id: str = "custom",
+    overlay_mode: str = "adaptive",
+    overlay_width_percent: int = 92,
+    overlay_height_px: int = 190,
+    overlay_font_size: int = 15,
+    overlay_opacity_percent: int = 91,
+    overlay_show_source: bool = True,
+    overlay_alignment: str = "left",
 ):
     report = architecture_runtime_validation(
         source, vad, asr, streaming, translation, overlay,
@@ -237,9 +266,22 @@ def architecture_start_audio(
 
     from launcher_backend import start_audio_model
 
-    with _lab_environment(report, preset_id=preset_id):
+    # Audio Lab uses a fixed internal translation strategy. The old WebUI field
+    # reused OCR model choices and did not select the Japanese ASR model.
+    internal_translation_model = "ORTCore Fast V2"
+    with _lab_environment(
+        report,
+        preset_id=preset_id,
+        overlay_mode=overlay_mode,
+        overlay_width_percent=overlay_width_percent,
+        overlay_height_px=overlay_height_px,
+        overlay_font_size=overlay_font_size,
+        overlay_opacity_percent=overlay_opacity_percent,
+        overlay_show_source=overlay_show_source,
+        overlay_alignment=overlay_alignment,
+    ):
         return start_audio_model(
-            model,
+            internal_translation_model,
             game,
             input_mode,
             device_index,

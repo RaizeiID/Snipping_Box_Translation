@@ -144,6 +144,11 @@ class LocalRealtimePolicy:
     carry_over_s: float
     minimum_rms: float
     noise_multiplier: float
+    short_pause_s: float
+    long_pause_s: float
+    subtitle_window_s: float
+    hard_turn_s: float
+    semantic_no_speech_passes: int = 2
     chunk_ms: int = 20
 
     def as_dict(self) -> dict:
@@ -157,6 +162,11 @@ class LocalRealtimePolicy:
             "carry_over_ms": int(self.carry_over_s * 1000),
             "minimum_rms": self.minimum_rms,
             "noise_multiplier": self.noise_multiplier,
+            "short_pause_ms": int(self.short_pause_s * 1000),
+            "long_pause_ms": int(self.long_pause_s * 1000),
+            "subtitle_window_ms": int(self.subtitle_window_s * 1000),
+            "hard_turn_ms": int(self.hard_turn_s * 1000),
+            "semantic_no_speech_passes": self.semantic_no_speech_passes,
             "chunk_ms": self.chunk_ms,
         }
 
@@ -172,9 +182,13 @@ def resolve_policy(profile: str, device: str) -> LocalRealtimePolicy:
             endpoint_s=0.46,
             max_phrase_s=8.0,
             pre_roll_s=0.30,
-            carry_over_s=0.55,
+            carry_over_s=0.18,
             minimum_rms=0.0032,
             noise_multiplier=2.25,
+            short_pause_s=0.28,
+            long_pause_s=0.92,
+            subtitle_window_s=5.0,
+            hard_turn_s=9.0,
         )
     if profile_key in {"accurate", "quality"}:
         return LocalRealtimePolicy(
@@ -184,9 +198,13 @@ def resolve_policy(profile: str, device: str) -> LocalRealtimePolicy:
             endpoint_s=0.76,
             max_phrase_s=16.0,
             pre_roll_s=0.42,
-            carry_over_s=1.00,
+            carry_over_s=0.32,
             minimum_rms=0.0038,
             noise_multiplier=2.65,
+            short_pause_s=0.42,
+            long_pause_s=1.35,
+            subtitle_window_s=7.5,
+            hard_turn_s=14.0,
         )
     return LocalRealtimePolicy(
         profile="normal",
@@ -195,9 +213,13 @@ def resolve_policy(profile: str, device: str) -> LocalRealtimePolicy:
         endpoint_s=0.62,
         max_phrase_s=12.0,
         pre_roll_s=0.36,
-        carry_over_s=0.75,
+        carry_over_s=0.24,
         minimum_rms=0.0035,
         noise_multiplier=2.45,
+        short_pause_s=0.34,
+        long_pause_s=1.10,
+        subtitle_window_s=6.0,
+        hard_turn_s=11.0,
     )
 
 
@@ -1235,13 +1257,34 @@ class StreamingInferenceWorker:
         self.last_text_by_result: dict[str, str] = {}
         self.last_emit_at_by_result: dict[str, float] = {}
         self.last_reject_at_by_result: dict[str, float] = {}
+        self.feedback: queue.SimpleQueue[dict] = queue.SimpleQueue()
         self.profile = profile
-        display_words = 92 if profile in {"accurate", "quality"} else 72 if profile == "normal" else 56
-        self.turn_context = RollingTurnContext(max_history_words=240, display_words=display_words)
+        # Subtitle context is intentionally bounded. Long monologues are rolled
+        # into new subtitle windows instead of growing one paragraph forever.
+        display_words = 48 if profile in {"accurate", "quality"} else 36 if profile == "normal" else 28
+        self.turn_context = RollingTurnContext(max_history_words=96, display_words=display_words)
         self.final_done: dict[str, threading.Event] = {}
         self.correction_worker: Optional[SpecialistCorrectionWorker] = None
         if bool(getattr(model, "specialist_correction_enabled", False)):
             self.correction_worker = SpecialistCorrectionWorker(model)
+
+    def push_feedback(self, kind: str, result_id: str, *, text: str = "", stable: bool = False) -> None:
+        self.feedback.put({
+            "kind": str(kind),
+            "result_id": str(result_id or ""),
+            "text": _clean_text(text),
+            "stable": bool(stable),
+            "at": time.monotonic(),
+        })
+
+    def drain_feedback(self) -> list[dict]:
+        rows: list[dict] = []
+        while True:
+            try:
+                rows.append(self.feedback.get_nowait())
+            except queue.Empty:
+                break
+        return rows
 
     def start(self) -> None:
         self.thread.start()
@@ -1340,6 +1383,7 @@ class StreamingInferenceWorker:
                     metadata["turn_context_revision"] = 0
                     metadata["turn_appended_words"] = 0
                 elif not text or not _has_semantic_text(text):
+                    self.push_feedback("no_speech", snapshot.result_id, stable=snapshot.stable)
                     self._emit_reject_throttled(snapshot, metadata)
                     continue
                 if not final_context_fallback:
@@ -1355,6 +1399,7 @@ class StreamingInferenceWorker:
                     continue
                 self.last_text_by_result[snapshot.result_id] = text
                 self.last_emit_at_by_result[snapshot.result_id] = now
+                self.push_feedback("semantic", snapshot.result_id, text=text, stable=snapshot.stable)
                 event_type = "transcript" if snapshot.stable else "partial_transcript"
                 model_used = str(metadata.pop("model_used", getattr(self.model, "model_size", "")))
                 emit_event(
@@ -1409,6 +1454,50 @@ class UtteranceController:
         self.last_partial_at = 0.0
         self.noise_floor = 0.0015
         self.sequence = 0
+        self.last_semantic_at = 0.0
+        self.semantic_silence_since = 0.0
+        self.semantic_no_speech_count = 0
+        self.last_semantic_text = ""
+
+    def _consume_inference_feedback(self, now: float) -> None:
+        for row in self.worker.drain_feedback():
+            if str(row.get("result_id") or "") != self.active_result_id:
+                continue
+            kind = str(row.get("kind") or "")
+            if kind == "semantic":
+                self.last_semantic_at = float(row.get("at") or now)
+                self.last_semantic_text = _clean_text(row.get("text"))
+                self.semantic_silence_since = 0.0
+                self.semantic_no_speech_count = 0
+            elif kind == "no_speech":
+                self.semantic_no_speech_count += 1
+                if self.semantic_silence_since <= 0.0:
+                    self.semantic_silence_since = float(row.get("at") or now)
+
+    def _semantic_boundary_ready(self, now: float) -> tuple[bool, str]:
+        if not self.active_result_id or not self.last_semantic_text:
+            return False, ""
+        if self.semantic_no_speech_count < self.policy.semantic_no_speech_passes:
+            return False, ""
+        since = self.semantic_silence_since or self.last_semantic_at
+        silence = max(0.0, now - since)
+        sentence_end = self.last_semantic_text.rstrip().endswith((".", "!", "?", "…"))
+        threshold = self.policy.short_pause_s if sentence_end else self.policy.long_pause_s
+        if silence >= threshold:
+            return True, "semantic_sentence_pause" if sentence_end else "semantic_long_pause"
+        return False, ""
+
+    def _rollover_ready(self, duration: float) -> tuple[bool, str]:
+        if duration >= self.policy.hard_turn_s:
+            return True, "hard_turn_limit"
+        if duration < self.policy.subtitle_window_s:
+            return False, ""
+        if not self.last_semantic_text:
+            return False, ""
+        sentence_end = self.last_semantic_text.rstrip().endswith((".", "!", "?", "…"))
+        if sentence_end or self.semantic_no_speech_count > 0:
+            return True, "subtitle_window"
+        return False, ""
 
     def _append_pre_roll(self, chunk: np.ndarray) -> None:
         self.pre_roll.append(chunk.copy())
@@ -1427,6 +1516,10 @@ class UtteranceController:
         self.revision = 0
         self.last_voice_at = now
         self.last_partial_at = 0.0
+        self.last_semantic_at = now
+        self.semantic_silence_since = 0.0
+        self.semantic_no_speech_count = 0
+        self.last_semantic_text = ""
         emit_event(
             "state",
             state="SPEECH_ACTIVE",
@@ -1482,8 +1575,13 @@ class UtteranceController:
         self.active_result_id = ""
         self.revision = 0
         self.last_partial_at = 0.0
+        self.last_semantic_at = 0.0
+        self.semantic_silence_since = 0.0
+        self.semantic_no_speech_count = 0
+        self.last_semantic_text = ""
+        self.pre_roll.clear()
+        self.pre_roll_samples = 0
         if carry and carry_chunk.size:
-            self.pre_roll.clear()
             self.pre_roll.append(carry_chunk)
             self.pre_roll_samples = len(carry_chunk)
             self._start(now)
@@ -1494,6 +1592,7 @@ class UtteranceController:
         samples = np.asarray(chunk, dtype=np.float32).reshape(-1)
         if samples.size == 0:
             return
+        self._consume_inference_feedback(current)
         level = _rms(samples)
         threshold = max(self.policy.minimum_rms, self.noise_floor * self.policy.noise_multiplier)
         speech = level >= threshold
@@ -1526,8 +1625,40 @@ class UtteranceController:
 
         if self.active_samples / float(TARGET_SAMPLE_RATE) > self.policy.max_phrase_s:
             self._trim_active_window()
-        if not speech and current - self.last_voice_at >= self.policy.endpoint_s:
+
+        semantic_ready, semantic_reason = self._semantic_boundary_ready(current)
+        rollover_ready, rollover_reason = self._rollover_ready(duration)
+        # Energy VAD alone must not cut a long monologue at every tiny pause.
+        # Once semantic text exists, use a shorter threshold only after sentence
+        # punctuation and a longer threshold for an unfinished clause.
+        if self.last_semantic_text:
+            semantic_sentence_end = self.last_semantic_text.rstrip().endswith((".", "!", "?", "…"))
+            energy_threshold = self.policy.short_pause_s if semantic_sentence_end else self.policy.long_pause_s
+        else:
+            energy_threshold = self.policy.endpoint_s
+        energy_pause = bool(not speech and current - self.last_voice_at >= energy_threshold)
+        if semantic_ready or energy_pause:
+            reason = semantic_reason or ("energy_sentence_pause" if self.last_semantic_text.rstrip().endswith((".", "!", "?", "…")) else "energy_long_pause")
+            emit_event(
+                "metric",
+                name="smart_turn_boundary",
+                segment_id=self.active_result_id,
+                reason=reason,
+                turn_audio_seconds=round(duration, 3),
+                semantic_no_speech_count=self.semantic_no_speech_count,
+                local_realtime=True,
+            )
             self._finish(current, carry=False)
+        elif rollover_ready:
+            emit_event(
+                "metric",
+                name="subtitle_window_rollover",
+                segment_id=self.active_result_id,
+                reason=rollover_reason,
+                turn_audio_seconds=round(duration, 3),
+                local_realtime=True,
+            )
+            self._finish(current, carry=True)
 
     def flush(self, now: Optional[float] = None) -> str:
         if not self.active_result_id:
@@ -1691,7 +1822,7 @@ def run_stream(args: argparse.Namespace) -> int:
             language_correction=model.language_watchdog.policy.mode,
             language_locked=model.language_locked,
             continuous_turn_context=True,
-            context_history_words=240,
+            context_history_words=96,
             local_realtime=True,
             **active_policy.as_dict(),
         )
@@ -1737,6 +1868,10 @@ def run_self_test() -> int:
             carry_over_s=0.10,
             minimum_rms=0.003,
             noise_multiplier=2.0,
+            short_pause_s=0.20,
+            long_pause_s=0.55,
+            subtitle_window_s=5.0,
+            hard_turn_s=9.0,
         )
         worker = StreamingInferenceWorker(model)
         worker.start()

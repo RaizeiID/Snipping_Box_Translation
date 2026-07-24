@@ -1,5 +1,21 @@
 from __future__ import annotations
 
+import sys as _ort_sys
+
+
+def _ort_configure_utf8_stdio() -> None:
+    for _name in ("stdout", "stderr"):
+        _stream = getattr(_ort_sys, _name, None)
+        _reconfigure = getattr(_stream, "reconfigure", None)
+        if callable(_reconfigure):
+            try:
+                _reconfigure(encoding="utf-8", errors="backslashreplace")
+            except Exception:
+                pass
+
+
+_ort_configure_utf8_stdio()
+
 import argparse
 import hashlib
 import importlib
@@ -14,7 +30,7 @@ REQUIRED_ROOT = (
     "START_HERE.bat", "Start WebUI.bat", "Start OCR.bat", "Runtime.bat", "ORT v9 Setup.bat", "VERSION.txt",
 )
 REQUIRED_APP = (
-    "webui.py", "build_info.py", "launcher_backend.py", "audio_main.py", "audio_realtime_local_sidecar.py",
+    "webui.py", "build_info.py", "launcher_backend.py", "audio_main.py", "audio_realtime_local_sidecar.py", "audio_translation_sidecar.py",
     "ORTCORE_VERSION.txt", "TITANCORE_VERSION.txt", "RUNTIME.bat", "Start_ORT_Translation.bat",
     "app/open_architecture/__init__.py",
     "app/open_architecture/paths.py",
@@ -24,11 +40,13 @@ REQUIRED_APP = (
     "app/open_architecture/event_bus.py",
     "app/open_architecture/executor.py",
     "app/open_architecture/runtime_control.py",
+    "app/runtime/ct2_path_resolver.py",
     "app/open_architecture/streaming/confirmed_prefix.py",
     "tools/migrate_v9_structure.py",
     "tools/export_source_light_v9.py",
     "tools/v9_0_0_open_architecture_layout_test.py",
     "tools/v9_0_1_audio_lab_stability_test.py",
+    "tools/v9_0_2_adaptive_turn_overlay_test.py",
 )
 
 
@@ -50,6 +68,7 @@ def resolve_app(project_root: Path) -> Path:
 
 def load_checksums(project_root: Path) -> dict[str, str]:
     candidates = [
+        project_root / "ORT" / "release" / "SHA256SUMS_V9_0_2.json",
         project_root / "ORT" / "release" / "SHA256SUMS_V9_0_1.json",
         project_root / "ORT" / "release" / "SHA256SUMS_V9_0_0.json",
         project_root / "SHA256SUMS_V9_0_1.json",
@@ -92,7 +111,7 @@ def verify(project_root: Path) -> dict:
             errors.append(f"missing app file: {item}")
 
     version = (root / "VERSION.txt").read_text(encoding="utf-8-sig").strip() if (root / "VERSION.txt").exists() else ""
-    if version != "v9.0.1":
+    if version != "v9.0.2":
         errors.append(f"version mismatch: {version!r}")
 
     webui = app / "webui.py"
@@ -117,7 +136,7 @@ def verify(project_root: Path) -> dict:
         sys.path.insert(0, str(app))
         try:
             build_info = importlib.import_module("build_info")
-            if build_info.APP_VERSION_TAG != "v9.0.1":
+            if build_info.APP_VERSION_TAG != "v9.0.2":
                 errors.append(f"build_info version: {build_info.APP_VERSION_TAG}")
             lab = importlib.import_module("app.open_architecture.lab")
             initial = lab.architecture_initial_payload()
@@ -189,6 +208,23 @@ def verify(project_root: Path) -> dict:
         if result.returncode != 0:
             errors.append("v9.0.1 Audio Lab stability failed: " + output)
 
+    adaptive = app / "tools" / "v9_0_2_adaptive_turn_overlay_test.py"
+    if adaptive.is_file():
+        result = subprocess.run(
+            [sys.executable, str(adaptive)],
+            cwd=str(app),
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+            timeout=90,
+        )
+        output = (result.stdout + result.stderr).strip()[-5000:]
+        checks.append({"check": "v9_0_2_adaptive_turn_overlay", "passed": result.returncode == 0, "output": output})
+        if result.returncode != 0:
+            errors.append("v9.0.2 adaptive turn/overlay test failed: " + output)
+
     checksums = load_checksums(root)
     for token, expected in checksums.items():
         path = logical_path(root, app, token)
@@ -210,7 +246,7 @@ def verify(project_root: Path) -> dict:
     return {
         "passed": not errors,
         "version": version,
-        "release": "Audio Lab Preload, Watchdog & Diagnostics",
+        "release": "Adaptive Dialogue Segmentation & Overlay Layout",
         "app_root": str(app),
         "migrated_layout": migrated,
         "checked_files": len(REQUIRED_ROOT) + len(REQUIRED_APP),

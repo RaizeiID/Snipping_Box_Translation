@@ -14,8 +14,8 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from PyQt5.QtCore import QObject, QPoint, Qt, QTimer, pyqtSignal
-from PyQt5.QtGui import QFont
-from PyQt5.QtWidgets import QApplication, QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from PyQt5.QtGui import QCursor, QFont
+from PyQt5.QtWidgets import QApplication, QFrame, QHBoxLayout, QLabel, QSizeGrip, QVBoxLayout, QWidget
 
 from app.audio.cloud_streaming import (
     CloudFallbackLatch,
@@ -71,6 +71,10 @@ def _write_audio_status(**updates: Any) -> None:
         "asr_compute_type": os.environ.get("ORT_AUDIO_ASR_COMPUTE_TYPE", "int8_float16"),
         "cloud_provider": "azure",
         "cloud_connected": False,
+        "overlay_mode": os.environ.get("ORT_AUDIO_OVERLAY_MODE", "adaptive"),
+        "overlay_width_percent": int(os.environ.get("ORT_AUDIO_OVERLAY_WIDTH_PERCENT", "92") or 92),
+        "overlay_height_px": int(os.environ.get("ORT_AUDIO_OVERLAY_HEIGHT_PX", "190") or 190),
+        "smart_segmentation": str(os.environ.get("ORT_AUDIO_SMART_SEGMENTATION", "1")).lower() in {"1", "true", "yes", "on"},
         "open_architecture_lab": str(os.environ.get("ORT_OPEN_ARCHITECTURE_LAB", "0")).lower() in {"1", "true", "yes", "on"},
         "lab_streaming_policy": os.environ.get("ORT_AUDIO_STREAMING_POLICY", "ort_rolling_context"),
         "lab_translation_route": os.environ.get("ORT_AUDIO_TRANSLATION_ROUTE", "ortcore_fast_v2"),
@@ -119,16 +123,24 @@ class AudioOverlay(QWidget):
     def __init__(self):
         super().__init__()
         self._drag_origin: Optional[QPoint] = None
-        self.show_source_text = str(os.environ.get("ORT_AUDIO_SHOW_SOURCE", "1")).lower() in {"1", "true", "yes", "on"}
+        self._locked_x: Optional[int] = None
+        self.overlay_mode = str(os.environ.get("ORT_AUDIO_OVERLAY_MODE", "adaptive") or "adaptive").strip().lower()
+        if self.overlay_mode not in {"adaptive", "fixed", "custom"}:
+            self.overlay_mode = "adaptive"
+        self.width_percent = max(40, min(100, int(os.environ.get("ORT_AUDIO_OVERLAY_WIDTH_PERCENT", "92") or 92)))
+        self.fixed_height = max(100, min(720, int(os.environ.get("ORT_AUDIO_OVERLAY_HEIGHT_PX", "190") or 190)))
+        self.base_font_size = max(10, min(30, int(os.environ.get("ORT_AUDIO_OVERLAY_FONT_SIZE", "15") or 15)))
+        self.opacity_percent = max(45, min(100, int(os.environ.get("ORT_AUDIO_OVERLAY_OPACITY_PERCENT", "91") or 91)))
+        self.show_source_text = str(os.environ.get("ORT_AUDIO_OVERLAY_SHOW_SOURCE", os.environ.get("ORT_AUDIO_SHOW_SOURCE", "1"))).lower() in {"1", "true", "yes", "on"}
+        self.text_alignment = str(os.environ.get("ORT_AUDIO_OVERLAY_ALIGNMENT", "left") or "left").lower()
         self.setWindowTitle(f"ORT Audio · {APP_VERSION_TAG}")
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
         self.setAttribute(Qt.WA_TranslucentBackground, True)
-        self.setMinimumWidth(720)
-        self.setMaximumWidth(1120)
+        self.setWindowOpacity(self.opacity_percent / 100.0)
 
-        container = QFrame(self)
-        container.setObjectName("container")
-        layout = QVBoxLayout(container)
+        self.container = QFrame(self)
+        self.container.setObjectName("container")
+        layout = QVBoxLayout(self.container)
         layout.setContentsMargins(22, 15, 22, 17)
         layout.setSpacing(7)
 
@@ -152,13 +164,19 @@ class AudioOverlay(QWidget):
         self.translation_label = QLabel("ORT sedang menunggu suara karakter…")
         self.translation_label.setObjectName("translation")
         self.translation_label.setWordWrap(True)
-        self.translation_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.translation_label.setFont(QFont("Segoe UI", 15, QFont.DemiBold))
-        layout.addWidget(self.translation_label)
+        self.translation_label.setAlignment(
+            (Qt.AlignHCenter if self.text_alignment == "center" else Qt.AlignLeft) | Qt.AlignVCenter
+        )
+        self.translation_label.setFont(QFont("Segoe UI", self.base_font_size, QFont.DemiBold))
+        layout.addWidget(self.translation_label, 1)
+
+        self.size_grip = QSizeGrip(self.container)
+        self.size_grip.setVisible(self.overlay_mode == "custom")
+        layout.addWidget(self.size_grip, 0, Qt.AlignRight | Qt.AlignBottom)
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
-        root.addWidget(container)
+        root.addWidget(self.container)
         self.setStyleSheet("""
             QFrame#container {
                 background: rgba(4, 10, 22, 232);
@@ -183,15 +201,54 @@ class AudioOverlay(QWidget):
                 padding-top: 1px;
             }
         """)
-        self.adjustSize()
+        if self.overlay_mode == "adaptive":
+            self.setMinimumWidth(720)
+            self.setMaximumWidth(1120)
+            self.adjustSize()
+        else:
+            self.setMinimumSize(420, 100)
+
+    def _active_screen(self):
+        return QApplication.screenAt(QCursor.pos()) or QApplication.primaryScreen()
+
+    def _apply_text_font(self, text: str) -> None:
+        words = len(str(text or "").split())
+        size = self.base_font_size
+        if self.overlay_mode in {"fixed", "custom"}:
+            if words > 70:
+                size -= 4
+            elif words > 45:
+                size -= 2
+        size = max(10, size)
+        self.translation_label.setFont(QFont("Segoe UI", size, QFont.DemiBold))
+
+    def _refresh_geometry(self) -> None:
+        if self.overlay_mode == "adaptive":
+            self.adjustSize()
+        else:
+            self.updateGeometry()
+            self.update()
 
     def show_centered_bottom(self) -> None:
-        screen = QApplication.primaryScreen()
+        screen = self._active_screen()
         if screen is not None:
             area = screen.availableGeometry()
-            width = min(980, max(720, int(area.width() * 0.62)))
-            self.resize(width, self.sizeHint().height())
-            self.move(area.x() + (area.width() - width) // 2, area.y() + area.height() - self.height() - 72)
+            if self.overlay_mode == "adaptive":
+                width = min(1120, max(720, int(area.width() * 0.62)))
+                self.resize(width, self.sizeHint().height())
+            else:
+                width = max(420, min(area.width(), int(area.width() * self.width_percent / 100.0)))
+                height = max(100, min(area.height(), self.fixed_height))
+                if self.overlay_mode == "fixed":
+                    self.setFixedSize(width, height)
+                else:
+                    self.setMinimumSize(420, 100)
+                    self.setMaximumSize(area.width(), area.height())
+                    self.resize(width, height)
+            x = area.x() + (area.width() - self.width()) // 2
+            y = area.y() + area.height() - self.height() - 72
+            self._locked_x = x if self.overlay_mode == "fixed" else None
+            self.move(x, y)
         self.show()
         self.raise_()
 
@@ -203,47 +260,53 @@ class AudioOverlay(QWidget):
         self.source_label.setText("Preview EN: " + clean)
         self.source_label.setToolTip(clean)
         self.source_label.setVisible(self.show_source_text)
-        # Keep the last usable translation visible until the next result is
-        # ready. Only the compact status changes, so the overlay swaps atomically
-        # instead of flashing a placeholder between utterances.
         self.status_label.setText("Menerjemahkan · CPU")
         self.translation_label.setStyleSheet("color:#f8fafc;")
-        self.adjustSize()
+        self._refresh_geometry()
 
     def set_translation(self, source: str, translation: str, status: str) -> None:
-        self.source_label.setText("Preview EN: " + " ".join(str(source or "").split()))
+        clean_source = " ".join(str(source or "").split())
+        clean_translation = " ".join(str(translation or source or "").split())
+        self.source_label.setText("Preview EN: " + clean_source)
+        self.source_label.setToolTip(clean_source)
         self.source_label.setVisible(self.show_source_text)
-        self.translation_label.setText(str(translation or source or ""))
+        self.translation_label.setText(clean_translation)
+        self._apply_text_font(clean_translation)
         self.translation_label.setStyleSheet("color:#f8fafc;")
         self.status_label.setText(status)
-        self.adjustSize()
+        self._refresh_geometry()
 
     def set_cloud_source(self, source: str, latency_ms: int = 0) -> None:
         clean_source = " ".join(str(source or "").split())
         if clean_source:
             self.source_label.setText("Preview EN: " + clean_source)
+            self.source_label.setToolTip(clean_source)
             self.source_label.setVisible(self.show_source_text)
         self.status_label.setText(f"Azure · memahami ucapan · {max(0, int(latency_ms))} ms")
-        self.adjustSize()
+        self._refresh_geometry()
 
     def set_cloud_translation(self, source: str, translation: str, stable: bool, latency_ms: int = 0) -> None:
         clean_source = " ".join(str(source or "").split())
         clean_translation = " ".join(str(translation or source or "").split())
         self.source_label.setText("Preview EN: " + clean_source)
+        self.source_label.setToolTip(clean_source)
         self.source_label.setVisible(self.show_source_text)
         self.translation_label.setText(clean_translation)
+        self._apply_text_font(clean_translation)
         if stable:
             self.translation_label.setStyleSheet("color:#f8fafc;")
             self.status_label.setText(f"Azure · final · {max(0, int(latency_ms))} ms")
         else:
             self.translation_label.setStyleSheet("color:#bae6fd;")
             self.status_label.setText(f"Azure · live · {max(0, int(latency_ms))} ms")
-        self.adjustSize()
+        self._refresh_geometry()
 
     def set_error(self, message: str) -> None:
         self.status_label.setText("Audio berhenti")
-        self.translation_label.setText("Audio Error · " + str(message or "Tidak diketahui"))
-        self.adjustSize()
+        text = "Audio Error · " + str(message or "Tidak diketahui")
+        self.translation_label.setText(text)
+        self._apply_text_font(text)
+        self._refresh_geometry()
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -252,7 +315,11 @@ class AudioOverlay(QWidget):
 
     def mouseMoveEvent(self, event):
         if self._drag_origin is not None and event.buttons() & Qt.LeftButton:
-            self.move(event.globalPos() - self._drag_origin)
+            target = event.globalPos() - self._drag_origin
+            if self.overlay_mode == "fixed" and self._locked_x is not None:
+                self.move(self._locked_x, target.y())
+            else:
+                self.move(target)
             event.accept()
 
     def mouseReleaseEvent(self, event):
@@ -1328,7 +1395,8 @@ class AudioApplication(QObject):
         execution = labels.get(self.effective_mode, self.effective_mode.upper())
         engine = engine_labels.get(self.engine_effective, self.engine_effective.upper())
         lab_prefix = "LAB · " if self.lab_mode else ""
-        self.overlay.mode_label.setText(f"{lab_prefix}AUDIO · {usage_label} · {engine} · {profile.label.upper()} {execution}")
+        overlay_label = str(os.environ.get("ORT_AUDIO_OVERLAY_MODE", "adaptive") or "adaptive").upper()
+        self.overlay.mode_label.setText(f"{lab_prefix}AUDIO · {usage_label} · {engine} · {profile.label.upper()} {execution} · {overlay_label}")
 
     def _lab_mark_ready(self, component: str) -> None:
         if not self.lab_mode:

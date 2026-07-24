@@ -4,14 +4,14 @@ from dataclasses import dataclass
 from typing import Any, Dict
 
 
-VERSION = (9, 0, 1)
+VERSION = (9, 0, 2)
 VERSION_SUFFIX = ""
 APP_VERSION = ".".join(str(part) for part in VERSION) + VERSION_SUFFIX
 APP_VERSION_TAG = f"v{APP_VERSION}"
 APP_NAME = "ORT Translation"
 APP_DISPLAY_NAME = f"{APP_NAME} {APP_VERSION_TAG}"
-RELEASE_NAME = "Audio Lab Preload, Watchdog & Diagnostics"
-RELEASE_CHANNEL = "v9-0-1-audio-lab-preload-watchdog"
+RELEASE_NAME = "Adaptive Dialogue Segmentation & Overlay Layout"
+RELEASE_CHANNEL = "v9-0-2-adaptive-dialogue-overlay-layout"
 BASE_RELEASE_CHANNEL = "v9-0-0-open-architecture-clean-layout"
 COMPAT_RELEASE_CHANNELS = (
     "v9-0-0-open-architecture-clean-layout",

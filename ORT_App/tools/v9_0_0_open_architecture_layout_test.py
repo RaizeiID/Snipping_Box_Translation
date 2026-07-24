@@ -16,7 +16,7 @@ from build_info import APP_VERSION_TAG, PROJECT_LAYOUT_SCHEMA_VERSION
 
 
 def main() -> int:
-    assert APP_VERSION_TAG == "v9.0.1"
+    assert APP_VERSION_TAG == "v9.0.2"
     assert PROJECT_LAYOUT_SCHEMA_VERSION == 9
     ids = {item.preset_id for item in presets()}
     assert {"original_audio", "original_ocr", "japanese_live_lab", "japanese_accuracy_lab", "long_dialogue_lab"}.issubset(ids)
@@ -53,7 +53,7 @@ def main() -> int:
     assert "copy log lab" in webui.lower()
     assert "developer workspace" in webui.lower()
     assert '("Developer", "developer")' in webui
-    print("ORT v9.0.1 Open Architecture/Layout regression: PASS")
+    print("ORT v9.0.2 Open Architecture/Layout regression: PASS")
     return 0
 
 
