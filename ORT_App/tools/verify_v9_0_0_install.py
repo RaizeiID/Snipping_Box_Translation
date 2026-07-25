@@ -1,5 +1,21 @@
 from __future__ import annotations
 
+import sys as _ort_sys
+
+
+def _ort_configure_utf8_stdio() -> None:
+    for _name in ("stdout", "stderr"):
+        _stream = getattr(_ort_sys, _name, None)
+        _reconfigure = getattr(_stream, "reconfigure", None)
+        if callable(_reconfigure):
+            try:
+                _reconfigure(encoding="utf-8", errors="backslashreplace")
+            except Exception:
+                pass
+
+
+_ort_configure_utf8_stdio()
+
 import argparse
 import hashlib
 import importlib
@@ -14,17 +30,30 @@ REQUIRED_ROOT = (
     "START_HERE.bat", "Start WebUI.bat", "Start OCR.bat", "Runtime.bat", "ORT v9 Setup.bat", "VERSION.txt",
 )
 REQUIRED_APP = (
-    "webui.py", "build_info.py", "launcher_backend.py", "RUNTIME.bat", "Start_ORT_Translation.bat",
+    "webui.py", "build_info.py", "launcher_backend.py", "audio_main.py", "audio_realtime_local_sidecar.py", "audio_translation_sidecar.py",
+    "app/audio/asr_provider_registry.py",
+    "app/audio/locked_asr_adapter.py",
+    "app/audio/provider_benchmark.py",
+    "ORTCORE_VERSION.txt", "TITANCORE_VERSION.txt", "RUNTIME.bat", "Start_ORT_Translation.bat",
     "app/open_architecture/__init__.py",
     "app/open_architecture/paths.py",
     "app/open_architecture/registry.py",
     "app/open_architecture/pipeline.py",
     "app/open_architecture/lab.py",
     "app/open_architecture/event_bus.py",
+    "app/open_architecture/executor.py",
+    "app/open_architecture/runtime_control.py",
+    "app/open_architecture/overlay_preview.py",
+    "app/runtime/ct2_path_resolver.py",
     "app/open_architecture/streaming/confirmed_prefix.py",
     "tools/migrate_v9_structure.py",
     "tools/export_source_light_v9.py",
     "tools/v9_0_0_open_architecture_layout_test.py",
+    "tools/v9_0_1_audio_lab_stability_test.py",
+    "tools/v9_0_2_adaptive_turn_overlay_test.py",
+    "tools/v9_0_3_stability_realtime_diagnostics_test.py",
+    "tools/v9_0_4_cloud_locked_provider_benchmark_test.py",
+    "tools/setup_v9_0_4_audio_providers.py",
 )
 
 
@@ -46,7 +75,12 @@ def resolve_app(project_root: Path) -> Path:
 
 def load_checksums(project_root: Path) -> dict[str, str]:
     candidates = [
+        project_root / "ORT" / "release" / "SHA256SUMS_V9_0_4.json",
+        project_root / "ORT" / "release" / "SHA256SUMS_V9_0_3.json",
+        project_root / "ORT" / "release" / "SHA256SUMS_V9_0_2.json",
+        project_root / "ORT" / "release" / "SHA256SUMS_V9_0_1.json",
         project_root / "ORT" / "release" / "SHA256SUMS_V9_0_0.json",
+        project_root / "SHA256SUMS_V9_0_1.json",
         project_root / "SHA256SUMS_V9_0_0.json",
     ]
     for path in candidates:
@@ -86,7 +120,7 @@ def verify(project_root: Path) -> dict:
             errors.append(f"missing app file: {item}")
 
     version = (root / "VERSION.txt").read_text(encoding="utf-8-sig").strip() if (root / "VERSION.txt").exists() else ""
-    if version != "v9.0.0":
+    if version != "v9.0.4":
         errors.append(f"version mismatch: {version!r}")
 
     webui = app / "webui.py"
@@ -111,7 +145,7 @@ def verify(project_root: Path) -> dict:
         sys.path.insert(0, str(app))
         try:
             build_info = importlib.import_module("build_info")
-            if build_info.APP_VERSION_TAG != "v9.0.0":
+            if build_info.APP_VERSION_TAG != "v9.0.4":
                 errors.append(f"build_info version: {build_info.APP_VERSION_TAG}")
             lab = importlib.import_module("app.open_architecture.lab")
             initial = lab.architecture_initial_payload()
@@ -149,6 +183,91 @@ def verify(project_root: Path) -> dict:
         if result.returncode != 0:
             errors.append("v9 Open Architecture regression failed: " + output)
 
+    sidecar_self_test = app / "audio_realtime_local_sidecar.py"
+    if sidecar_self_test.is_file():
+        result = subprocess.run(
+            [sys.executable, str(sidecar_self_test), "--self-test-json"],
+            cwd=str(app),
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+            timeout=90,
+        )
+        output = (result.stdout + result.stderr).strip()[-4000:]
+        checks.append({"check": "audio_realtime_sidecar_self_test", "passed": result.returncode == 0, "output": output})
+        if result.returncode != 0:
+            errors.append("Audio realtime sidecar self-test failed: " + output)
+
+    stability = app / "tools" / "v9_0_1_audio_lab_stability_test.py"
+    if stability.is_file():
+        result = subprocess.run(
+            [sys.executable, str(stability)],
+            cwd=str(app),
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+            timeout=90,
+        )
+        output = (result.stdout + result.stderr).strip()[-4000:]
+        checks.append({"check": "v9_0_1_audio_lab_stability", "passed": result.returncode == 0, "output": output})
+        if result.returncode != 0:
+            errors.append("v9.0.1 Audio Lab stability failed: " + output)
+
+    adaptive = app / "tools" / "v9_0_2_adaptive_turn_overlay_test.py"
+    if adaptive.is_file():
+        result = subprocess.run(
+            [sys.executable, str(adaptive)],
+            cwd=str(app),
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+            timeout=90,
+        )
+        output = (result.stdout + result.stderr).strip()[-5000:]
+        checks.append({"check": "v9_0_2_adaptive_turn_overlay", "passed": result.returncode == 0, "output": output})
+        if result.returncode != 0:
+            errors.append("v9.0.2 adaptive turn/overlay test failed: " + output)
+
+    stability_v903 = app / "tools" / "v9_0_3_stability_realtime_diagnostics_test.py"
+    if stability_v903.is_file():
+        result = subprocess.run(
+            [sys.executable, str(stability_v903)],
+            cwd=str(app),
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+            timeout=90,
+        )
+        output = (result.stdout + result.stderr).strip()[-5000:]
+        checks.append({"check": "v9_0_3_stability_realtime_diagnostics", "passed": result.returncode == 0, "output": output})
+        if result.returncode != 0:
+            errors.append("v9.0.3 stability/realtime diagnostics test failed: " + output)
+
+    provider_v904 = app / "tools" / "v9_0_4_cloud_locked_provider_benchmark_test.py"
+    if provider_v904.is_file():
+        result = subprocess.run(
+            [sys.executable, str(provider_v904)],
+            cwd=str(app),
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+            timeout=90,
+        )
+        output = (result.stdout + result.stderr).strip()[-6000:]
+        checks.append({"check": "v9_0_4_cloud_locked_provider_benchmark", "passed": result.returncode == 0, "output": output})
+        if result.returncode != 0:
+            errors.append("v9.0.4 cloud/locked provider benchmark test failed: " + output)
+
     checksums = load_checksums(root)
     for token, expected in checksums.items():
         path = logical_path(root, app, token)
@@ -170,7 +289,7 @@ def verify(project_root: Path) -> dict:
     return {
         "passed": not errors,
         "version": version,
-        "release": "Open Architecture Foundation & Clean Project Layout",
+        "release": "Cloud & Locked Provider Benchmark Lab",
         "app_root": str(app),
         "migrated_layout": migrated,
         "checked_files": len(REQUIRED_ROOT) + len(REQUIRED_APP),

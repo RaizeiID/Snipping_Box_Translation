@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "version": "v9.0.4",
+  "patch_id": "ORT_V9_0_4_R4_F1_WEBUI_STARTUP_NAMEERROR",
+  "files": {
+    "ORT_App/tools/v9_0_4_r4_f1_webui_startup_test.py": "b0f14ec03659dc1398c5d7e1d95281137d115e4e7a01b4d73b55b4655d1d8806",
+    "ORT_App/webui.py": "2c7f7c0fdafe334fac4876474363c3fcefddeac7725ac4996cae38b90eff3c20"
+  }
+}

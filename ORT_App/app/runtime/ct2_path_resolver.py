@@ -1,20 +1,14 @@
-"""ORT v8.8.5 CT2 path resolver.
-
-The v8.8.1 structure refactor intentionally keeps large model folders out of
-GitHub/source ZIPs.  In local installs those folders may exist beside the root
-project (``models/``), inside ``ORT/runtime_app/models/``, or inside a grouped
-local runtime folder.  This helper resolves the first valid CTranslate2 EN->ID
-model directory without requiring users to create manual junctions.
-"""
+"""ORT CTranslate2 EN→ID model path resolver."""
 from __future__ import annotations
 
 from dataclasses import dataclass
 import os
 from pathlib import Path
-from typing import Iterable, List, Dict, Any
+from typing import List, Dict, Any
 
 MODEL_DIR_NAMES = ("ct2_opus_mt_en_id", "ct2_en_id", "opus_mt_en_id_ct2", "en-id-ct2")
 ENV_KEYS = ("ORT_CT2_EN_ID_DIR", "TITAN_CT2_EN_ID_DIR", "ORT_FAST_CT2_MODEL_DIR", "ORT_LITE_CT2_MODEL_DIR")
+
 
 @dataclass(frozen=True)
 class CT2ResolveResult:
@@ -26,9 +20,10 @@ class CT2ResolveResult:
 
 def _project_root_from(base_dir: Path) -> Path:
     base_dir = Path(base_dir).resolve()
-    # If base_dir is ORT/runtime_app, project root is two levels up.
     if base_dir.name.lower() == "runtime_app" and base_dir.parent.name.upper() == "ORT":
         return base_dir.parent.parent
+    if base_dir.name == "ORT_App":
+        return base_dir.parent
     if base_dir.name.upper() == "ORT":
         return base_dir.parent
     return base_dir
@@ -63,12 +58,19 @@ def candidate_ct2_dirs(base_dir: str | os.PathLike[str] | None = None) -> List[P
     project_root = _project_root_from(base)
     ort_root = project_root / "ORT"
     runtime_app = ort_root / "runtime_app"
+    ort_app = project_root / "ORT_App"
+    runtime_root = project_root / "ORT_Runtime"
     candidates: List[Path] = []
     for key in ENV_KEYS:
         value = os.environ.get(key)
         if value:
             candidates.append(Path(value).expanduser())
     parents = [
+        runtime_root / "translation" / "models",
+        runtime_root / "models",
+        runtime_root / "audio_cpu" / "models",
+        runtime_root / "audio_gpu" / "models",
+        ort_app / "models",
         runtime_app / "models",
         project_root / "models",
         ort_root / "_LOCAL_RUNTIME_WEB_DO_NOT_UPLOAD" / "models",
@@ -113,6 +115,6 @@ def resolve_ct2_model_dir(base_dir: str | os.PathLike[str] | None = None) -> CT2
         if v["has_files"] and fallback is None:
             fallback = Path(v["path"])
     if fallback is None:
-        base = Path(base_dir or Path(__file__).resolve().parents[2]).resolve()
-        fallback = _project_root_from(base) / "models" / "ct2_opus_mt_en_id"
+        fallback = project_root = _project_root_from(Path(base_dir or Path(__file__).resolve().parents[2]))
+        fallback = project_root / "ORT_Runtime" / "translation" / "models" / "ct2_opus_mt_en_id"
     return CT2ResolveResult(fallback, False, "no_valid_ct2_model_found", candidates)

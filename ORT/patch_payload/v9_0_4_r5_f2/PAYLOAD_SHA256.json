@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "version": "v9.0.4",
+  "patch": "R5-F2",
+  "files": {
+    "ORT/docs/changelog/CHANGELOG_V9_0_4.md": "b9f0e0ad04d72dc71cfdb156b4381e7cc6e88cd2878f0b0a5348f1f7e9a92e59",
+    "ORT_App/app/audio/asr_provider_registry.py": "813e008896922f08b14a95d26e2de16ea5d608069925a23f2f39b00b938fc294",
+    "ORT_App/app/audio/locked_asr_adapter.py": "e72cd3242c6810feb9d1f98691bb70d2d416eae8c5d4f7540c21a8e902525e8f",
+    "ORT_App/tools/setup_v9_0_4_audio_providers.py": "d98668ce7d5c4b516c1c96c2fdb3f5524429c8e22feb56893fc307cb4aaa501a",
+    "ORT_App/tools/v9_0_4_r5_f2_reazon_direct_manifest_test.py": "a6200da354de58a37cb4afa72b22c24c2ec7307fa5e48fe422f61107f543ab3b"
+  }
+}

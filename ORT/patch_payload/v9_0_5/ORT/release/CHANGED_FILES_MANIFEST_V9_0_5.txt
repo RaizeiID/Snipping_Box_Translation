@@ -1,0 +1,30 @@
+ORT v9.0.5 — Engineering Baseline & Resilient Provider Setup
+
+VERSION.txt
+README.md
+START_HERE.bat
+Start WebUI.bat
+Start OCR.bat
+Runtime.bat
+ORT v9 Setup.bat
+ORT_App/build_info.py
+ORT_App/webui.py
+ORT_App/audio_main.py
+ORT_App/RUNTIME.bat
+ORT_App/Start_ORT_Translation.bat
+ORT_App/ORTCORE_VERSION.txt
+ORT_App/TITANCORE_VERSION.txt
+ORT_App/app/audio/asr_provider_registry.py
+ORT_App/app/audio/locked_asr_adapter.py
+ORT_App/app/open_architecture/pipeline.py
+ORT_App/app/open_architecture/executor.py
+ORT_App/tools/setup_v9_0_4_audio_providers.py
+ORT_App/tools/setup_v9_0_5_audio_providers.py
+ORT_App/tools/v9_0_5_engineering_baseline_test.py
+ORT_App/tools/verify_v9_0_5_install.py
+ORT/config/project_layout.json
+ORT/config/project_layout.template.json
+ORT/docs/README.md
+ORT/docs/changelog/CHANGELOG_V9_0_5.md
+ORT/maintenance/VERIFY_ORT_V9_0_0.bat
+ORT/maintenance/VERIFY_ORT_V9_0_5.bat

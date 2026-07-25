@@ -1,5 +1,5 @@
 {
-  "version": "v8.9.9",
+  "version": "v9.0.4",
   "game": "GFL2_EXILIUM",
   "settings_mode": "manual",
   "model": "ORTCore Fast V2",
@@ -24,7 +24,7 @@
   "fuzzy_cache_key": true,
   "performance_reason": "Audio live_media: requested_engine=local, effective_engine=local_live; faster-whisper rolling-partial small cuda:int8_float16; multilingual ASR uses source-aware decoding and an English bridge before instant ID translation; endpoint only commits final. OCR process disabled.",
   "session_id": "",
-  "last_updated": 1784827034.1811042,
+  "last_updated": 1784910662.1435263,
   "status": "STOP",
   "fast_profile": "lite_v1_efficient",
   "fast_profile_label": "Lite V1 v8.7 profile · OCR 40% diagnostic + rescue",

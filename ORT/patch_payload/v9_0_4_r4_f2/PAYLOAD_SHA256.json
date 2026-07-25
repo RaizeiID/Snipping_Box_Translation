@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "version": "v9.0.4",
+  "patch": "R4-F2",
+  "files": {
+    "ORT_App/tools/v9_0_4_r4_f2_webui_callback_audit_test.py": "f66f1236d338eb50d596a687efe63ab0aba1c2738ce76c63f49a2acf74357355",
+    "ORT_App/webui.py": "57aec08f2a09b466c618723d31438fe92f238287380d3878aa08fd976ecdab53"
+  }
+}
