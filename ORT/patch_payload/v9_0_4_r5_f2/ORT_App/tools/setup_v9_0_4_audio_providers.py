@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import http.client
+import ssl
 import json
 import os
 import random
@@ -10,6 +13,7 @@ import sys
 import tarfile
 import tempfile
 import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import Any
@@ -32,6 +36,42 @@ LOCAL_MODEL_DIRS = {
     "kotoba_bilingual": "kotoba-whisper-bilingual-v1.0-faster",
     "faster_whisper_base": "faster-whisper-base",
     "faster_whisper_small": "faster-whisper-small",
+}
+
+REAZON_REVISION = "291488c8151be24d7da4bf7af26e533fad96e407"
+REAZON_LOCAL_DIR = "reazonspeech-k2-v2"
+REAZON_FILE_MANIFEST: dict[str, dict[str, Any]] = {
+    "tokens.txt": {"size": 45754, "sha256": ""},
+    "encoder-epoch-99-avg-1.int8.onnx": {
+        "size": 154670139,
+        "sha256": "2c7bd08a8a99f9ddd0d9e458456577b1f6279214e51426f114f9eced44c54e1d",
+    },
+    "decoder-epoch-99-avg-1.int8.onnx": {
+        "size": 2959337,
+        "sha256": "8f0bff94d38797b03b762634ed03211a8e303d06cc4603cdd0cf4199d6eb1485",
+    },
+    "decoder-epoch-99-avg-1.onnx": {
+        "size": 11767836,
+        "sha256": "58b18211ae06265466bfa17172dab574df94f76c8bcb61a3640c28ba860e4124",
+    },
+    "joiner-epoch-99-avg-1.int8.onnx": {
+        "size": 2696970,
+        "sha256": "49cc7ea1d3d35a40a27442db5e89996da64bf0e683a903dce76e99e57a12e4de",
+    },
+}
+REAZON_DEVICE_FILES = {
+    "cpu": (
+        "tokens.txt",
+        "encoder-epoch-99-avg-1.int8.onnx",
+        "decoder-epoch-99-avg-1.int8.onnx",
+        "joiner-epoch-99-avg-1.int8.onnx",
+    ),
+    "cuda": (
+        "tokens.txt",
+        "encoder-epoch-99-avg-1.int8.onnx",
+        "decoder-epoch-99-avg-1.onnx",
+        "joiner-epoch-99-avg-1.int8.onnx",
+    ),
 }
 
 
@@ -95,6 +135,8 @@ def _transient_download_error(exc: BaseException) -> bool:
         "server disconnected", "connection aborted", "connection reset",
         "timed out", "timeout", "temporarily unavailable", "502", "503",
         "504", "rate limit", "429", "incompletesnapshoterror",
+        "connecterror", "urlerror", "remotedisconnected", "sslerror",
+        "connection refused", "network is unreachable",
     )
     return any(token in text for token in needles)
 
@@ -322,6 +364,260 @@ def _download_hf_repo(
     return total, total, files, resolved
 
 
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _reazon_required_files(device: str) -> tuple[str, ...]:
+    target = "cuda" if str(device or "cpu").lower() == "cuda" else "cpu"
+    return tuple(REAZON_DEVICE_FILES[target])
+
+
+def _valid_static_file(path: Path, entry: dict[str, Any], *, verify_hash: bool = True) -> bool:
+    try:
+        if not path.is_file() or path.stat().st_size != int(entry["size"]):
+            return False
+        expected_hash = str(entry.get("sha256") or "").strip().lower()
+        return not (verify_hash and expected_hash) or _sha256_file(path).lower() == expected_hash
+    except Exception:
+        return False
+
+
+def _reazon_cache_candidates(cache_dir: Path, filename: str) -> list[Path]:
+    roots = [cache_dir, cache_dir / "hub"]
+    candidates: list[Path] = []
+    for root in roots:
+        repo_cache = root / "models--reazon-research--reazonspeech-k2-v2"
+        snapshots = repo_cache / "snapshots"
+        if snapshots.is_dir():
+            candidates.extend(sorted(snapshots.glob(f"*/{filename}"), reverse=True))
+    return candidates
+
+
+def _reuse_reazon_cache(cache_dir: Path, destination: Path, filename: str, entry: dict[str, Any]) -> bool:
+    if _valid_static_file(destination, entry):
+        return True
+    for source in _reazon_cache_candidates(cache_dir, filename):
+        if not _valid_static_file(source, entry):
+            continue
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        temporary = Path(str(destination) + ".cache-copy")
+        temporary.unlink(missing_ok=True)
+        try:
+            os.link(source, temporary)
+        except Exception:
+            shutil.copy2(source, temporary)
+        temporary.replace(destination)
+        emit("cache_file_reused", provider="reazonspeech_k2", filename=filename,
+             bytes=int(entry["size"]), source=str(source), destination=str(destination))
+        print(f"[CACHE] Menggunakan kembali {filename} dari cache Hugging Face.", flush=True)
+        return True
+    return False
+
+
+def _hf_direct_url(repo_id: str, revision: str, filename: str) -> str:
+    endpoint = str(os.environ.get("HF_ENDPOINT") or "https://huggingface.co").rstrip("/")
+    return f"{endpoint}/{repo_id}/resolve/{revision}/{filename}?download=true"
+
+
+def _download_static_file(
+    provider: str,
+    repo_id: str,
+    revision: str,
+    filename: str,
+    entry: dict[str, Any],
+    destination: Path,
+    *,
+    token: str | None,
+    aggregate_total: int,
+    aggregate_complete_before: int,
+    progress_hook=None,
+    completed_files=None,
+) -> Path:
+    expected_size = int(entry["size"])
+    expected_hash = str(entry.get("sha256") or "").strip().lower()
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    partial = Path(str(destination) + ".part")
+    if destination.exists() and not _valid_static_file(destination, entry):
+        corrupt = Path(str(destination) + f".invalid-{int(time.time())}")
+        destination.replace(corrupt)
+        print(f"[VERIFY] File tidak valid dipindahkan: {corrupt.name}", flush=True)
+
+    if _valid_static_file(destination, entry):
+        return destination
+
+    def attempt_download() -> Path:
+        offset = partial.stat().st_size if partial.is_file() else 0
+        if offset > expected_size:
+            partial.unlink(missing_ok=True)
+            offset = 0
+        headers = {
+            "User-Agent": "ORT-v9.0.4-R5-F2/1.0",
+            "Accept": "application/octet-stream",
+        }
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        if offset:
+            headers["Range"] = f"bytes={offset}-"
+        request = urllib.request.Request(_hf_direct_url(repo_id, revision, filename), headers=headers)
+        try:
+            response = urllib.request.urlopen(request, timeout=120)
+        except urllib.error.HTTPError as exc:
+            if exc.code == 416 and offset == expected_size:
+                partial.replace(destination)
+                return destination
+            raise
+        with response:
+            status = int(getattr(response, "status", response.getcode()) or 200)
+            append = bool(offset and status == 206)
+            if offset and not append:
+                print(f"[RESUME] Server tidak menerima Range untuk {filename}; mengulang file ini.", flush=True)
+                offset = 0
+            mode = "ab" if append else "wb"
+            downloaded_file = offset
+            last_emit = 0.0
+            with partial.open(mode) as handle:
+                while True:
+                    chunk = response.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    handle.write(chunk)
+                    handle.flush()
+                    downloaded_file += len(chunk)
+                    aggregate_value = min(aggregate_total, aggregate_complete_before + downloaded_file)
+                    now = time.monotonic()
+                    if now - last_emit >= 0.15 or downloaded_file >= expected_size:
+                        last_emit = now
+                        emit(
+                            "download_progress", provider=provider, filename=filename,
+                            total_bytes=aggregate_total, downloaded_bytes=aggregate_value,
+                            total_human=human_bytes(aggregate_total),
+                            downloaded_human=human_bytes(aggregate_value),
+                            percent=round((aggregate_value / aggregate_total * 100) if aggregate_total else 0.0, 2),
+                            file_downloaded_bytes=downloaded_file, file_total_bytes=expected_size,
+                            resumable=True,
+                        )
+                        if callable(progress_hook):
+                            known = list(completed_files or [])
+                            progress_hook(aggregate_total, aggregate_value, known, str(destination.parent))
+        actual_size = partial.stat().st_size if partial.is_file() else 0
+        if actual_size != expected_size:
+            raise IOError(f"Ukuran {filename} belum lengkap: {actual_size}/{expected_size} byte")
+        if expected_hash and _sha256_file(partial).lower() != expected_hash:
+            bad = Path(str(partial) + f".sha256-failed-{int(time.time())}")
+            partial.replace(bad)
+            raise IOError(f"Checksum SHA-256 gagal untuk {filename}; file disimpan sebagai {bad.name}")
+        partial.replace(destination)
+        return destination
+
+    return Path(_run_with_retry(
+        f"mengunduh langsung {filename}", attempt_download,
+        max_attempts=8, provider=provider,
+    ))
+
+
+def _download_reazon_static(
+    *,
+    device: str,
+    model_root: Path,
+    cache_dir: Path,
+    progress_hook=None,
+) -> tuple[int, int, list[dict[str, Any]], str]:
+    provider = "reazonspeech_k2"
+    repo_id = HF_REPOS[provider]
+    target_device = "cuda" if str(device or "cpu").lower() == "cuda" else "cpu"
+    required = _reazon_required_files(target_device)
+    local_dir = model_root / REAZON_LOCAL_DIR
+    local_dir.mkdir(parents=True, exist_ok=True)
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        from huggingface_hub import get_token
+        token = get_token()
+    except Exception:
+        token = None
+    emit("hf_auth", provider=provider, authenticated=bool(token), metadata_preflight=False)
+    print(
+        "[HF] Mode manifest langsung aktif; snapshot dry-run/API metadata dilewati. "
+        + ("Token ditemukan." if token else "Unduhan publik tanpa login."),
+        flush=True,
+    )
+
+    total = sum(int(REAZON_FILE_MANIFEST[name]["size"]) for name in required)
+    files: list[dict[str, Any]] = []
+    completed = 0
+    partial_bytes = 0
+    for filename in required:
+        entry = REAZON_FILE_MANIFEST[filename]
+        destination = local_dir / filename
+        if _reuse_reazon_cache(cache_dir, destination, filename, entry):
+            completed += int(entry["size"])
+            files.append({"path": str(destination), "size": int(entry["size"]), "filename": filename})
+        else:
+            part = Path(str(destination) + ".part")
+            partial_bytes += min(part.stat().st_size if part.is_file() else 0, int(entry["size"]))
+    visible_downloaded = min(total, completed + partial_bytes)
+    emit(
+        "model_info", provider=provider, repo_id=repo_id, revision=REAZON_REVISION,
+        total_bytes=total, downloaded_bytes=visible_downloaded,
+        total_human=human_bytes(total), downloaded_human=human_bytes(visible_downloaded),
+        percent=round((visible_downloaded / total * 100) if total else 0.0, 2),
+        required_files=list(required), metadata_preflight=False,
+    )
+    if visible_downloaded:
+        emit("cache_reuse", provider=provider, downloaded_bytes=visible_downloaded,
+             total_bytes=total, downloaded_human=human_bytes(visible_downloaded),
+             percent=round(visible_downloaded / total * 100, 2))
+    if callable(progress_hook):
+        progress_hook(total, visible_downloaded, list(files), str(local_dir))
+
+    completed = sum(int(item["size"]) for item in files)
+    for filename in required:
+        entry = REAZON_FILE_MANIFEST[filename]
+        destination = local_dir / filename
+        if _valid_static_file(destination, entry):
+            continue
+        downloaded_path = _download_static_file(
+            provider, repo_id, REAZON_REVISION, filename, entry, destination,
+            token=token, aggregate_total=total, aggregate_complete_before=completed,
+            progress_hook=progress_hook, completed_files=files,
+        )
+        completed += int(entry["size"])
+        files.append({"path": str(downloaded_path), "size": int(entry["size"]), "filename": filename})
+        if callable(progress_hook):
+            progress_hook(total, completed, list(files), str(local_dir))
+
+    missing = [name for name in required if not _valid_static_file(local_dir / name, REAZON_FILE_MANIFEST[name])]
+    if missing:
+        raise RuntimeError("Model Reazon lokal belum lengkap: " + ", ".join(missing))
+    emit("download_complete", provider=provider, total_bytes=total, downloaded_bytes=total,
+         total_human=human_bytes(total), downloaded_human=human_bytes(total), percent=100.0,
+         model_path=str(local_dir), metadata_preflight=False)
+    return total, total, files, str(local_dir)
+
+
+def _reazon_local_warmup_script(model_dir: Path, device: str) -> str:
+    target = "cuda" if str(device or "cpu").lower() == "cuda" else "cpu"
+    decoder = "decoder-epoch-99-avg-1.onnx" if target == "cuda" else "decoder-epoch-99-avg-1.int8.onnx"
+    return (
+        "import sherpa_onnx; "
+        f"root={str(model_dir)!r}; "
+        "from pathlib import Path; p=Path(root); "
+        "m=sherpa_onnx.OfflineRecognizer.from_transducer("
+        "tokens=str(p/'tokens.txt'), "
+        "encoder=str(p/'encoder-epoch-99-avg-1.int8.onnx'), "
+        f"decoder=str(p/{decoder!r}), "
+        "joiner=str(p/'joiner-epoch-99-avg-1.int8.onnx'), "
+        "num_threads=1, sample_rate=16000, feature_dim=80, "
+        f"decoding_method='greedy_search', provider={target!r}); "
+        f"print('ReazonSpeech K2 local {target.upper()} model ready')"
+    )
+
+
 def _download_url(provider: str, url: str, destination: Path) -> tuple[int, int]:
     destination.parent.mkdir(parents=True, exist_ok=True)
     request = urllib.request.Request(url, headers={"User-Agent": "ORT-v9.0.4-R4"})
@@ -414,6 +710,7 @@ def _install_sherpa_runtime(python: Path, device: str, cuda_variant: str = "auto
 def install_reazon(
     python: Path,
     runtime_root: Path,
+    model_root: Path,
     status_root: Path,
     warm_model: bool,
     *,
@@ -461,17 +758,13 @@ def install_reazon(
             },
         )
 
-    total, downloaded, files, model_path = _download_hf_repo(
-        provider, HF_REPOS[provider], cache_dir=cache_dir, progress_hook=persist_partial,
+    total, downloaded, files, model_path = _download_reazon_static(
+        device=target_device, model_root=model_root, cache_dir=cache_dir,
+        progress_hook=persist_partial,
     )
     if warm_model:
-        precision = "int8-fp32" if target_device == "cuda" else "int8"
-        warmup = (
-            "from reazonspeech.k2.asr import load_model; "
-            f"load_model(device={target_device!r}, precision={precision!r}, language='ja'); "
-            f"print('ReazonSpeech K2 {target_device.upper()} model ready')"
-        )
-        run([str(python), "-c", warmup], phase=f"Memverifikasi model ReazonSpeech K2 {target_device.upper()}")
+        warmup = _reazon_local_warmup_script(Path(model_path), target_device)
+        run([str(python), "-c", warmup], phase=f"Memverifikasi model lokal ReazonSpeech K2 {target_device.upper()}")
     _write_status(
         status_root, provider, target_device, runtime_python=python,
         model_total_bytes=total, model_downloaded_bytes=downloaded,
@@ -480,6 +773,9 @@ def install_reazon(
             "sherpa_variant": installed_variant,
             "download_resumable": True,
             "download_state": "complete",
+            "download_strategy": "direct_static_manifest",
+            "revision": REAZON_REVISION,
+            "required_files": list(_reazon_required_files(target_device)),
         },
     )
     emit("device_ready", provider=provider, device=target_device, status="ready")
@@ -592,6 +888,11 @@ def self_test() -> int:
     assert not _transient_download_error(ValueError("invalid provider"))
     assert _retry_delay(1) >= 2.0
     assert os.environ.get("HF_HUB_DOWNLOAD_TIMEOUT") == "120"
+    assert _reazon_required_files("cpu")[2].endswith("int8.onnx")
+    assert _reazon_required_files("cuda")[2] == "decoder-epoch-99-avg-1.onnx"
+    assert sum(REAZON_FILE_MANIFEST[name]["size"] for name in _reazon_required_files("cpu")) == 160372200
+    assert sum(REAZON_FILE_MANIFEST[name]["size"] for name in _reazon_required_files("cuda")) == 169180699
+    assert "snapshot_download" not in _download_reazon_static.__code__.co_names
     with tempfile.TemporaryDirectory(prefix="ort-r4-selftest-") as temp:
         root = Path(temp)
         file = root / "model.bin"
@@ -606,7 +907,8 @@ def self_test() -> int:
         "passed": True, "version": "v9.0.4-R5",
         "utf8_console": "PASS", "progress_events": "PASS",
         "hf_single_worker_retry": "PASS", "partial_manifest": "PASS",
-        "runtime_reuse": "PASS",
+        "runtime_reuse": "PASS", "reazon_static_manifest": "PASS",
+        "reazon_local_direct_load": "PASS",
     }))
     return 0
 
@@ -642,7 +944,7 @@ def main() -> int:
     provider = args.provider
     try:
         if provider in {"reazonspeech_k2", "all"}:
-            install_reazon(python, runtime_root, status_root, not args.skip_model_warmup,
+            install_reazon(python, runtime_root, model_root, status_root, not args.skip_model_warmup,
                            device=args.device, cuda_variant=args.cuda_variant)
         if provider in {"sensevoice_small", "all"}:
             if args.device == "cuda":
