@@ -1,0 +1,255 @@
+{
+  "schema_version": 1,
+  "release": "v9.0.6-stage1",
+  "game": "GFL2_EXILIUM",
+  "review_status": "user_approved",
+  "characters": [
+    {
+      "canonical": "Yoshiro",
+      "aliases": [
+        "Yoshlro",
+        "LYoshiro",
+        "FYoshiro",
+        "oshiro"
+      ],
+      "role": "current_commander",
+      "priority": "critical"
+    },
+    {
+      "canonical": "Vasily",
+      "aliases": [],
+      "role": "character",
+      "priority": "normal"
+    },
+    {
+      "canonical": "Kenny",
+      "aliases": [],
+      "role": "character",
+      "priority": "normal"
+    },
+    {
+      "canonical": "Asteria",
+      "aliases": [],
+      "role": "character",
+      "priority": "normal"
+    },
+    {
+      "canonical": "Niter",
+      "aliases": [],
+      "role": "character",
+      "priority": "normal"
+    },
+    {
+      "canonical": "Ateraxis",
+      "aliases": [],
+      "role": "character",
+      "priority": "normal"
+    },
+    {
+      "canonical": "Lentine",
+      "aliases": [],
+      "role": "character",
+      "priority": "normal"
+    },
+    {
+      "canonical": "Lydia",
+      "aliases": [],
+      "role": "character",
+      "priority": "normal"
+    },
+    {
+      "canonical": "Klukai",
+      "aliases": [
+        "Klukal",
+        "FKlukai",
+        "Klukais"
+      ],
+      "role": "character",
+      "priority": "high"
+    },
+    {
+      "canonical": "Anjelie",
+      "aliases": [],
+      "role": "character",
+      "priority": "normal"
+    },
+    {
+      "canonical": "Groza",
+      "aliases": [
+        "HGroza",
+        "rGroza"
+      ],
+      "role": "character",
+      "priority": "high"
+    },
+    {
+      "canonical": "Zoe",
+      "aliases": [
+        "ZOe",
+        "Zoes"
+      ],
+      "role": "character",
+      "priority": "normal"
+    },
+    {
+      "canonical": "Wulfgar",
+      "aliases": [
+        "Ulfgar",
+        "ulfgar"
+      ],
+      "role": "character",
+      "priority": "high"
+    },
+    {
+      "canonical": "Caldwell",
+      "aliases": [],
+      "role": "character",
+      "priority": "normal"
+    },
+    {
+      "canonical": "Dandelion",
+      "aliases": [
+        "Dandelions"
+      ],
+      "role": "important_character",
+      "priority": "critical"
+    },
+    {
+      "canonical": "Mayling",
+      "aliases": [],
+      "role": "character",
+      "priority": "high"
+    },
+    {
+      "canonical": "Voymastina",
+      "aliases": [
+        "FVoymastina"
+      ],
+      "role": "character",
+      "priority": "normal"
+    },
+    {
+      "canonical": "Springfield",
+      "aliases": [],
+      "role": "character",
+      "priority": "normal"
+    },
+    {
+      "canonical": "Zhaohui",
+      "aliases": [],
+      "role": "character",
+      "priority": "normal"
+    },
+    {
+      "canonical": "Mechty",
+      "aliases": [],
+      "role": "character",
+      "priority": "normal"
+    },
+    {
+      "canonical": "Andoris",
+      "aliases": [],
+      "role": "character",
+      "priority": "normal"
+    },
+    {
+      "canonical": "Ullrid",
+      "aliases": [],
+      "role": "character",
+      "priority": "normal"
+    },
+    {
+      "canonical": "AK-12",
+      "aliases": [
+        "AK12",
+        "AK十二",
+        "A . K",
+        "A. K",
+        "AK 12"
+      ],
+      "role": "character",
+      "priority": "high"
+    },
+    {
+      "canonical": "Lisa",
+      "aliases": [],
+      "role": "character",
+      "priority": "normal"
+    },
+    {
+      "canonical": "Vector",
+      "aliases": [],
+      "role": "character",
+      "priority": "normal"
+    },
+    {
+      "canonical": "Leva",
+      "aliases": [],
+      "role": "character",
+      "priority": "normal"
+    },
+    {
+      "canonical": "Helen",
+      "aliases": [],
+      "role": "character",
+      "priority": "normal",
+      "guards": [
+        "do_not_merge_with_Helena"
+      ]
+    },
+    {
+      "canonical": "Helena",
+      "aliases": [],
+      "role": "character",
+      "priority": "normal",
+      "guards": [
+        "do_not_merge_with_Helen"
+      ]
+    }
+  ],
+  "unique_terms": [
+    {
+      "canonical": "Mokosh",
+      "aliases": [
+        "okosh",
+        "okosh's",
+        "Mokosch"
+      ],
+      "type": "place_or_community",
+      "translate": false,
+      "priority": "critical"
+    },
+    {
+      "canonical": "Elmo",
+      "aliases": [],
+      "type": "unique_term",
+      "translate": false,
+      "priority": "high"
+    },
+    {
+      "canonical": "Pike Node",
+      "aliases": [
+        "Pike node",
+        "PikeNode",
+        "pike node"
+      ],
+      "type": "location_or_system",
+      "translate": false,
+      "priority": "critical"
+    }
+  ],
+  "rules": {
+    "preserve_canonical_spelling": true,
+    "do_not_translate_unique_terms": true,
+    "speaker_dialog_split_guard": {
+      "enabled": true,
+      "example_invalid_entity": "Yoshiro Dandelion",
+      "interpretation": "speaker_name_plus_dialog_addressee"
+    },
+    "training_policy": {
+      "raw_logs_are_quarantined": true,
+      "only_user_approved_entities_are_active": true,
+      "incorrect_translations_must_not_enter_cache_or_training": true
+    }
+  }
+}

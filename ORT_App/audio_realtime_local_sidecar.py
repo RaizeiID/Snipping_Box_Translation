@@ -100,7 +100,26 @@ def _gpu_memory_snapshot() -> dict[str, int | str]:
 def _has_semantic_text(value: Any) -> bool:
     """Return True for text containing at least one letter/number/CJK symbol."""
     text = _clean_text(value)
-    return any(char.isalnum() or "\u3040" <= char <= "\u30ff" or "\u4e00" <= char <= "\u9fff" for char in text)
+    return any(char.isalnum() or "\u3040" <= char <= "\u30ff" or "\u3400" <= char <= "\u9fff" for char in text)
+
+
+# ORT_R5_COMPLETE_UTTERANCE: SEMANTIC_UNITS
+def _semantic_units(value: Any) -> int:
+    text = _clean_text(value)
+    units = 0
+    inside_latin = False
+    for char in text:
+        is_cjk = "\u3040" <= char <= "\u30ff" or "\u3400" <= char <= "\u9fff"
+        if is_cjk:
+            units += 1
+            inside_latin = False
+        elif char.isalnum():
+            if not inside_latin:
+                units += 1
+            inside_latin = True
+        else:
+            inside_latin = False
+    return units
 
 
 def _partial_growth(previous: str, current: str) -> float:
@@ -212,54 +231,34 @@ class LocalRealtimePolicy:
 
 
 def resolve_policy(profile: str, device: str) -> LocalRealtimePolicy:
+    # ORT_R5_COMPLETE_UTTERANCE: POLICY
     profile_key = str(profile or "normal").strip().lower()
     gpu = str(device or "cpu").strip().lower() == "cuda"
     if profile_key in {"speed", "instant", "fast"}:
         return LocalRealtimePolicy(
-            profile="speed",
-            first_partial_s=0.34 if gpu else 0.46,
-            partial_interval_s=0.30 if gpu else 0.46,
-            endpoint_s=0.46,
-            max_phrase_s=8.0,
-            pre_roll_s=0.30,
-            carry_over_s=0.18,
-            minimum_rms=0.0032,
-            noise_multiplier=2.25,
-            short_pause_s=0.28,
-            long_pause_s=0.92,
-            subtitle_window_s=5.0,
-            hard_turn_s=9.0,
+            profile="speed", first_partial_s=0.72 if gpu else 0.95,
+            partial_interval_s=0.48 if gpu else 0.58, endpoint_s=0.72,
+            max_phrase_s=14.0, pre_roll_s=0.36, carry_over_s=0.30,
+            minimum_rms=0.0032, noise_multiplier=2.25,
+            short_pause_s=0.48, long_pause_s=1.30,
+            subtitle_window_s=11.0, hard_turn_s=16.0,
         )
     if profile_key in {"accurate", "quality"}:
         return LocalRealtimePolicy(
-            profile="accurate",
-            first_partial_s=0.64 if gpu else 0.84,
-            partial_interval_s=0.58 if gpu else 0.86,
-            endpoint_s=0.76,
-            max_phrase_s=16.0,
-            pre_roll_s=0.42,
-            carry_over_s=0.32,
-            minimum_rms=0.0038,
-            noise_multiplier=2.65,
-            short_pause_s=0.42,
-            long_pause_s=1.35,
-            subtitle_window_s=7.5,
-            hard_turn_s=14.0,
+            profile="accurate", first_partial_s=1.05 if gpu else 1.30,
+            partial_interval_s=0.78 if gpu else 0.92, endpoint_s=1.00,
+            max_phrase_s=20.0, pre_roll_s=0.48, carry_over_s=0.38,
+            minimum_rms=0.0038, noise_multiplier=2.65,
+            short_pause_s=0.68, long_pause_s=1.75,
+            subtitle_window_s=16.0, hard_turn_s=22.0,
         )
     return LocalRealtimePolicy(
-        profile="normal",
-        first_partial_s=0.46 if gpu else 0.58,
-        partial_interval_s=0.42 if gpu else 0.58,
-        endpoint_s=0.62,
-        max_phrase_s=12.0,
-        pre_roll_s=0.36,
-        carry_over_s=0.24,
-        minimum_rms=0.0035,
-        noise_multiplier=2.45,
-        short_pause_s=0.34,
-        long_pause_s=1.10,
-        subtitle_window_s=6.0,
-        hard_turn_s=11.0,
+        profile="normal", first_partial_s=0.84 if gpu else 1.08,
+        partial_interval_s=0.62 if gpu else 0.74, endpoint_s=0.84,
+        max_phrase_s=17.0, pre_roll_s=0.42, carry_over_s=0.34,
+        minimum_rms=0.0035, noise_multiplier=2.45,
+        short_pause_s=0.56, long_pause_s=1.48,
+        subtitle_window_s=13.0, hard_turn_s=19.0,
     )
 
 
@@ -1311,9 +1310,10 @@ class StreamingInferenceWorker:
         self.profile = profile
         # Subtitle context is intentionally bounded. Long monologues are rolled
         # into new subtitle windows instead of growing one paragraph forever.
-        default_history = 48 if str(os.environ.get("ORT_AUDIO_RESOURCE_POLICY", "normal")).lower() == "efficient" else 72
-        history_words = max(24, min(160, int(os.environ.get("ORT_AUDIO_CONTEXT_WORDS", str(default_history)) or default_history)))
-        display_words = 42 if profile in {"accurate", "quality"} else 32 if profile == "normal" else 24
+        # ORT_R5_COMPLETE_UTTERANCE: CONTEXT_CAPACITY
+        default_history = 160 if str(os.environ.get("ORT_AUDIO_RESOURCE_POLICY", "normal")).lower() == "efficient" else 240
+        history_words = max(96, min(480, int(os.environ.get("ORT_AUDIO_CONTEXT_WORDS", str(default_history)) or default_history)))
+        display_words = 192 if profile in {"accurate", "quality"} else 144 if profile == "normal" else 112
         display_words = min(display_words, history_words)
         self.turn_context = RollingTurnContext(max_history_words=history_words, display_words=display_words)
         self.final_done: dict[str, threading.Event] = {}
@@ -1368,29 +1368,38 @@ class StreamingInferenceWorker:
             return 0.58
         return 0.46
 
-    def _should_emit_partial(self, result_id: str, previous: str, current: str, now: float) -> bool:
-        if not _has_semantic_text(current):
+    def _should_emit_partial(
+        self, result_id: str, previous: str, current: str,
+        now: float, audio_seconds: float,
+    ) -> bool:
+        # ORT_R5_COMPLETE_UTTERANCE: PARTIAL_GATE
+        clean = _clean_text(current)
+        if not _has_semantic_text(clean):
             return False
+        units = _semantic_units(clean)
+        japanese = _contains_japanese(clean)
+        minimum_units = 4 if japanese else 2
+        sentence_end = clean.endswith((".", "!", "?", "…", "。", "！", "？"))
         if not previous:
-            return True
-        if _clean_text(previous).casefold() == _clean_text(current).casefold():
+            minimum_audio = 0.82 if self.profile in {"speed", "instant", "fast"} else 1.00
+            if float(audio_seconds or 0.0) < minimum_audio:
+                return False
+            return units >= minimum_units or (sentence_end and units >= 2)
+        old = _clean_text(previous)
+        if old.casefold() == clean.casefold():
             return False
         elapsed = now - float(self.last_emit_at_by_result.get(result_id, 0.0) or 0.0)
-        if elapsed >= self._minimum_display_interval():
+        previous_units = _semantic_units(old)
+        unit_growth = units - previous_units
+        meaningful_growth = max(2, int(max(1, previous_units) * 0.18))
+        if unit_growth >= meaningful_growth and elapsed >= 0.38:
             return True
-        # Allow fast prefix growth, but coalesce full rewrites. Rolling ASR may
-        # revise every word at 300 ms; displaying each revision makes the
-        # Indonesian subtitle look broken even though inference is fast.
-        old = _clean_text(previous)
-        clean = _clean_text(current)
-        prefix_growth = clean.casefold().startswith(old.casefold()) and len(clean) >= len(old) + max(4, int(len(old) * 0.30))
-        if prefix_growth:
+        rewrite_amount = _partial_growth(old, clean)
+        if elapsed >= 0.95 and units >= minimum_units + 1 and rewrite_amount >= 0.35:
             return True
-        # A completed clause may appear slightly before the normal interval, but
-        # never on every 300 ms rewrite.
-        if clean.endswith((".", "!", "?", "…")) and len(clean) >= 5:
-            return elapsed >= self._minimum_display_interval() * 0.65
-        return False
+        if sentence_end and units >= minimum_units and elapsed >= 0.42:
+            return True
+        return bool(elapsed >= 1.35 and units >= minimum_units and unit_growth > 0)
 
     def _emit_reject_throttled(self, snapshot: Snapshot, metadata: dict) -> None:
         now = time.monotonic()
@@ -1421,17 +1430,21 @@ class StreamingInferenceWorker:
             try:
                 text, metadata = self.model.transcribe(snapshot.samples, stable=snapshot.stable)
                 previous = self.last_text_by_result.get(snapshot.result_id, "")
+                # ORT_R5_COMPLETE_UTTERANCE: FINAL_COVERAGE_GUARD
+                current_units = _semantic_units(text)
+                previous_units = _semantic_units(previous)
                 final_context_fallback = bool(
-                    snapshot.stable
-                    and previous
-                    and (not text or not _has_semantic_text(text))
+                    snapshot.stable and previous and (
+                        not text or not _has_semantic_text(text)
+                        or current_units < max(2, int(previous_units * 0.72))
+                    )
                 )
                 if final_context_fallback:
                     text = previous
                     metadata.pop("quality_reject_reasons", None)
                     metadata["final_context_fallback"] = True
-                    metadata["turn_context_words"] = len(previous.split())
-                    metadata["turn_display_words"] = len(previous.split())
+                    metadata["turn_context_words"] = _semantic_units(previous)
+                    metadata["turn_display_words"] = _semantic_units(previous)
                     metadata["turn_context_truncated"] = previous.startswith("… ")
                     metadata["turn_context_revision"] = 0
                     metadata["turn_appended_words"] = 0
@@ -1448,7 +1461,9 @@ class StreamingInferenceWorker:
                     metadata["turn_context_revision"] = context.revisions
                     metadata["turn_appended_words"] = context.appended_words
                 now = time.monotonic()
-                if not snapshot.stable and not self._should_emit_partial(snapshot.result_id, previous, text, now):
+                if not snapshot.stable and not self._should_emit_partial(
+                    snapshot.result_id, previous, text, now, snapshot.audio_seconds,
+                ):
                     continue
                 self.last_text_by_result[snapshot.result_id] = text
                 self.last_emit_at_by_result[snapshot.result_id] = now
@@ -2136,9 +2151,9 @@ def run_self_test() -> int:
         ]
         first_partial_audio_s = float(partials[0].get("audio_seconds", 99.0)) if partials else 99.0
         passed = bool(
-            len(partials) >= 3
+            len(partials) >= 1
             and len(finals) >= 1
-            and first_partial_audio_s < 1.2
+            and first_partial_audio_s < 1.8
             and all(not item.get("stable") for item in partials)
             and translated_displays
         )
