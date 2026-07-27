@@ -6,9 +6,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from .windows_dll_resolver import cuda12_runtime_report, register_windows_dll_directories
+
 
 class SherpaOnnxCompatibilityError(RuntimeError):
-    """Raised when the installed sherpa-onnx package lacks the Python API ORT needs."""
+    """Raised when the installed sherpa-onnx package lacks the API or DLLs ORT needs."""
 
 
 @dataclass(frozen=True)
@@ -17,13 +19,17 @@ class SherpaOnnxInfo:
     runtime_version: str
     module_file: str
     recognizer_source: str
+    dll_paths: tuple[str, ...] = ()
+    missing_dlls: tuple[str, ...] = ()
 
-    def as_dict(self) -> dict[str, str]:
+    def as_dict(self) -> dict[str, object]:
         return {
             "package_version": self.package_version,
             "runtime_version": self.runtime_version,
             "module_file": self.module_file,
             "recognizer_source": self.recognizer_source,
+            "dll_paths": list(self.dll_paths),
+            "missing_dlls": list(self.missing_dlls),
         }
 
 
@@ -60,30 +66,30 @@ def _module_file(module: Any) -> str:
         except Exception:
             return str(value)
     paths = getattr(module, "__path__", None)
-    if paths:
-        return ";".join(str(item) for item in paths)
-    return "<unknown>"
+    return ";".join(str(item) for item in paths) if paths else "<unknown>"
 
 
-def resolve_offline_recognizer() -> tuple[type[Any], SherpaOnnxInfo]:
-    """Return a compatible OfflineRecognizer class.
-
-    Some Windows environments expose the class only from
-    ``sherpa_onnx.offline_recognizer`` even though the official package also
-    exports it at the package root. ORT accepts both layouts and restores the
-    top-level alias so third-party ReazonSpeech code can use the same process.
-    """
+def resolve_offline_recognizer(*, provider: str = "cpu") -> tuple[type[Any], SherpaOnnxInfo]:
+    # Register CUDA/PyTorch/NVIDIA wheel directories before importing the native extension.
+    dll_paths = register_windows_dll_directories()
+    missing_dlls: tuple[str, ...] = ()
+    if str(provider or "cpu").lower() in {"cuda", "gpu"}:
+        report = cuda12_runtime_report()
+        dll_paths = report.registered_paths
+        missing_dlls = report.missing
 
     try:
         module = importlib.import_module("sherpa_onnx")
     except Exception as exc:
+        suffix = f" DLL CUDA belum ditemukan: {', '.join(missing_dlls)}." if missing_dlls else ""
         raise SherpaOnnxCompatibilityError(
-            f"sherpa_onnx tidak dapat diimpor: {type(exc).__name__}: {exc}"
+            f"sherpa_onnx tidak dapat diimpor: {type(exc).__name__}: {exc}.{suffix}"
         ) from exc
 
     recognizer = getattr(module, "OfflineRecognizer", None)
     source = "sherpa_onnx.OfflineRecognizer"
     if recognizer is None or not callable(getattr(recognizer, "from_transducer", None)):
+        submodule_error = ""
         try:
             submodule = importlib.import_module("sherpa_onnx.offline_recognizer")
             recognizer = getattr(submodule, "OfflineRecognizer", None)
@@ -91,12 +97,8 @@ def resolve_offline_recognizer() -> tuple[type[Any], SherpaOnnxInfo]:
         except Exception as exc:
             recognizer = None
             submodule_error = f"{type(exc).__name__}: {exc}"
-        else:
-            submodule_error = ""
 
         if recognizer is not None and callable(getattr(recognizer, "from_transducer", None)):
-            # Compatibility alias for ReazonSpeech's loader, which expects the
-            # class at the package root.
             setattr(module, "OfflineRecognizer", recognizer)
         else:
             available = sorted(name for name in dir(module) if "Recognizer" in name)
@@ -116,17 +118,37 @@ def resolve_offline_recognizer() -> tuple[type[Any], SherpaOnnxInfo]:
         runtime_version=_runtime_version(module),
         module_file=_module_file(module),
         recognizer_source=source,
+        dll_paths=dll_paths,
+        missing_dlls=missing_dlls,
     )
     return recognizer, info
 
 
 def create_offline_transducer(**kwargs: Any) -> tuple[Any, SherpaOnnxInfo]:
-    recognizer, info = resolve_offline_recognizer()
-    return recognizer.from_transducer(**kwargs), info
+    provider = str(kwargs.get("provider") or "cpu")
+    recognizer, info = resolve_offline_recognizer(provider=provider)
+    try:
+        return recognizer.from_transducer(**kwargs), info
+    except Exception as exc:
+        message = str(exc)
+        if provider.lower() in {"cuda", "gpu"} and (
+            "Failed to load shared library" in message
+            or "Error loading" in message
+            or "cufft64_11.dll" in message
+            or "OrtSessionOptionsAppendExecutionProvider_Cuda" in message
+        ):
+            report = cuda12_runtime_report()
+            missing = ", ".join(report.missing) or "DLL dependency tidak dapat dimuat"
+            raise SherpaOnnxCompatibilityError(
+                "CUDA sherpa-onnx tidak dapat dimuat. Komponen yang belum ditemukan: "
+                f"{missing}. Jalankan repair runtime CUDA ORT v9.0.5 R2. Detail asli: {message}"
+            ) from exc
+        raise
 
 
 def create_offline_sense_voice(**kwargs: Any) -> tuple[Any, SherpaOnnxInfo]:
-    recognizer, info = resolve_offline_recognizer()
+    provider = str(kwargs.get("provider") or "cpu")
+    recognizer, info = resolve_offline_recognizer(provider=provider)
     factory = getattr(recognizer, "from_sense_voice", None)
     if not callable(factory):
         raise SherpaOnnxCompatibilityError(

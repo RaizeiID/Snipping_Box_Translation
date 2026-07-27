@@ -92,10 +92,13 @@ def main() -> int:
     adapter_text = (APP_ROOT / "app" / "audio" / "locked_asr_adapter.py").read_text(
         encoding="utf-8-sig"
     )
+    compat_text = (APP_ROOT / "app" / "audio" / "sherpa_compat.py").read_text(
+        encoding="utf-8-sig"
+    )
     webui_text = (APP_ROOT / "webui.py").read_text(encoding="utf-8-sig")
 
     checks = {
-        "runtime_probe_checks_api": "sherpa_onnx.offline_recognizer" in setup_text,
+        "runtime_probe_checks_api": "sherpa_onnx.offline_recognizer" in compat_text,
         "runtime_probe_requires_from_transducer": 'getattr(recognizer, "from_transducer", None)' in setup_text,
         "pinned_cpu_runtime": 'sherpa-onnx=={SHERPA_ONNX_VERSION}' in setup_text,
         "warmup_uses_compat": "create_offline_transducer" in setup_text,

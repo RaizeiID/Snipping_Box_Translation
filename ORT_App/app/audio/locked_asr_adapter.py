@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 import time
 from pathlib import Path
 from types import SimpleNamespace
@@ -10,6 +11,8 @@ from typing import Any, Callable, Optional
 import numpy as np
 
 from .sherpa_compat import create_offline_sense_voice, create_offline_transducer
+
+from .gfl2_domain_registry import normalize_domain_text
 
 from .asr_provider_registry import (
     PROVIDERS,
@@ -160,7 +163,8 @@ class LockedASRProviderAdapter:
             encoder=str(files["encoder"]),
             decoder=str(files["decoder"]),
             joiner=str(files["joiner"]),
-            num_threads=1,
+            # ORT_R5_COMPLETE_UTTERANCE: REAZON_THREADS
+            num_threads=max(1, min(4, self.cpu_threads)) if self.device == "cpu" else 1,
             sample_rate=TARGET_SAMPLE_RATE,
             feature_dim=80,
             decoding_method="greedy_search",
@@ -222,7 +226,22 @@ class LockedASRProviderAdapter:
         )
 
     def load(self) -> None:
-        status = provider_status(self.model_root, self.provider_id, self.device)
+        runtime_python = Path(sys.executable).expanduser().resolve()
+        self.emit_event(
+            "state",
+            state="PROVIDER_RUNTIME_BOUND",
+            provider_id=self.provider_id,
+            device=self.device,
+            runtime_python=str(runtime_python),
+            model_lock=True,
+            local_realtime=True,
+        )
+        status = provider_status(
+            self.model_root,
+            self.provider_id,
+            self.device,
+            runtime_python=runtime_python,
+        )
         if not status.get("ready"):
             raise RuntimeError(
                 "Locked provider unavailable: " + "; ".join(status.get("errors") or [self.provider_id])
@@ -376,16 +395,19 @@ class LockedASRProviderAdapter:
 
     def _window_seconds(self, stable: bool) -> float:
         if self.provider_id == PROVIDER_SENSEVOICE:
-            return 4.0 if stable else 2.4
+            return 5.0 if stable else 3.0
         if self.provider_id == PROVIDER_REAZON:
-            return 5.5 if stable else 3.2
+            # ORT_R5_COMPLETE_UTTERANCE: REAZON_WINDOW
+            if self.profile in {"speed", "instant", "fast"}:
+                return 14.0 if stable else 6.5
+            if self.profile in {"accurate", "quality"}:
+                return 20.0 if stable else 10.0
+            return 16.0 if stable else 8.0
         if self.provider_id == PROVIDER_KOTOBA and self.device == "cpu":
-            # Bounded CPU Kotoba mode: no second stream, one beam, and a short
-            # rolling window to prevent minute-long queues.
-            return 4.0 if stable else 2.2
+            return 6.0 if stable else 3.2
         if self.device == "cpu":
-            return 4.5 if stable else 2.6
-        return 8.0 if stable else 5.5
+            return 6.5 if stable else 3.6
+        return 10.0 if stable else 6.5
 
     def transcribe(self, samples: np.ndarray, stable: bool = False) -> tuple[str, dict]:
         if self.model is None:
@@ -396,6 +418,8 @@ class LockedASRProviderAdapter:
         if len(audio) > maximum:
             audio = audio[-maximum:]
         text, meta = self._recognize(audio, stable)
+        # ORT_V9_0_6_STAGE1_DOMAIN_REGISTRY
+        text, domain_matches = normalize_domain_text(text)
         elapsed_ms = int((time.perf_counter() - started) * 1000)
         reasons: list[str] = []
         if not _semantic(text):
@@ -417,6 +441,8 @@ class LockedASRProviderAdapter:
             "provisional": not stable,
             "specialist_correction_pending": False,
             "model_used": self.provider_id,
+            "domain_registry_version": "v9.0.6-stage1",
+            "domain_matches": domain_matches,
         }
         if reasons:
             result["quality_reject_reasons"] = reasons

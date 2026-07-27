@@ -14,8 +14,65 @@ def _clean_text(value: object) -> str:
     return " ".join(str(value or "").strip().split())
 
 
+# ORT_R5_COMPLETE_UTTERANCE: CJK_CONTEXT
+_CLOSING_PUNCTUATION = set("、。！？…,.!?;:)]}」』】〉》")
+_OPENING_PUNCTUATION = set("([{「『【〈《")
+
+
+def _is_cjk_token(value: str) -> bool:
+    token = str(value or "")
+    return bool(token) and all(
+        "\u3040" <= char <= "\u30ff"
+        or "\u3400" <= char <= "\u9fff"
+        for char in token
+    )
+
+
 def _tokens(text: str) -> List[str]:
-    return _clean_text(text).split()
+    # Japanese normally has no spaces. Character units preserve rolling overlap.
+    clean = _clean_text(text)
+    tokens: List[str] = []
+    latin: List[str] = []
+
+    def flush_latin() -> None:
+        if latin:
+            tokens.append("".join(latin))
+            latin.clear()
+
+    for char in clean:
+        if char.isspace():
+            flush_latin()
+        elif "\u3040" <= char <= "\u30ff" or "\u3400" <= char <= "\u9fff":
+            flush_latin()
+            tokens.append(char)
+        elif char.isalnum() or char in {"'", "_", "-"}:
+            latin.append(char)
+        else:
+            flush_latin()
+            tokens.append(char)
+    flush_latin()
+    return tokens
+
+
+def _join_tokens(tokens: Iterable[str]) -> str:
+    output = ""
+    previous = ""
+    for raw in tokens:
+        token = str(raw or "")
+        if not token:
+            continue
+        if not output:
+            output = token
+        elif token in _CLOSING_PUNCTUATION:
+            output += token
+        elif previous in _OPENING_PUNCTUATION:
+            output += token
+        elif _is_cjk_token(previous) or _is_cjk_token(token):
+            output += token
+        else:
+            output += " " + token
+        previous = token
+    return output
 
 
 def _key(token: str) -> str:
@@ -158,12 +215,12 @@ class RollingTurnContext:
         full_tokens = state.committed_tokens + state.live_tokens
         display_tokens = full_tokens[-self.display_words:]
         truncated = len(full_tokens) > len(display_tokens)
-        display = " ".join(display_tokens)
+        display = _join_tokens(display_tokens)
         if truncated:
-            display = "… " + display
+            display = "…" + display
         return TurnContextResult(
             text=display,
-            full_text=" ".join(full_tokens),
+            full_text=_join_tokens(full_tokens),
             words=len(display_tokens),
             full_words=len(full_tokens),
             appended_words=max(0, int(appended_words)),

@@ -20,10 +20,11 @@ from typing import Any
 
 EVENT_PREFIX = "ORT_SETUP_EVENT "
 SETUP_VERSION = "v9.0.5"
-SETUP_RELEASE = "R2 Reazon Direct Download & CUDA Runtime Repair"
-SETUP_USER_AGENT = "ORT-v9.0.5-r2-provider-setup/1.2"
+SETUP_RELEASE = "R3 Offline Argos & Native CUDA DLL Repair"
+SETUP_USER_AGENT = "ORT-v9.0.5-r3-provider-setup/1.3"
 APP_ROOT = Path(__file__).resolve().parents[1]
 SHERPA_ONNX_VERSION = "1.13.4"
+ARGOS_TRANSLATE_VERSION = "1.11.0"
 SENSEVOICE_URL = (
     "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/"
     "sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2025-09-09.tar.bz2"
@@ -31,6 +32,14 @@ SENSEVOICE_URL = (
 SHERPA_CUDA_INDEX = "https://k2-fsa.github.io/sherpa/onnx/cuda.html"
 SHERPA_CUDA12_REQUIREMENT = "sherpa-onnx==1.13.4+cuda12.cudnn9"
 SHERPA_CUDA11_REQUIREMENT = "sherpa-onnx==1.13.4+cuda"
+NVIDIA_CUDA12_DLL_PACKAGES = {
+    "cudart64_12.dll": "nvidia-cuda-runtime-cu12>=12,<13",
+    "cublas64_12.dll": "nvidia-cublas-cu12>=12,<13",
+    "cublasLt64_12.dll": "nvidia-cublas-cu12>=12,<13",
+    "cufft64_11.dll": "nvidia-cufft-cu12>=11,<12",
+    "cudnn64_9.dll": "nvidia-cudnn-cu12>=9,<10",
+}
+NVIDIA_CUDA12_PACKAGES = tuple(dict.fromkeys(NVIDIA_CUDA12_DLL_PACKAGES.values()))
 HF_REPOS = {
     "reazonspeech_k2": "reazon-research/reazonspeech-k2-v2",
     "kotoba_bilingual": "kotoba-tech/kotoba-whisper-bilingual-v1.0-faster",
@@ -220,43 +229,25 @@ def _run_with_retry(label: str, operation, *, max_attempts: int = 8, provider: s
     raise RuntimeError(f"Retry loop berakhir tanpa hasil: {label}")
 
 
-def _runtime_probe(python: Path, device: str, required_variant: str = "auto") -> tuple[bool, str]:
-    expected_cuda = str(device).lower() == "cuda"
-    script = r"""
-import importlib
-import importlib.metadata
+def _runtime_probe(python: Path, device: str) -> tuple[bool, str]:
+    target = "cuda" if str(device or "cpu").lower() == "cuda" else "cpu"
+    script = f"""
 import json
 import sys
-
-payload = {"ok": False, "source": "", "package_version": "unknown", "runtime_version": "unknown", "module_file": ""}
+sys.path.insert(0, {str(APP_ROOT)!r})
+payload = {{"ok": False, "device": {target!r}}}
 try:
-    import sherpa_onnx
-    payload["module_file"] = str(getattr(sherpa_onnx, "__file__", "") or getattr(sherpa_onnx, "__path__", ""))
-    try:
-        payload["package_version"] = importlib.metadata.version("sherpa-onnx")
-    except Exception:
-        pass
-    value = getattr(sherpa_onnx, "__version__", "") or getattr(sherpa_onnx, "version", "")
-    if callable(value):
-        try:
-            value = value()
-        except Exception:
-            value = ""
-    payload["runtime_version"] = str(value or "unknown")
-    recognizer = getattr(sherpa_onnx, "OfflineRecognizer", None)
-    if recognizer is not None and callable(getattr(recognizer, "from_transducer", None)):
-        payload["source"] = "top_level"
-    else:
-        submodule = importlib.import_module("sherpa_onnx.offline_recognizer")
-        recognizer = getattr(submodule, "OfflineRecognizer", None)
-        if recognizer is not None and callable(getattr(recognizer, "from_transducer", None)):
-            setattr(sherpa_onnx, "OfflineRecognizer", recognizer)
-            payload["source"] = "submodule_alias"
+    from app.audio.sherpa_compat import resolve_offline_recognizer
+    recognizer, info = resolve_offline_recognizer(provider={target!r})
+    payload.update(info.as_dict())
     payload["ok"] = bool(recognizer is not None and callable(getattr(recognizer, "from_transducer", None)))
+    if {target!r} == "cuda" and payload.get("missing_dlls"):
+        payload["ok"] = False
+        payload["error"] = "CUDA DLL belum lengkap: " + ", ".join(payload.get("missing_dlls") or [])
 except Exception as exc:
-    payload["error"] = f"{type(exc).__name__}: {exc}"
+    payload["error"] = f"{{type(exc).__name__}}: {{exc}}"
 print(json.dumps(payload, ensure_ascii=False))
-sys.exit(0 if payload["ok"] else 7)
+sys.exit(0 if payload.get("ok") else 7)
 """
     env = os.environ.copy()
     env["PYTHONUTF8"] = "1"
@@ -266,25 +257,28 @@ sys.exit(0 if payload["ok"] else 7)
         encoding="utf-8", errors="replace", env=env, check=False, timeout=60,
     )
     output = ((result.stdout or "") + " " + (result.stderr or "")).strip()
-    if result.returncode != 0:
-        return False, output[-1200:]
     try:
         payload = json.loads((result.stdout or "").strip().splitlines()[-1])
     except Exception:
-        payload = {"ok": True, "raw": output}
-    version_text = " ".join(
-        str(payload.get(name) or "")
-        for name in ("package_version", "runtime_version")
-    ).lower()
-    if expected_cuda and "+cuda" not in version_text:
-        return False, f"sherpa-onnx masih build CPU atau metadata CUDA tidak ditemukan: {payload}"
-    required = str(required_variant or "auto").strip().lower()
-    if expected_cuda and required == "cuda12" and "cuda12" not in version_text:
-        return False, f"Runtime CUDA lama/tidak cocok; dibutuhkan sherpa CUDA12, ditemukan: {payload}"
-    if expected_cuda and required == "cuda11" and "cuda12" in version_text:
-        return False, f"Runtime CUDA tidak cocok; dibutuhkan sherpa CUDA11, ditemukan: {payload}"
-    return bool(payload.get("ok", True)), json.dumps(payload, ensure_ascii=False)
+        payload = {"ok": result.returncode == 0, "raw": output}
+    version_text = " ".join(str(payload.get(name) or "") for name in ("package_version", "runtime_version")).lower()
+    if target == "cuda" and "+cuda" not in version_text:
+        payload["ok"] = False
+        payload["error"] = f"sherpa-onnx masih build CPU: {payload}"
+    return bool(payload.get("ok") and result.returncode == 0), json.dumps(payload, ensure_ascii=False)
 
+
+def _runtime_probe_payload(detail: str) -> dict[str, Any]:
+    try:
+        value = json.loads(str(detail or ""))
+        return value if isinstance(value, dict) else {}
+    except Exception:
+        return {}
+
+
+def _cuda_missing_dlls_from_probe(detail: str) -> tuple[str, ...]:
+    payload = _runtime_probe_payload(detail)
+    return tuple(str(name) for name in (payload.get("missing_dlls") or []) if str(name).strip())
 
 def _status_path(status_root: Path, provider: str, device: str) -> Path:
     return status_root / f"{provider}_{device}.json"
@@ -783,30 +777,113 @@ except Exception:
     return token if token in {"cuda11", "cuda12"} else "cuda12"
 
 
-def _install_sherpa_runtime(python: Path, device: str, cuda_variant: str = "auto") -> str:
+def _cleanup_invalid_sherpa_distributions(python: Path) -> None:
+    """Remove pip's interrupted-uninstall leftovers such as ``~herpa-onnx``."""
+
+    script = r"""
+import json
+import shutil
+import site
+from pathlib import Path
+roots = []
+try:
+    roots.extend(Path(item) for item in site.getsitepackages())
+except Exception:
+    pass
+removed = []
+for root in roots:
+    if not root.is_dir():
+        continue
+    for item in root.iterdir():
+        name = item.name.lower()
+        if name.startswith('~herpa') or name.startswith('~sherpa'):
+            try:
+                shutil.rmtree(item) if item.is_dir() else item.unlink()
+                removed.append(str(item))
+            except Exception:
+                pass
+print(json.dumps({'removed': removed}, ensure_ascii=False))
+"""
+    result = subprocess.run(
+        [str(python), "-c", script], capture_output=True, text=True,
+        encoding="utf-8", errors="replace", check=False, timeout=60,
+    )
+    text = (result.stdout or "").strip()
+    if text:
+        print(f"[PIP CLEANUP] {text}", flush=True)
+
+
+def _install_nvidia_cuda12_dependencies(
+    python: Path,
+    missing_dlls: tuple[str, ...] | list[str] = (),
+) -> tuple[str, ...]:
+    requested = [
+        NVIDIA_CUDA12_DLL_PACKAGES[name]
+        for name in missing_dlls
+        if name in NVIDIA_CUDA12_DLL_PACKAGES
+    ]
+    packages = tuple(dict.fromkeys(requested)) or NVIDIA_CUDA12_PACKAGES
+    emit(
+        "phase",
+        phase="Memasang dependency CUDA 12/cuDNN 9 yang hilang",
+        message="Memasang dependency CUDA 12/cuDNN 9 yang hilang",
+        missing_dlls=list(missing_dlls),
+        packages=list(packages),
+    )
+    run([
+        str(python), "-m", "pip", "install", "--upgrade", "--prefer-binary",
+        "--timeout", "120", "--retries", "8", *packages,
+    ], phase="Memasang CUDA runtime, cuBLAS, cuFFT, dan cuDNN melalui paket NVIDIA")
+    return packages
+
+
+def _install_sherpa_runtime(
+    python: Path,
+    device: str,
+    cuda_variant: str = "auto",
+    *,
+    install_cuda_dependencies: bool = False,
+    missing_dlls: tuple[str, ...] | list[str] = (),
+) -> str:
     target = str(device or "cpu").strip().lower()
+    _cleanup_invalid_sherpa_distributions(python)
     if target == "cpu":
-        run([str(python), "-m", "pip", "install", "--upgrade", "--force-reinstall", "--no-cache-dir", f"sherpa-onnx=={SHERPA_ONNX_VERSION}"], phase="Memasang runtime sherpa-onnx CPU")
+        run([
+            str(python), "-m", "pip", "install", "--upgrade", "--force-reinstall",
+            "--prefer-binary", "--timeout", "120", "--retries", "8",
+            f"sherpa-onnx=={SHERPA_ONNX_VERSION}",
+        ], phase="Memasang runtime sherpa-onnx CPU")
         return "cpu"
+
     variant = str(cuda_variant or "auto").strip().lower()
     if variant == "auto":
         variant = _detect_cuda_variant(python)
     if variant not in {"cuda11", "cuda12"}:
         raise ValueError(f"Unsupported CUDA variant: {variant}")
+
     requirement = SHERPA_CUDA12_REQUIREMENT if variant == "cuda12" else SHERPA_CUDA11_REQUIREMENT
     run([
-        str(python), "-m", "pip", "install", "--upgrade", "--force-reinstall", "--no-cache-dir",
+        str(python), "-m", "pip", "install", "--upgrade", "--force-reinstall",
+        "--prefer-binary", "--timeout", "120", "--retries", "8",
         requirement, "--no-index", "-f", SHERPA_CUDA_INDEX,
     ], phase=f"Memasang runtime sherpa-onnx {variant.upper()}")
-    verify = (
-        "import sherpa_onnx; "
-        "v=str(getattr(sherpa_onnx,'__version__','')); "
-        "print('sherpa_onnx='+v); "
-        "assert '+cuda' in v, 'CUDA-enabled sherpa-onnx wheel was not installed'"
-    )
-    run([str(python), "-c", verify], phase="Memverifikasi runtime CUDA")
-    return variant
 
+    if variant == "cuda12" and install_cuda_dependencies:
+        _install_nvidia_cuda12_dependencies(python, missing_dlls)
+
+    verify = f"""
+import json, sys
+sys.path.insert(0, {str(APP_ROOT)!r})
+from app.audio.sherpa_compat import resolve_offline_recognizer
+recognizer, info = resolve_offline_recognizer(provider='cuda')
+value = info.as_dict()
+print(json.dumps(value, ensure_ascii=False))
+assert '+cuda' in (str(value.get('package_version','')) + str(value.get('runtime_version',''))).lower()
+assert not value.get('missing_dlls'), value.get('missing_dlls')
+assert callable(getattr(recognizer, 'from_transducer', None))
+"""
+    run([str(python), "-c", verify], phase="Memverifikasi runtime CUDA dan pencarian DLL")
+    return variant
 
 def install_reazon(
     python: Path,
@@ -822,15 +899,29 @@ def install_reazon(
     target_device = "cuda" if str(device or "cpu").lower() == "cuda" else "cpu"
     emit("setup_start", provider=provider, device=target_device)
 
-    desired_variant = target_device
-    if target_device == "cuda":
-        desired_variant = _detect_cuda_variant(python) if str(cuda_variant).lower() == "auto" else str(cuda_variant).lower()
-    runtime_ready, runtime_detail = _runtime_probe(python, target_device, desired_variant)
-    installed_variant = desired_variant if runtime_ready else target_device
+    runtime_ready, runtime_detail = _runtime_probe(python, target_device)
+    missing_cuda_dlls = _cuda_missing_dlls_from_probe(runtime_detail) if target_device == "cuda" else ()
+    installed_variant = target_device
+
+    # A CUDA wheel can expose the Python API while still being unusable because
+    # one or more native DLLs are absent from PATH. Repair only those components
+    # before reinstalling ReazonSpeech or downloading the model again.
+    if target_device == "cuda" and not runtime_ready and missing_cuda_dlls:
+        print(
+            "[CUDA DLL REPAIR] Runtime sherpa tersedia, tetapi dependency native belum lengkap: "
+            + ", ".join(missing_cuda_dlls),
+            flush=True,
+        )
+        _install_nvidia_cuda12_dependencies(python, missing_cuda_dlls)
+        runtime_ready, runtime_detail = _runtime_probe(python, target_device)
+        missing_cuda_dlls = _cuda_missing_dlls_from_probe(runtime_detail)
+
     if runtime_ready:
+        payload = _runtime_probe_payload(runtime_detail)
+        installed_variant = str(payload.get("package_version") or payload.get("runtime_version") or target_device)
         emit("runtime_reuse", provider=provider, device=target_device, detail=runtime_detail)
         print(
-            f"ReazonSpeech K2 runtime {target_device.upper()} dan API OfflineRecognizer sudah siap; "
+            f"ReazonSpeech K2 runtime {target_device.upper()}, API OfflineRecognizer, dan DLL native sudah siap; "
             "melewati git/pip reinstall.", flush=True,
         )
     else:
@@ -843,8 +934,12 @@ def install_reazon(
             run(["git", "fetch", "--depth", "1", "origin"], cwd=repo, phase="Memperbarui source ReazonSpeech")
             run(["git", "reset", "--hard", "FETCH_HEAD"], cwd=repo)
         run([str(python), "-m", "pip", "install", "--upgrade", str(repo / "pkg" / "k2-asr")], phase="Memasang paket ReazonSpeech K2")
-        installed_variant = _install_sherpa_runtime(python, target_device, cuda_variant)
-        runtime_ready, runtime_detail = _runtime_probe(python, target_device, desired_variant)
+        installed_variant = _install_sherpa_runtime(
+            python, target_device, cuda_variant,
+            install_cuda_dependencies=(target_device == "cuda"),
+            missing_dlls=missing_cuda_dlls,
+        )
+        runtime_ready, runtime_detail = _runtime_probe(python, target_device)
         if not runtime_ready:
             raise RuntimeError(
                 f"Runtime ReazonSpeech {target_device.upper()} belum siap setelah reinstall. "
@@ -876,9 +971,18 @@ def install_reazon(
         except subprocess.CalledProcessError:
             if target_device != "cuda":
                 raise
-            print("[CUDA REPAIR] Warmup CUDA gagal. Memasang ulang wheel sherpa sesuai runtime CUDA lalu mencoba sekali lagi.", flush=True)
-            installed_variant = _install_sherpa_runtime(python, target_device, desired_variant)
-            run([str(python), "-c", warmup], phase="Memverifikasi ulang model lokal ReazonSpeech K2 CUDA")
+            print(
+                "[CUDA REPAIR] Warmup gagal. ORT akan memasang build CUDA 12/cuDNN 9 "
+                "beserta CUDA runtime, cuBLAS, cuFFT, dan cuDNN yang belum tersedia.",
+                flush=True,
+            )
+            _, latest_detail = _runtime_probe(python, target_device)
+            latest_missing = _cuda_missing_dlls_from_probe(latest_detail)
+            installed_variant = _install_sherpa_runtime(
+                python, target_device, "cuda12", install_cuda_dependencies=True,
+                missing_dlls=latest_missing or missing_cuda_dlls,
+            )
+            run([str(python), "-c", warmup], phase="Mengulang verifikasi model ReazonSpeech K2 CUDA setelah repair DLL")
     _write_status(
         status_root, provider, target_device, runtime_python=python,
         model_total_bytes=total, model_downloaded_bytes=downloaded,
@@ -887,7 +991,7 @@ def install_reazon(
             "sherpa_variant": installed_variant,
             "download_resumable": True,
             "download_state": "complete",
-            "download_strategy": "direct_static_manifest",
+            "download_strategy": "direct_static_manifest_r3",
             "revision": REAZON_REVISION,
             "required_files": list(_reazon_required_files(target_device)),
         },
@@ -952,46 +1056,160 @@ def install_faster_provider(
     emit("device_ready", provider=provider, device=target_device, status="ready")
 
 
+def _argos_runtime_probe(python: Path) -> tuple[bool, set[tuple[str, str]], str]:
+    script = f"""
+import importlib.metadata
+import json
+import os
+import sys
+sys.path.insert(0, {str(APP_ROOT)!r})
+os.environ['ARGOS_CHUNK_TYPE'] = 'MINISBD'
+os.environ['ARGOS_DEVICE_TYPE'] = 'cpu'
+payload = {{'ok': False, 'pairs': []}}
+try:
+    from app.audio.argos_offline import configure_argos_offline_environment
+    configure_argos_offline_environment()
+    import argostranslate.package
+    import argostranslate.translate
+    import ctranslate2
+    import minisbd
+    payload['version'] = importlib.metadata.version('argostranslate')
+    payload['pairs'] = sorted([list((p.from_code, p.to_code)) for p in argostranslate.package.get_installed_packages()])
+    payload['chunk_type'] = os.environ.get('ARGOS_CHUNK_TYPE')
+    payload['device_type'] = os.environ.get('ARGOS_DEVICE_TYPE')
+    payload['ok'] = True
+except Exception as exc:
+    payload['error'] = f'{{type(exc).__name__}}: {{exc}}'
+print(json.dumps(payload, ensure_ascii=False))
+sys.exit(0 if payload.get('ok') else 7)
+"""
+    result = subprocess.run(
+        [str(python), "-c", script], capture_output=True, text=True,
+        encoding="utf-8", errors="replace", check=False, timeout=90,
+    )
+    output = ((result.stdout or "") + " " + (result.stderr or "")).strip()
+    try:
+        payload = json.loads((result.stdout or "").strip().splitlines()[-1])
+    except Exception:
+        payload = {"ok": False, "error": output[-1600:]}
+    pairs = {
+        (str(item[0]), str(item[1]))
+        for item in (payload.get("pairs") or [])
+        if isinstance(item, (list, tuple)) and len(item) == 2
+    }
+    return bool(payload.get("ok") and result.returncode == 0), pairs, json.dumps(payload, ensure_ascii=False)
+
+
+def _install_missing_argos_packages(python: Path, missing_pairs: list[tuple[str, str]]) -> None:
+    pairs_literal = repr([(str(a), str(b)) for a, b in missing_pairs])
+    script = f"""
+import time
+import argostranslate.package
+missing = {pairs_literal}
+last_error = None
+for attempt in range(1, 9):
+    try:
+        argostranslate.package.update_package_index()
+        available = argostranslate.package.get_available_packages()
+        for pair in missing:
+            installed = {{(p.from_code, p.to_code) for p in argostranslate.package.get_installed_packages()}}
+            if pair in installed:
+                print('Argos already installed', pair)
+                continue
+            package = next((p for p in available if p.from_code == pair[0] and p.to_code == pair[1]), None)
+            if package is None:
+                raise RuntimeError('Argos package unavailable: %s->%s' % pair)
+            path = package.download()
+            argostranslate.package.install_from_path(path)
+            print('Argos installed', pair)
+        break
+    except Exception as exc:
+        last_error = exc
+        if attempt >= 8:
+            raise
+        delay = min(60, 2 ** attempt)
+        print('[ARGOS RETRY] %s: %s. Retry in %ss' % (type(exc).__name__, exc, delay), flush=True)
+        time.sleep(delay)
+else:
+    raise last_error or RuntimeError('Argos package setup failed')
+"""
+    run([str(python), "-c", script], phase="Mengunduh paket bridge JA→EN dan EN→ID yang belum tersedia")
+
+
 def install_argos_bridge(python: Path, status_root: Path, device: str) -> None:
     provider = "argos_bridge"
     target_device = "cuda" if str(device).lower() == "cuda" else "cpu"
     emit("setup_start", provider=provider, device=target_device)
-    run([str(python), "-m", "pip", "install", "argostranslate"], phase=f"Memasang translation bridge {target_device.upper()}")
-    script = """
-import argostranslate.package
-argostranslate.package.update_package_index()
-available = argostranslate.package.get_available_packages()
-installed = {(p.from_code, p.to_code) for p in argostranslate.package.get_installed_packages()}
-for pair in [('ja', 'en'), ('en', 'id')]:
-    if pair in installed:
-        print('Argos already installed', pair)
-        continue
-    package = next((p for p in available if p.from_code == pair[0] and p.to_code == pair[1]), None)
-    if package is None:
-        raise RuntimeError('Argos package unavailable: %s->%s' % pair)
-    path = package.download()
-    argostranslate.package.install_from_path(path)
-    print('Argos installed', pair)
-"""
-    run([str(python), "-c", script], phase="Mengunduh paket bridge JA→EN dan EN→ID")
-    functional = """
-import argostranslate.translate
-langs = {lang.code: lang for lang in argostranslate.translate.get_installed_languages()}
-ja_en = langs['ja'].get_translation(langs['en'])
-en_id = langs['en'].get_translation(langs['id'])
+
+    runtime_ready, installed_pairs, runtime_detail = _argos_runtime_probe(python)
+    if runtime_ready:
+        print(f"Argos Translate runtime sudah siap; pip reinstall dilewati. {runtime_detail}", flush=True)
+    else:
+        run([
+            str(python), "-m", "pip", "install", "--upgrade", "--prefer-binary",
+            "--timeout", "120", "--retries", "8",
+            f"argostranslate=={ARGOS_TRANSLATE_VERSION}",
+        ], phase=f"Memasang translation bridge {target_device.upper()}")
+        runtime_ready, installed_pairs, runtime_detail = _argos_runtime_probe(python)
+        if not runtime_ready:
+            raise RuntimeError(f"Runtime Argos belum siap setelah instalasi: {runtime_detail}")
+
+    required_pairs = [("ja", "en"), ("en", "id")]
+    missing_pairs = [pair for pair in required_pairs if pair not in installed_pairs]
+    if missing_pairs:
+        _install_missing_argos_packages(python, missing_pairs)
+    else:
+        print("Paket Argos JA→EN dan EN→ID sudah tersedia; akses package index dilewati.", flush=True)
+
+    # Verify real translation while network and Stanza's pipeline are explicitly
+    # blocked. A passing result proves MiniSBD is selected before Argos imports.
+    functional = f"""
+import json
+import os
+import socket
+import sys
+sys.path.insert(0, {str(APP_ROOT)!r})
+os.environ['ARGOS_CHUNK_TYPE'] = 'MINISBD'
+os.environ['ARGOS_DEVICE_TYPE'] = 'cpu'
+from app.audio.argos_offline import get_translation_pair
+import argostranslate.sbd
+
+def forbidden(*args, **kwargs):
+    raise RuntimeError('NETWORK_OR_STANZA_ACCESS_FORBIDDEN_DURING_OFFLINE_TEST')
+
+socket.create_connection = forbidden
+if getattr(argostranslate.sbd, 'stanza', None) is not None:
+    argostranslate.sbd.stanza.Pipeline = forbidden
+
+ja_en, ja_info = get_translation_pair('ja', 'en')
+en_id, id_info = get_translation_pair('en', 'id')
 preview = str(ja_en.translate('これはテストです') or '').strip()
 translated = str(en_id.translate('This is a test') or '').strip()
 assert preview and preview != 'これはテストです', preview
 assert translated and translated.casefold() != 'This is a test'.casefold(), translated
-print('Argos bridge functional PASS')
+print(json.dumps({{
+    'passed': True,
+    'preview': preview,
+    'translated': translated,
+    'ja_en': ja_info.as_dict(),
+    'en_id': id_info.as_dict(),
+}}, ensure_ascii=False))
 """
-    run([str(python), "-c", functional], phase="Memverifikasi bridge Jepang→Inggris→Indonesia")
-    _write_status(status_root, provider, target_device, runtime_python=python,
-                  model_total_bytes=1, model_downloaded_bytes=1,
-                  model_files=[], model_path="argostranslate-packages", runtime_ready=True,
-                  bridge_ready=True)
+    run([str(python), "-c", functional], phase="Memverifikasi bridge offline Jepang→Inggris→Indonesia dengan MiniSBD")
+    _write_status(
+        status_root, provider, target_device, runtime_python=python,
+        model_total_bytes=1, model_downloaded_bytes=1,
+        model_files=[], model_path="argostranslate-packages", runtime_ready=True,
+        bridge_ready=True,
+        details={
+            "argos_version": ARGOS_TRANSLATE_VERSION,
+            "chunk_type": "MINISBD",
+            "device_type": "cpu",
+            "offline_functional_test": True,
+            "required_pairs": [list(pair) for pair in required_pairs],
+        },
+    )
     emit("bridge_ready", provider=provider, device=target_device, status="ready")
-
 
 def self_test() -> int:
     configure_utf8()

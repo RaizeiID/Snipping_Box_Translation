@@ -10,8 +10,8 @@ APP_VERSION = ".".join(str(part) for part in VERSION) + VERSION_SUFFIX
 APP_VERSION_TAG = f"v{APP_VERSION}"
 APP_NAME = "ORT Translation"
 APP_DISPLAY_NAME = f"{APP_NAME} {APP_VERSION_TAG}"
-RELEASE_NAME = "Engineering Baseline & Resilient Provider Setup"
-RELEASE_CHANNEL = "v9-0-5-engineering-baseline-resilient-provider-setup"
+RELEASE_NAME = "R3 Offline Argos & Native CUDA DLL Repair"
+RELEASE_CHANNEL = "v9-0-5-r3-offline-argos-native-cuda-dll-repair"
 BASE_RELEASE_CHANNEL = "v9-0-4-cloud-locked-provider-benchmark-lab"
 COMPAT_RELEASE_CHANNELS = (
     "v9-0-4-cloud-locked-provider-benchmark-lab",

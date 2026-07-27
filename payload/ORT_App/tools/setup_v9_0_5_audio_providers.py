@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-"""ORT v9.0.5 provider-setup entry point.
+"""ORT v9.0.5 R3 provider-setup entry point.
 
-The implementation remains in ``setup_v9_0_4_audio_providers`` so existing
-v9.0.4 launchers and recovery shortcuts keep working after an in-place update.
-Both entry points execute the same v9.0.5 resilient setup engine.
+The implementation also replaces ``setup_v9_0_4_audio_providers.py`` so older
+recovery shortcuts cannot fall back to the obsolete Hugging Face dry-run path.
 """
 
 from setup_v9_0_4_audio_providers import main

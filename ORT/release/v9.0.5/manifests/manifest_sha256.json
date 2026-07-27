@@ -1,0 +1,14 @@
+{
+  "ORT_App/app/audio/argos_offline.py": "74070e0be4e6348008256dcac127ef304d77ff545483b0aeeb41e5970dadd78f",
+  "ORT_App/app/audio/sherpa_compat.py": "02729a56df87823f0e6d91adea794dd8881ee1c77e232b9c3cffa4b92c714883",
+  "ORT_App/app/audio/windows_dll_resolver.py": "b4c4cd1cbb9a27f3aa7c52b32fa866fd2713ece01d223a0e4cfead18328f8265",
+  "ORT_App/audio_translation_sidecar.py": "7d7a19bf0954d0917b212539ce7ec218e01c022ced71036fc4275485f425dc7d",
+  "ORT_App/build_info.py": "5a228e76159d771ee5184d3a8a63dcb5deccb1a3dec1b98412a4b89ddad51845",
+  "ORT_App/tools/reazon_offline_model_tool.py": "132263b8b7136ba4b53ea2984a2010f5290461a129a8a93ce635cbdacdd3dcfa",
+  "ORT_App/tools/setup_v9_0_4_audio_providers.py": "f14ce043077efb5248fe0dcb47f176fa3b2e9cee9bdcf0cb058f56596507184b",
+  "ORT_App/tools/setup_v9_0_5_audio_providers.py": "6f95a2783ee21c98501f66922ce07d1678c4062608424fb7405b79b446c14b05",
+  "ORT_App/tools/v9_0_5_r1_sherpa_api_repair_test.py": "4a2230242d975e4fa739afc41a5cc431915c59cc62abad08ec19b2a84319d18f",
+  "ORT_App/tools/v9_0_5_r2_reazon_offline_cuda_repair_test.py": "9e68af5e24ddcb3dab1ce54085b3bb4ea06547b8f1274a42661eb7ecbb17477c",
+  "ORT_App/tools/v9_0_5_r3_provider_regression_test.py": "9c252cbb4efee603fc972249b782b21d274074990ad21962d9095545ceed4b44",
+  "VERSION.txt": "bd81f7ff529d54fa607b9c811c2e6876c60c2ccdd22e9dcf4a1a74f6923c4381"
+}

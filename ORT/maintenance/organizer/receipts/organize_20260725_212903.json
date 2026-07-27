@@ -1,0 +1,217 @@
+﻿{
+    "schema":  1,
+    "action":  "ORT version layout organization",
+    "version":  "v9.0.5",
+    "project_root":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1",
+    "created_at":  "2026-07-25T21:29:04.8086651+07:00",
+    "item_count":  23,
+    "items":  [
+                  {
+                      "Category":  "Old patch/applicator",
+                      "Source":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\APPLY_ORT_V9_0_3_STABILITY_REALTIME_DIAGNOSTICS.bat",
+                      "Destination":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT\\archive\\version_updates\\20260725_212903\\patch_files\\APPLY_ORT_V9_0_3_STABILITY_REALTIME_DIAGNOSTICS.bat",
+                      "Type":  "File",
+                      "SizeBytes":  1644,
+                      "Sha256":  "6d26c4d926ee1ff12b8aecd6f623d2a1b70313eb277e9a7c3f1058a8d2c19430",
+                      "MovedAt":  "2026-07-25T21:29:04.7319888+07:00"
+                  },
+                  {
+                      "Category":  "Old patch/applicator",
+                      "Source":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\APPLY_ORT_V9_0_5_ENGINEERING_BASELINE.bat",
+                      "Destination":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT\\archive\\version_updates\\20260725_212903\\patch_files\\APPLY_ORT_V9_0_5_ENGINEERING_BASELINE.bat",
+                      "Type":  "File",
+                      "SizeBytes":  1721,
+                      "Sha256":  "eafcbf7e357670d9a7348c24f9d351db99a6e06f7364194505d4b983290f972e",
+                      "MovedAt":  "2026-07-25T21:29:04.7415354+07:00"
+                  },
+                  {
+                      "Category":  "Old patch/applicator",
+                      "Source":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\APPLY_ORT_V9_0_5_R1_SHERPA_API_REPAIR.bat",
+                      "Destination":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT\\archive\\version_updates\\20260725_212903\\patch_files\\APPLY_ORT_V9_0_5_R1_SHERPA_API_REPAIR.bat",
+                      "Type":  "File",
+                      "SizeBytes":  1721,
+                      "Sha256":  "eafcbf7e357670d9a7348c24f9d351db99a6e06f7364194505d4b983290f972e",
+                      "MovedAt":  "2026-07-25T21:29:04.7436551+07:00"
+                  },
+                  {
+                      "Category":  "Old patch/applicator",
+                      "Source":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\APPLY_ORT_V9_0_5_R2_REAZON_REPAIR.bat",
+                      "Destination":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT\\archive\\version_updates\\20260725_212903\\patch_files\\APPLY_ORT_V9_0_5_R2_REAZON_REPAIR.bat",
+                      "Type":  "File",
+                      "SizeBytes":  1045,
+                      "Sha256":  "f778307ba81b446fc5a16286d648d8f6b53dea5f6aa68926caf927ae72eb0746",
+                      "MovedAt":  "2026-07-25T21:29:04.7458838+07:00"
+                  },
+                  {
+                      "Category":  "Old patch/applicator",
+                      "Source":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\APPLY_ORT_V9_0_5_R2_REAZON_REPAIR.py",
+                      "Destination":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT\\archive\\version_updates\\20260725_212903\\patch_files\\APPLY_ORT_V9_0_5_R2_REAZON_REPAIR.py",
+                      "Type":  "File",
+                      "SizeBytes":  2438,
+                      "Sha256":  "afa7829e3fcc7fcff20c8a09c8ebc2bb219df851055d891396f134664422b855",
+                      "MovedAt":  "2026-07-25T21:29:04.7484771+07:00"
+                  },
+                  {
+                      "Category":  "Old patch/applicator",
+                      "Source":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\APPLY_ORT_V9_0_5_R3_1_PROVIDER_REPAIR.py",
+                      "Destination":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT\\archive\\version_updates\\20260725_212903\\patch_files\\APPLY_ORT_V9_0_5_R3_1_PROVIDER_REPAIR.py",
+                      "Type":  "File",
+                      "SizeBytes":  9518,
+                      "Sha256":  "57bf1f514a0a9b0e2714f55b46704704c29402caa7b26ca5497dcee2cce2f2c6",
+                      "MovedAt":  "2026-07-25T21:29:04.7516066+07:00"
+                  },
+                  {
+                      "Category":  "Old patch/applicator",
+                      "Source":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\APPLY_ORT_V9_0_5_R3_PROVIDER_REPAIR.bat",
+                      "Destination":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT\\archive\\version_updates\\20260725_212903\\patch_files\\APPLY_ORT_V9_0_5_R3_PROVIDER_REPAIR.bat",
+                      "Type":  "File",
+                      "SizeBytes":  1941,
+                      "Sha256":  "4acf0ee1444d6f5c75398134331dff81e82b8a69bfa5ce8cd85b4e6e808b7a33",
+                      "MovedAt":  "2026-07-25T21:29:04.7557567+07:00"
+                  },
+                  {
+                      "Category":  "Old patch/applicator",
+                      "Source":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\APPLY_ORT_V9_0_5_R3_PROVIDER_REPAIR.py",
+                      "Destination":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT\\archive\\version_updates\\20260725_212903\\patch_files\\APPLY_ORT_V9_0_5_R3_PROVIDER_REPAIR.py",
+                      "Type":  "File",
+                      "SizeBytes":  9293,
+                      "Sha256":  "e2117dbe2fe1b933794b0b46be384e76bfdd8861c53f491fe4fe6a6b98880af7",
+                      "MovedAt":  "2026-07-25T21:29:04.7598748+07:00"
+                  },
+                  {
+                      "Category":  "Release manifest",
+                      "Source":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\FULL_PROJECT_MANIFEST_V8_8_1.txt",
+                      "Destination":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT\\release\\v9.0.5\\manifests\\FULL_PROJECT_MANIFEST_V8_8_1.txt",
+                      "Type":  "File",
+                      "SizeBytes":  34843,
+                      "Sha256":  "8143928c207923fd270984cb228cb16c9289ab3b6734ec418607333a477a3c5d",
+                      "MovedAt":  "2026-07-25T21:29:04.7621851+07:00"
+                  },
+                  {
+                      "Category":  "Release manifest",
+                      "Source":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\FULL_PROJECT_MANIFEST_V8_8_1_R3_GITHUB_SAFE.txt",
+                      "Destination":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT\\release\\v9.0.5\\manifests\\FULL_PROJECT_MANIFEST_V8_8_1_R3_GITHUB_SAFE.txt",
+                      "Type":  "File",
+                      "SizeBytes":  1035,
+                      "Sha256":  "ca47fd1e0c895dbfd88683cd5b5b6758f0f5c727e8fc79c0598519ffcbc5efe1",
+                      "MovedAt":  "2026-07-25T21:29:04.7655371+07:00"
+                  },
+                  {
+                      "Category":  "Release manifest",
+                      "Source":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\manifest_sha256.json",
+                      "Destination":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT\\release\\v9.0.5\\manifests\\manifest_sha256.json",
+                      "Type":  "File",
+                      "SizeBytes":  1357,
+                      "Sha256":  "6a63efcdabe6a2ae9f011f731d8a086e6935ace2838e63f80e0d995db24a49de",
+                      "MovedAt":  "2026-07-25T21:29:04.7701614+07:00"
+                  },
+                  {
+                      "Category":  "Manual diagnostic",
+                      "Source":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT_FOLDER_INVENTORY.csv",
+                      "Destination":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT\\debug_bundles\\manual\\20260725_212903\\ORT_FOLDER_INVENTORY.csv",
+                      "Type":  "File",
+                      "SizeBytes":  19403482,
+                      "Sha256":  "98d3b23624605b44d59c504247c7387b85ae1eb50d6b80903e8a20b259e62e08",
+                      "MovedAt":  "2026-07-25T21:29:04.7727590+07:00"
+                  },
+                  {
+                      "Category":  "Manual diagnostic",
+                      "Source":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT_FOLDER_REPORT.zip",
+                      "Destination":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT\\debug_bundles\\manual\\20260725_212903\\ORT_FOLDER_REPORT.zip",
+                      "Type":  "File",
+                      "SizeBytes":  867533,
+                      "Sha256":  "a32c99f28c95ee20cb057cc233173ae6db1d99cdd08a74ad108f59d8beb001e7",
+                      "MovedAt":  "2026-07-25T21:29:04.7748689+07:00"
+                  },
+                  {
+                      "Category":  "Manual diagnostic",
+                      "Source":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT_FOLDER_SUMMARY.csv",
+                      "Destination":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT\\debug_bundles\\manual\\20260725_212903\\ORT_FOLDER_SUMMARY.csv",
+                      "Type":  "File",
+                      "SizeBytes":  293,
+                      "Sha256":  "9189df8204380eb633fbbc449800a01a3cc8a7af9d408e299582bb25b4bb26f0",
+                      "MovedAt":  "2026-07-25T21:29:04.7784680+07:00"
+                  },
+                  {
+                      "Category":  "Manual diagnostic",
+                      "Source":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT_FOLDER_TREE.txt",
+                      "Destination":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT\\debug_bundles\\manual\\20260725_212903\\ORT_FOLDER_TREE.txt",
+                      "Type":  "File",
+                      "SizeBytes":  17497042,
+                      "Sha256":  "c84289f79b0c5c90453dd3507d7a2b18b2cc611ac4a439e442dab4f9b6deb51f",
+                      "MovedAt":  "2026-07-25T21:29:04.7813008+07:00"
+                  },
+                  {
+                      "Category":  "Manual diagnostic",
+                      "Source":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT_MINISBD_DIAGNOSTIC.txt",
+                      "Destination":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT\\debug_bundles\\manual\\20260725_212903\\ORT_MINISBD_DIAGNOSTIC.txt",
+                      "Type":  "File",
+                      "SizeBytes":  755,
+                      "Sha256":  "37525e64784ce2b350c5327955ab3a7cf91d2712682312c8ff199e2d1c676f26",
+                      "MovedAt":  "2026-07-25T21:29:04.7838358+07:00"
+                  },
+                  {
+                      "Category":  "Validation report",
+                      "Source":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT_V9_0_5_R1_VALIDATION_REPORT.md",
+                      "Destination":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT\\release\\v9.0.5\\reports\\ORT_V9_0_5_R1_VALIDATION_REPORT.md",
+                      "Type":  "File",
+                      "SizeBytes":  1424,
+                      "Sha256":  "ee6f0fff1cb4c706b7b95b3711db3d14c6e0bc5ca9e5b06cd97bf4768238ddc9",
+                      "MovedAt":  "2026-07-25T21:29:04.7875960+07:00"
+                  },
+                  {
+                      "Category":  "Validation report",
+                      "Source":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT_V9_0_5_R3_1_VALIDATION_REPORT.md",
+                      "Destination":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT\\release\\v9.0.5\\reports\\ORT_V9_0_5_R3_1_VALIDATION_REPORT.md",
+                      "Type":  "File",
+                      "SizeBytes":  4165,
+                      "Sha256":  "7f32559a13811f01d1bc70701d6484ef54325e1da4055d84b646663732b17340",
+                      "MovedAt":  "2026-07-25T21:29:04.7909407+07:00"
+                  },
+                  {
+                      "Category":  "Validation report",
+                      "Source":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT_V9_0_5_R3_VALIDATION_REPORT.md",
+                      "Destination":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT\\release\\v9.0.5\\reports\\ORT_V9_0_5_R3_VALIDATION_REPORT.md",
+                      "Type":  "File",
+                      "SizeBytes":  3838,
+                      "Sha256":  "72d8100c4c8c11e36b0543fb7ac0604aff1c84a0a8d92ef9d193be632961b021",
+                      "MovedAt":  "2026-07-25T21:29:04.7936816+07:00"
+                  },
+                  {
+                      "Category":  "Validation report",
+                      "Source":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT_V9_0_5_VALIDATION_REPORT.md",
+                      "Destination":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT\\release\\v9.0.5\\reports\\ORT_V9_0_5_VALIDATION_REPORT.md",
+                      "Type":  "File",
+                      "SizeBytes":  1201,
+                      "Sha256":  "236f36c376a9952a12dbf698dbee78a7db105c1d7d7a447c637bb7280011e0a3",
+                      "MovedAt":  "2026-07-25T21:29:04.7983249+07:00"
+                  },
+                  {
+                      "Category":  "Release manifest",
+                      "Source":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\PATCH_SHA256.json",
+                      "Destination":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT\\release\\v9.0.5\\manifests\\PATCH_SHA256.json",
+                      "Type":  "File",
+                      "SizeBytes":  4623,
+                      "Sha256":  "b9c67df75438864bf548a1ea876be9754cf654ef6711dead13b4dcde2dec7c69",
+                      "MovedAt":  "2026-07-25T21:29:04.8014302+07:00"
+                  },
+                  {
+                      "Category":  "Release manifest",
+                      "Source":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\PAYLOAD_SHA256.json",
+                      "Destination":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT\\release\\v9.0.5\\manifests\\PAYLOAD_SHA256.json",
+                      "Type":  "File",
+                      "SizeBytes":  3538,
+                      "Sha256":  "0e43d76f927448dd7473ea00af2a02514e09d0763a8386930e2cbf5e7fec38c8",
+                      "MovedAt":  "2026-07-25T21:29:04.8046381+07:00"
+                  },
+                  {
+                      "Category":  "Manual diagnostic",
+                      "Source":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\RUN_ORT_DIAGNOSTIC.bat",
+                      "Destination":  "D:\\AI TRANSLATOR\\ORT_Translation_v8_8_1\\ORT\\debug_bundles\\manual\\20260725_212903\\RUN_ORT_DIAGNOSTIC.bat",
+                      "Type":  "File",
+                      "SizeBytes":  2321,
+                      "Sha256":  "a1707e5040c3f1ac19ae9ae47d04159f71a14c7f05617dba3f35bbb23a700811",
+                      "MovedAt":  "2026-07-25T21:29:04.8076919+07:00"
+                  }
+              ]
+}

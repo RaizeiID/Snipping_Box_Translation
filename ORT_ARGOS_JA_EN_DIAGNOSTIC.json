@@ -1,0 +1,125 @@
+﻿{
+  "runtime": {
+    "argostranslate": "1.11.0",
+    "ctranslate2": "4.8.1",
+    "sentencepiece": "0.2.2",
+    "minisbd": "0.9.5"
+  },
+  "installed_packages": [
+    {
+      "from_code": "ja",
+      "to_code": "en",
+      "package_version": "1.1",
+      "argos_version": "1.1",
+      "package_path": "C:\\Users\\Raizei\\.local\\share\\argos-translate\\packages\\ja_en",
+      "path_exists": true
+    },
+    {
+      "from_code": "en",
+      "to_code": "id",
+      "package_version": "1.9",
+      "argos_version": "1.9.0",
+      "package_path": "C:\\Users\\Raizei\\.local\\share\\argos-translate\\packages\\translate-en_id-1_9",
+      "path_exists": true
+    },
+    {
+      "from_code": "en",
+      "to_code": "zh",
+      "package_version": "1.9",
+      "argos_version": "1.9.0",
+      "package_path": "C:\\Users\\Raizei\\.local\\share\\argos-translate\\packages\\translate-en_zh-1_9",
+      "path_exists": true
+    },
+    {
+      "from_code": "id",
+      "to_code": "en",
+      "package_version": "1.9",
+      "argos_version": "1.9.0",
+      "package_path": "C:\\Users\\Raizei\\.local\\share\\argos-translate\\packages\\translate-id_en-1_9",
+      "path_exists": true
+    },
+    {
+      "from_code": "zh",
+      "to_code": "en",
+      "package_version": "1.9",
+      "argos_version": "1.9.0",
+      "package_path": "C:\\Users\\Raizei\\.local\\share\\argos-translate\\packages\\translate-zh_en-1_9",
+      "path_exists": true
+    }
+  ],
+  "ja_en_files": [
+    {
+      "relative_path": "metadata.json",
+      "size": 160,
+      "sha256": "a1becb19cb8abfc25d15bd8978cf543215c596876fb4b6d5c2c2a50949ece416"
+    },
+    {
+      "relative_path": "model\\model.bin",
+      "size": 132573333,
+      "sha256": "5d2ac0b0e427aa368b635812853a70b09976d2318bf889a9327488968b501c83"
+    },
+    {
+      "relative_path": "model\\shared_vocabulary.txt",
+      "size": 400498,
+      "sha256": "8e6872bdfa55e2d91334ec5cd24eb6dab86033129639b940c60cd955b0f7a8a7"
+    },
+    {
+      "relative_path": "README.md",
+      "size": 1810,
+      "sha256": "7c90a273d8866a3039d083d1cb6968497273c8fa6a33d94f7525bc560d268187"
+    },
+    {
+      "relative_path": "sentencepiece.model",
+      "size": 787932,
+      "sha256": "af3f880c259f55c62ed6c77c1ebc3cf46d6a95cc7cd8e9fcc78ee75417b987ef"
+    },
+    {
+      "relative_path": "stanza\\ja\\tokenize\\gsd.pt",
+      "size": 1388441,
+      "sha256": "9f2386760bf337f405c9c07143d867a1ee00a4f7ada4c88b91abed5b943dc078"
+    },
+    {
+      "relative_path": "stanza\\resources.json",
+      "size": 434061,
+      "sha256": "3efb2833a67c0184fac2ea9986c04f9585bfb89fb943a4ab1a6bcbed641d6be0"
+    }
+  ],
+  "tests": [
+    {
+      "input": "?????????",
+      "output": "? ?    ",
+      "output_repr": "'? ?    '",
+      "passed": false
+    },
+    {
+      "input": "??????",
+      "output": "",
+      "output_repr": "''",
+      "passed": false
+    },
+    {
+      "input": "???????",
+      "output": "?  ",
+      "output_repr": "'?  '",
+      "passed": false
+    },
+    {
+      "input": "??????????",
+      "output": "? ?    ",
+      "output_repr": "'? ?    '",
+      "passed": false
+    },
+    {
+      "input": "???????????",
+      "output": "? ? ?    ",
+      "output_repr": "'? ? ?    '",
+      "passed": false
+    }
+  ],
+  "pair_info": {
+    "source_code": "ja",
+    "target_code": "en",
+    "chunk_type": "MINISBD",
+    "device_type": "cpu"
+  }
+}
