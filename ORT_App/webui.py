@@ -58,6 +58,8 @@ from app.runtime.model_user_presets import (
     model_user_preset_badge_html,
 )
 from build_info import APP_DISPLAY_NAME, APP_VERSION_TAG, RELEASE_NAME
+from app.ocr.session_config import LANGUAGE_CHOICES as OCR_LANGUAGE_CHOICES, BASIC_RESOURCES, launch_options, basic_capture_defaults
+from app.ui.tutorial import tutorial_html, tutorial_mode_marker, TUTORIAL_CSS, TUTORIAL_JS
 from app.open_architecture import (
     architecture_apply_preset,
     architecture_compare_presets,
@@ -185,6 +187,21 @@ CSS = """
 .mode-buffer-help .q { display:inline-flex; width:22px; height:22px; align-items:center; justify-content:center; border-radius:999px; background:#1d4ed8; color:white; font-weight:900; margin-left:8px; cursor:help; }
 .mode-buffer-help .tip { display:none; margin-top:8px; color:#bfdbfe; font-size:13px; }
 .mode-buffer-help:hover .tip { display:block; }
+/* ORT_V9_0_6_STAGE4 UI levels: generic hover-help chip. Visible in Normal and
+   Developer; the long inline notes (.ort-note and friends) are Developer-only. */
+.ort-help { display:inline-flex; flex-direction:column; border:1px solid rgba(96,165,250,.22); background:rgba(15,23,42,.55); color:#dbeafe; border-radius:12px; padding:7px 11px; margin:2px 0 6px; font-size:13px; }
+.ort-help .q { display:inline-flex; width:20px; height:20px; align-items:center; justify-content:center; border-radius:999px; background:#1d4ed8; color:white; font-weight:900; margin-left:8px; cursor:help; font-size:12px; }
+.ort-help .tip { display:none; margin-top:7px; color:#bfdbfe; font-weight:400; max-width:640px; }
+.ort-help:hover .tip { display:block; }
+.ort-help > b { display:inline-flex; align-items:center; }
+.basic-banner { border:1px solid rgba(52,211,153,.35); background:linear-gradient(135deg, rgba(6,78,59,.55), rgba(15,23,42,.65)); color:#d1fae5; border-radius:16px; padding:14px 18px; margin:6px 0 10px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.basic-banner b { color:#6ee7b7; }
+.overlay-quick { border:1px dashed rgba(148,163,184,.35); border-radius:14px; padding:4px 10px 10px; }
+/* Engine advice: only the verdict is coloured so it draws the eye, while the
+   surrounding explanation stays neutral and readable. */
+.ort-warn { color:#f87171; font-weight:800; }
+.ort-good { color:#4ade80; font-weight:800; }
+.ort-note-inline { color:#fbbf24; font-weight:700; }
 
 .gradio-container {
   max-width: 1520px !important;
@@ -565,6 +582,132 @@ def _on_group_change(group_key: str):
     )
 
 
+def _intent_summary_html(model_title, resource_mode, resource_level, device_resource) -> str:
+    """Render what the current combination adds up to.
+
+    Resolves the same way the launcher does, so what the player reads here is
+    exactly the policy the runtime will apply -- not a separate description that
+    could drift away from the behaviour.
+    """
+    try:
+        from app.runtime.user_intent import resolve_intent
+        from model_strategy import _model_level
+
+        preset = get_model_by_title(model_title)
+        intent = resolve_intent(
+            group=preset.tier,
+            model_key=preset.key,
+            level=_model_level(preset.key, preset.family),
+            resource_mode=resource_mode,
+            resource_level=resource_level,
+            device_resource=device_resource,
+        )
+    except Exception:
+        return "<div class='intent-card'><div class='intent-body'>Kombinasi belum dapat dibaca.</div></div>"
+
+    if intent.release_fragments:
+        rule = (
+            f"Potongan kalimat <b>ditampilkan</b> begitu mencapai "
+            f"{intent.fragment_min_words} kata."
+        )
+    else:
+        rule = "Potongan kalimat <b>ditahan</b> sampai matang."
+    if intent.prefer_final_accuracy:
+        rule += " Hasil final tetap diambil dari jalur akurat (CT2)."
+
+    # ORT_V9_0_7_R20: what past sessions say. Only shown once enough sessions
+    # were actually KEPT -- claiming a habit from two experiments would be
+    # inventing a pattern rather than reporting one.
+    habit = ""
+    try:
+        from app.runtime.intent_history import summarize
+
+        report = summarize(base_dir=PROJECT_ROOT)
+        if report.confident:
+            habit = (
+                f"<div class='intent-habit'><b>Kebiasaan Anda:</b> "
+                f"{report.dominant_share:.0%} dari {report.kept_sessions} sesi yang bertahan "
+                f"memakai tujuan <b>{report.dominant_goal}</b> "
+                f"(core {report.favourite_core}, {report.favourite_ladder}). "
+                + " ".join(report.notes) + "</div>"
+            )
+        elif report.total_sessions:
+            habit = (
+                f"<div class='intent-habit'>Tercatat {report.total_sessions} sesi, "
+                f"{report.kept_sessions} bertahan cukup lama. " + " ".join(report.notes) + "</div>"
+            )
+    except Exception:
+        habit = ""
+
+    return (
+        "<div class='intent-card'>"
+        f"<div class='intent-goal'>{intent.label}</div>"
+        f"<div class='intent-body'>{intent.summary}</div>"
+        f"<div class='intent-rule'>{rule}</div>"
+        f"{habit}"
+        "</div>"
+    )
+
+
+def _audio_intent_summary_html(audio_profile, audio_engine, resource_mode, resource_level, device_resource) -> str:
+    """The same card as the OCR one, read from the audio combination.
+
+    R28: switching the source to Audio used to leave this space blank, even
+    though the audio launcher applies the very same resource ladder. The reading
+    comes from resolve_audio_intent so it shares the tilt machinery with the OCR
+    path instead of being a second description that could drift.
+    """
+    try:
+        from app.runtime.user_intent import resolve_audio_intent
+
+        intent = resolve_audio_intent(
+            profile=audio_profile,
+            engine=audio_engine,
+            resource_mode=resource_mode,
+            resource_level=resource_level,
+            device_resource=device_resource,
+        )
+    except Exception:
+        return "<div class='intent-card'><div class='intent-body'>Kombinasi belum dapat dibaca.</div></div>"
+
+    if intent.release_fragments:
+        rule = (
+            f"Subtitle <b>diperbarui</b> selama ucapan berlangsung, mulai "
+            f"{intent.fragment_min_words} kata."
+        )
+    else:
+        rule = "Subtitle <b>menunggu</b> ucapan selesai sebelum ditampilkan."
+    if intent.prefer_final_accuracy:
+        rule += " Hasil final tetap dikunci dari jalur yang akurat."
+
+    return (
+        "<div class='intent-card'>"
+        f"<div class='intent-goal'>{intent.label}</div>"
+        f"<div class='intent-body'>{intent.summary}</div>"
+        f"<div class='intent-rule'>{rule}</div>"
+        "</div>"
+    )
+
+
+def _on_oa_ocr_group_change(group_key: str):
+    """Repopulate the Lab core list for the chosen family.
+
+    Separate from `_on_group_change` on purpose: it persists
+    `oa_ocr_model_group`/`oa_ocr_model`, so the Lab remembers its own family
+    across reloads and browsing to Lite IDN here does not retarget the Mulai
+    page's picker. Note this covers the picker only -- actually starting a Lab
+    session still goes through `start_model`, which calls `save_prefs` with the
+    started preset's tier, so the Mulai page follows whatever the Lab last ran.
+    That is pre-existing launcher behaviour, not something this handler changes.
+    """
+    if group_key not in GROUP_LABELS:
+        group_key = "normal"
+    choices = available_model_choices(group_key)
+    value = choices[0] if choices else None
+    _save_ui_pref(oa_ocr_model_group=group_key, oa_ocr_model=value)
+    return gr.update(choices=choices, value=value), _core_default_note(value)
+
+
 def _on_model_change(name: str):
     try:
         m = get_model_by_title(name)
@@ -592,41 +735,510 @@ def _save_ui_pref(**updates):
 
 
 def _normalize_ui_mode(mode: str) -> str:
+    # ORT_V9_0_6_STAGE4: three universal UI levels.
     token = str(mode or "recommended").strip().lower()
     if token in {"expert", "developer"}:
         return "developer"
+    if token in {"basic", "simple", "sederhana"}:
+        return "basic"
     return "recommended"
 
 
 def _ui_mode_visibility(mode: str):
     mode = _normalize_ui_mode(mode)
+    basic = mode == "basic"
+    dev = mode == "developer"
     return {
-        "guided_header": mode != "developer",
-        "developer_header": mode == "developer",
-        "recommendation": mode in {"recommended", "developer"},
-        "diagnostic": mode == "developer",
-        "model_controls": mode in {"recommended", "developer"},
-        "advanced_controls": mode == "developer",
-        "runtime_summary": mode == "developer",
-        "hardware": mode == "developer",
-        "policy": mode == "developer",
+        # Banners: Basic gets its own, guided banner stays for Normal.
+        "basic_header": basic,
+        "guided_header": mode == "recommended",
+        "developer_header": dev,
+        # Basic hides everything analytical; the model picker itself stays.
+        "recommendation": not basic,
+        "diagnostic": dev,
+        "model_controls": True,
+        # Split of the old "advanced_controls": core knobs (Mode Buffer,
+        # capture strategy, engine) survive Basic; expert knobs (interval,
+        # OCR resolution, A/B diagnostic) do not.
+        "core_controls": not basic,
+        "expert_controls": not basic,
+        # Basic keeps the model picker itself but drops the verbose game
+        # profile card, the per-model override badge/reset, and the model
+        # detail accordion, matching "bagian model tetap utuh, detail model
+        # dinonaktifkan". The effective/requested status grid is a diagnostic
+        # table; Basic keeps only the plain IDLE/RUNNING/STOP indicator.
+        "profile_card": not basic,
+        "model_detail": not basic,
+        "runtime_status_cards": not basic,
+        "runtime_summary": dev,
+        "hardware": dev,
+        "policy": dev,
+        # Full session logs are available in Basic/Normal (collapsed initially)
+        # and expanded in Developer. Changing UI level never clears the history.
+        "logs": True,
+        # Config mode selector: Basic locks to Otomatis (developer-tuned).
+        "settings_mode": not basic,
+        # Whole tabs. Basic keeps: Mulai, Pengaturan UI, Lab (disederhanakan).
+        "tab_model_browser": not basic,
+        "tab_data": not basic,
+        "tab_shortcut": not basic,
+        "tab_runtime_tools": not basic,
+        # Audio extras that are experiments, not daily controls.
+        "audio_experimental": not basic,
+        # Open Architecture Lab mirrors the same three levels. Only the
+        # architecture differs between the two pages, never the UI level:
+        # Basic keeps preset + game/language + audio source + device + start,
+        # and hides provider contracts, delivery routing, benchmarks, and logs.
+        "lab_expert": not basic,
+        "lab_developer": dev,
     }
+
+
+# Tab hiding is CSS-only, on purpose. gr.Tab(visible=...) behaves differently
+# at build time (button omitted from the DOM) than at runtime (gr.update leaves
+# the button in place), so mixing the two produced a tab strip whose child
+# indexes shifted between a fresh load and a mode switch -- and a Basic session
+# that showed all seven tabs on a wide monitor while looking correct at 1280px,
+# because the extras had merely spilled into Gradio's overflow dropdown.
+# Keeping every tab mounted means the strip always has the same seven tab buttons,
+# so button type-position is stable even with the Tutorial span inserted.
+# The buttons expose no id or aria-controls.
+# These indices track the tab order declared in the Blocks below -- update them
+# together:
+#   1 ORT Tools · 2 Open Architecture Lab · 3 Model Browser · 4 Pengaturan UI
+#   5 Pengolahan Data · 6 Shortcut · 7 Runtime & Tools
+_BASIC_HIDDEN_TAB_INDEXES = (3, 5, 6, 7)
+_HIDDEN_TAB_CSS = "".join(
+    f".tab-container>button:nth-of-type({index})," for index in _BASIC_HIDDEN_TAB_INDEXES
+).rstrip(",") + "{display:none !important}"
+
+
+def _ocr_device_choices(provider_id: str, *, include_hybrid: bool):
+    """Device choices for an OCR engine, marking what it genuinely cannot do.
+
+    Gradio cannot disable a single radio/dropdown option, so an unavailable
+    device is relabelled with a cross and the value is forced back to CPU.
+    That is honest in both directions: the option stays visible so the user can
+    see it exists, but it cannot be selected into a state the engine would
+    silently ignore.
+    """
+    try:
+        from app.ocr.ocr_provider_registry import effective_devices, probe_provider
+
+        devices = effective_devices(provider_id)
+        note = probe_provider(provider_id).get("device_note", "")
+    except Exception:
+        devices, note = ("cpu", "cuda"), ""
+    gpu_ok = "cuda" in devices
+    choices = [("CPU", "cpu")]
+    choices.append(("GPU", "gpu") if gpu_ok else ("GPU ✕ tidak didukung", "gpu"))
+    if include_hybrid:
+        choices.append(("Hybrid", "hybrid") if gpu_ok else ("Hybrid ✕ tidak didukung", "hybrid"))
+    return choices, gpu_ok, note
+
+
+def _ocr_engine_device_update(provider_id: str, current_device: str):
+    """Main page: lock the OCR device picker to CPU for CPU-only engines."""
+    choices, gpu_ok, note = _ocr_device_choices(provider_id, include_hybrid=True)
+    value = str(current_device or "hybrid").lower()
+    if not gpu_ok:
+        value = "cpu"
+    _save_ui_pref(ocr_provider=str(provider_id))
+    status = _ocr_provider_short_status(provider_id)
+    if not gpu_ok:
+        status += "\n\n**Perangkat dikunci ke CPU** — " + str(note)
+    return gr.update(choices=choices, value=value, interactive=gpu_ok), status
+
+
+def _ocr_provider_short_status(provider_id: str) -> str:
+    try:
+        from app.ocr.ocr_provider_registry import probe_provider
+
+        info = probe_provider(provider_id)
+        mark = "✅ siap" if info["ready"] else "⚠️ belum terpasang"
+        return f"{mark} · {info['label']} · {info['backend']} · {info['detail']}"
+    except Exception as exc:
+        return f"Status mesin OCR tidak terbaca: {exc}"
+
+
+def _ocr_device_migrate(value: str) -> str:
+    """Saved 'hybrid' selections become 'gpu'.
+
+    Hybrid is no longer offered for OCR, so an existing preference must resolve
+    to something selectable instead of leaving the dropdown on a dead value.
+    """
+    token = str(value or "hybrid").strip().lower()
+    if token in {"hybrid", "auto", "auto_gpu"}:
+        return "hybrid"
+    return "cpu" if token == "cpu" else "gpu"
+
+
+def _ocr_engine_advice_html(provider_id: str) -> str:
+    return (
+        "<div class='ort-help'><b>Perangkat OCR<span class='q'>?</span></b><div class='tip'>"
+        "CPU memakai prosesor. GPU memakai CUDA jika didukung. Adaptif mengutamakan GPU dan dapat beralih "
+        "ketika ruang VRAM terbatas. Kecepatan bergantung pada perangkat, game, dan mesin OCR yang dipilih. "
+        "Pilihan CPU/GPU dikunci; hanya Adaptif mengizinkan perpindahan otomatis.</div></div>"
+    )
+
+
+def _core_default_note(model_title: str) -> str:
+    """Show the Core's own shipped interval/resolution.
+
+    Interval and OCR resolution are properties of the selected ORT Core, not
+    free-floating knobs, so the UI states what the Core actually ships with.
+    """
+    try:
+        m = get_model_by_title(str(model_title))
+        return (
+            f"**{m.title}** · bawaan: interval **{m.default_interval_ms} ms** · "
+            f"OCR **{m.ocr_resolution_percent}%** · mode **{m.default_mode}** · engine **{m.default_engine}**"
+        )
+    except Exception:
+        return "Bawaan Core tidak terbaca."
+
+
+def _ocr_engine_device_choices(provider_id: str):
+    """CPU/GPU/Hybrid choices, crossing out what the OCR engine cannot do.
+
+    Hybrid depends on a usable GPU, so a CPU-only engine loses both GPU and
+    Hybrid. The remaining CPU entry is marked so it is visibly the only path
+    rather than looking like a coincidence.
+    """
+    try:
+        from app.ocr.ocr_provider_registry import effective_devices
+
+        gpu_ok = "cuda" in effective_devices(provider_id)
+    except Exception:
+        gpu_ok = True
+    # ORT_V9_0_7_R9: Hybrid removed from the OCR picker.
+    # It was measured slower than GPU alone (520 ms vs 148 ms) with no accuracy
+    # gain -- both devices run the same weights, so the outputs were identical
+    # on 3 of 5 resolutions and differed by one character elsewhere. Offering it
+    # only invited a choice that costs latency for nothing. The engine class is
+    # kept in the registry for future experiments but is no longer selectable.
+    # ORT_V9_0_7_R32: the three entries now say what they actually guarantee.
+    # CPU and GPU are LOCKS -- the guard may narrow the run but will not move it
+    # to the other processor, not even when VRAM goes critical. Adaptif is the
+    # only entry that is allowed to switch, and it prefers GPU until VRAM runs
+    # out. Both the main page and the Lab read this same list.
+    if gpu_ok:
+        return [
+            ("CPU · terkunci, tidak pernah pindah", "cpu"),
+            ("GPU · terkunci, tidak pernah pindah", "gpu"),
+            ("Adaptif · utamakan GPU, boleh pindah bila VRAM penuh", "hybrid"),
+        ]
+    return [
+        ("🟠 CPU · satu-satunya yang didukung", "cpu"),
+        ("✕ GPU · tidak didukung mesin ini", "gpu"),
+        ("✕ Adaptif · butuh GPU", "hybrid"),
+    ]
+
+
+def _oa_ocr_engine_sync(provider_id: str, current_device: str):
+    """Keep the Lab's device picker honest about the chosen OCR engine."""
+    choices = _ocr_engine_device_choices(provider_id)
+    try:
+        from app.ocr.ocr_provider_registry import effective_devices
+
+        gpu_ok = "cuda" in effective_devices(provider_id)
+    except Exception:
+        gpu_ok = True
+    value = str(current_device or "hybrid").lower()
+    if not gpu_ok:
+        value = "cpu"
+    return gr.update(choices=choices, value=value, interactive=gpu_ok)
+
+
+def _oa_ocr_provider_table() -> str:
+    try:
+        from app.ocr.ocr_provider_registry import provider_table_markdown
+
+        return provider_table_markdown()
+    except Exception as exc:
+        return f"Registry OCR Lab tidak dapat dibaca: {exc}"
+
+
+def _oa_ocr_refresh_ui():
+    return _oa_ocr_provider_table()
+
+
+def _oa_ocr_setup_ui(provider_id: str, device: str):
+    """Install the selected open-source OCR engine into the WebUI runtime.
+
+    Installs only the selected provider requirements, and reports the pip output
+    verbatim so a failure is visible rather than silently leaving the Lab on a
+    provider that cannot run.
+    """
+    from app.ocr.ocr_provider_registry import normalize_ocr_provider, probe_provider
+
+    pid = normalize_ocr_provider(provider_id)
+    _save_ui_pref(oa_ocr_provider=pid)
+    info = probe_provider(pid)
+    if info["ready"]:
+        return _oa_ocr_provider_table(), f"{info['label']} sudah siap — tidak ada yang perlu dipasang.\n{info['detail']}"
+    if pid == "tesseract":
+        return (
+            _oa_ocr_provider_table(),
+            "Tesseract memerlukan binary sistem, bukan hanya paket Python.\n"
+            "Pasang Tesseract lalu jalankan: pip install pytesseract",
+        )
+    requirement = PROJECT_ROOT / "requirements_ocr_lab.txt"
+    if pid == "easyocr_craft":
+        install_args = ["easyocr"]  # same requirement as requirements_base.txt
+    else:
+        if not requirement.is_file():
+            return _oa_ocr_provider_table(), f"File requirement tidak ditemukan: {requirement}"
+        install_args = ["-r", str(requirement)]
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-m", "pip", "install", *install_args],
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=900,
+        )
+        tail = "\n".join((proc.stdout or "").splitlines()[-14:])
+        err = "\n".join((proc.stderr or "").splitlines()[-8:])
+        after = probe_provider(pid)
+        verdict = "BERHASIL" if proc.returncode == 0 and after["ready"] else "BELUM SIAP"
+        return (
+            _oa_ocr_provider_table(),
+            f"[{verdict}] exit={proc.returncode}\n{tail}\n{err}\n\nstatus: {after['detail']}",
+        )
+    except Exception as exc:
+        return _oa_ocr_provider_table(), f"Pemasangan gagal: {type(exc).__name__}: {exc}"
+
+
+def _ocr_language_update(provider, current):
+    fixed = str(provider) == "rapidocr_onnx"
+    valid = {value for _, value in OCR_LANGUAGE_CHOICES}
+    value = "ch_sim,en" if fixed else (current if current in valid else "en")
+    note = ("RapidOCR menggunakan model bawaan Mandarin/Latin. Pilihan bahasa dikunci; "
+            "untuk tulisan Jepang atau Korea, pilih mesin OCR lain.") if fixed else (
+            "Pilih bahasa tulisan yang terlihat di layar, bukan bahasa suara. Hasil terjemahan: Bahasa Indonesia.")
+    return gr.update(value=value, interactive=not fixed), note
+
+
+def _validated_ocr_options(provider, languages, resource_mode, resource_level, device_resource, workspace):
+    from app.ocr.ocr_provider_registry import normalize_ocr_provider, probe_provider
+    pid = normalize_ocr_provider(provider)
+    info = probe_provider(pid)
+    if not info["ready"]:
+        return None, (f"{info['label']} belum siap. {info['detail']}. "
+                      "Gunakan mesin yang siap atau pasang melalui Open Architecture Lab.")
+    if pid == "rapidocr_onnx" and languages not in {"en", "ch_sim,en"}:
+        return None, "Model RapidOCR bawaan tidak menerapkan paket bahasa pilihan ini. Pilih EasyOCR untuk bahasa tersebut."
+    if pid == "tesseract":
+        from app.ocr.ocr_provider_registry import find_tesseract_binary, tesseract_lang_string
+        try:
+            result = subprocess.run([find_tesseract_binary(), "--list-langs"], capture_output=True,
+                                    text=True, encoding="utf-8", errors="replace", timeout=10)
+            installed = set(result.stdout.splitlines())
+            required = set(tesseract_lang_string(str(languages).split(",")).split("+"))
+            missing = required - installed
+            if result.returncode or missing:
+                return None, "Tesseract belum memiliki paket bahasa yang dibutuhkan: " + ", ".join(sorted(missing)) + ". Pasang traineddata tersebut atau pilih EasyOCR."
+        except Exception as exc:
+            return None, f"Tidak dapat memeriksa paket bahasa Tesseract: {exc}"
+    try:
+        return launch_options(pid, languages, resource_mode, resource_level, device_resource, workspace), ""
+    except ValueError as exc:
+        return None, str(exc)
+
+
+def _oa_ocr_start(game, model, languages, mode, engine_device, mode_buffer,
+                  interval_ms, resolution, resource_mode, resource_level,
+                  device_resource, provider, ui_level=None):
+    """Lab launches an explicit OCR contract without rewriting ORT Tools/audio prefs."""
+    from app.ocr.ocr_provider_registry import effective_devices, normalize_ocr_provider
+    pid = normalize_ocr_provider(provider)
+    is_basic = _normalize_ui_mode(ui_level or _load_saved_prefs().get("ui_mode", "basic")) == "basic"
+    if is_basic:
+        defaults = basic_capture_defaults(_builtin_model_values(model, game), "cuda" in effective_devices(pid))
+        mode, engine_device = defaults["mode"], defaults["engine"]
+        interval_ms, resolution = defaults["interval_ms"], defaults["ocr_resolution"]
+        mode_buffer = False
+        resource_mode, resource_level, device_resource = BASIC_RESOURCE_DEFAULTS
+    elif "cuda" not in effective_devices(pid):
+        engine_device = "cpu"
+    if str(mode).lower() == "interval":
+        interval_ms = max(90, int(interval_ms))
+    options, problem = _validated_ocr_options(pid, languages, resource_mode, resource_level, device_resource, "lab")
+    if problem:
+        return _status_html("STATUS: ERROR"), problem, problem, gr.update()
+    _save_ui_pref(
+        oa_ocr_game=str(game), oa_ocr_model=str(model), oa_ocr_languages=str(languages),
+        oa_ocr_provider=pid,
+    )
+    # Keep advanced Lab preferences when Basic temporarily uses safe defaults.
+    if not is_basic:
+        _save_ui_pref(
+            oa_ocr_mode=str(mode), oa_ocr_engine_device=str(engine_device),
+            oa_ocr_mode_buffer=bool(mode_buffer), oa_ocr_interval_ms=int(interval_ms),
+            oa_ocr_resolution=int(resolution), oa_ocr_resource_mode=str(resource_mode),
+            oa_ocr_resource_level=int(resource_level), oa_ocr_device_resource=str(device_resource),
+        )
+    status, log, msg, notice = start_model(
+        model, game, str(mode), str(engine_device), int(interval_ms),
+        ocr_resolution=int(resolution), settings_mode="recommended" if is_basic else "manual",
+        mode_buffer_enabled=bool(mode_buffer), ocr_options=options,
+    )
+    err = ("**OCR Lab Error:**\n\n```\n" + str(msg) + "\n```") if "ERROR" in (status or "") else ""
+    return _status_html(status), msg, err, str(log or "")
+
+
+def _oa_ocr_core_defaults(title, game):
+    values = _builtin_model_values(title, game)
+    return _core_default_note(title), values["interval_ms"], values["ocr_resolution"]
+
+
+def _oa_ocr_live_tick(enabled):
+    """Refresh the Lab OCR status/log while a session is running."""
+    if not enabled:
+        return gr.update(), gr.update()
+    try:
+        status, log, _msg, _notice = refresh_state()
+        return _status_html(status), str(log or "")
+    except Exception:
+        return gr.update(), gr.update()
+
+
+def _oa_ocr_stop():
+    status, log, msg, _notice = stop_model()
+    return _status_html(status), msg, "", str(log or "")
+
+
+def _oa_ocr_refresh():
+    status, log, msg, _notice = refresh_state()
+    return _status_html(status), msg, "", str(log or "")
+
+
+def _oa_source_updates(source: str, ui_level: str):
+    """Show only the selected Lab source, exactly like the main page does.
+
+    The developer contract panel describes the AUDIO pipeline (source/VAD/ASR/
+    streaming/translation/overlay providers), so it is gated on both the source
+    and the UI level -- otherwise switching to OCR in Developer would leave an
+    audio-only panel on screen.
+    """
+    token = "ocr" if str(source or "audio").lower() == "ocr" else "audio"
+    _save_ui_pref(oa_source=token)
+    is_audio = token == "audio"
+    dev = _normalize_ui_mode(ui_level) == "developer"
+    # Showing the OCR runtime panel must also re-apply the UI level to its
+    # children. Without this, arriving at Lab -> OCR while already in Basic
+    # revealed the tuning sliders, because the level handler had run earlier
+    # when the panel was still hidden and nothing re-applied it afterwards.
+    expert = _ui_mode_visibility(ui_level)["expert_controls"]
+    return (
+        gr.update(visible=not is_audio),   # oa_ocr_panel
+        gr.update(visible=not is_audio),   # oa_ocr_runtime_panel
+        gr.update(visible=is_audio),       # oa_preset_panel
+        gr.update(visible=is_audio),       # oa_audio_panel
+        gr.update(visible=is_audio and dev),  # oa_developer_panel
+        gr.update(visible=(not is_audio) and expert),  # oa_ocr_tuning_panel
+        gr.update(visible=(not is_audio) and expert),  # oa_ocr_resource_panel
+    )
+
+
+def _oa_banner_html(mode: str) -> str:
+    """Lab banner for the universal UI level."""
+    mode = _normalize_ui_mode(mode)
+    if mode == "developer":
+        return (
+            "<div class='developer-banner'><span class='developer-tag'>Developer workspace</span>"
+            "<b>Seluruh kontrak pipeline dan diagnostik ditampilkan.</b>"
+            "<span>Gunakan mode ini saat membangun provider, memeriksa ID internal, A/B test, JSON plan, dan log runtime.</span></div>"
+        )
+    if mode == "basic":
+        return (
+            "<div class='basic-banner'><b>Mode Basic aktif.</b>"
+            "<span>Halaman ini memakai arsitektur open-source (komunitas/GitHub). "
+            "Untuk OCR: pilih mesin pembaca, game, dan bahasa tulisan, lalu tekan Mulai OCR Lab. Untuk Audio, pilih preset dan mulai Audio Lab. "
+            "Pengaturan teknis OCR memakai profil otomatis; pilihan lanjutan tersedia di Normal.</span></div>"
+        )
+    return (
+        "<div class='guided-banner'><b>Normal Mode:</b>"
+        "<span>Pilih sumber, periksa status mesin, lalu mulai sesi OCR atau Audio Lab. "
+        "Detail provider tetap disembunyikan agar alur penggunaan konsisten.</span></div>"
+    )
+
+
+def _ui_mode_css(mode: str) -> str:
+    """Per-level stylesheet injected as a live <style> element.
+
+    Long inline notes are tagged with existing classes (.smallnote, .mode-guide,
+    .pro-hint, .audio-flow-grid) plus .ort-note for new ones. Developer shows
+    them inline; Normal collapses them into hover chips (.ort-help) so the page
+    stays clean but the explanation is one hover away; Basic hides both.
+    """
+    mode = _normalize_ui_mode(mode)
+    if mode == "developer":
+        return "<style id='ort-ui-level'></style>"
+    # Long-form prose that Normal collapses into hover chips.
+    hide_notes = ".smallnote,.mode-guide,.pro-hint,.audio-flow-grid,.ort-note,.ort-dev-only{display:none !important}"
+    if mode == "basic":
+        # Basic also drops every descriptive subtitle: the section blurbs under
+        # each card title, the hero paragraph, the Lab banner paragraph, the
+        # release-note accordion, and the hover chips themselves.
+        return (
+            "<style id='ort-ui-level'>"
+            + hide_notes
+            + ".ort-help,.ocr-technical,.intent-summary{display:none !important}"
+            + ".mode-buffer-help{display:none !important}"
+            + ".section-copy{display:none !important}"
+            + ".hero-subtitle{display:none !important}"
+            + ".oa-lab-banner p{display:none !important}"
+            + ".oa-lab-banner{padding:12px 18px !important}"
+            + ".release-notes{display:none !important}"
+            + ".hero{padding:12px 16px !important;border-radius:16px !important}.hero h1{font-size:25px !important}"
+            + ".workspace-card{padding:10px !important}.source-stage{padding:8px 10px !important;margin:4px 0 !important}"
+            + ".source-stage .setup-header{display:none !important}.setup-header{margin:0 0 6px !important}"
+            + ".basic-banner{padding:10px 12px !important}.gradio-container{padding-top:12px !important}"
+            + _HIDDEN_TAB_CSS
+            + "</style>"
+        )
+    return "<style id='ort-ui-level'>" + hide_notes + "</style>"
+
+
+_UI_LEVEL_TO_LAB = {"basic": "basic", "recommended": "normal", "developer": "developer"}
+_LAB_TO_UI_LEVEL = {"basic": "basic", "normal": "recommended", "developer": "developer"}
 
 
 def _ui_mode_updates(mode: str):
     mode = _normalize_ui_mode(mode)
-    _save_ui_pref(ui_mode=mode)
+    # Persist both keys here so the Lab radio needs no handler of its own.
+    _save_ui_pref(ui_mode=mode, oa_ui_mode=_UI_LEVEL_TO_LAB[mode])
     v = _ui_mode_visibility(mode)
+    # Visibility only -- never write settings_mode's VALUE here. settings_mode
+    # .change is wired to _apply_recommendation, which rewrites the model,
+    # engine, interval, and OCR resolution and then writes back into
+    # settings_mode itself. Setting the value from this handler silently
+    # discarded a user's "Manual" configuration on every Basic switch and fed
+    # a re-entrant cascade back into this same control.
+    settings_update = gr.update(visible=v["settings_mode"])
     return (
+        gr.update(visible=v["basic_header"]),
         gr.update(visible=v["guided_header"]),
-        gr.update(visible=v["developer_header"]),
+        gr.update(),  # Developer-only panel visibility is controlled by .ort-dev-only CSS.
         gr.update(visible=v["recommendation"]),
-        gr.update(visible=v["diagnostic"]),
+        gr.update(),  # Developer-only panel visibility is controlled by .ort-dev-only CSS.
         gr.update(visible=v["model_controls"]),
-        gr.update(visible=v["advanced_controls"]),
-        gr.update(visible=v["runtime_summary"]),
-        gr.update(visible=v["hardware"]),
-        gr.update(visible=v["policy"]),
+        gr.update(visible=v["core_controls"]),
+        gr.update(visible=v["expert_controls"]),
+        gr.update(),  # Developer-only panel visibility is controlled by .ort-dev-only CSS.
+        gr.update(),  # Developer-only panel visibility is controlled by .ort-dev-only CSS.
+        gr.update(),  # Developer-only panel visibility is controlled by .ort-dev-only CSS.
+        gr.update(visible=v["logs"], open=mode == "developer"),
+        settings_update,
+        gr.update(visible=v["audio_experimental"]),
+        _ui_mode_css(mode),
+        gr.update(value=_UI_LEVEL_TO_LAB[mode]),
+        gr.update(visible=v["profile_card"]),
+        gr.update(visible=v["model_detail"]),
+        gr.update(visible=v["runtime_status_cards"]),
+        # Lab OCR tuning/resource follow the same rule as the main page: Basic
+        # gets the Core's tested defaults and no sliders to misconfigure.
+        gr.update(visible=v["expert_controls"]),
+        gr.update(visible=v["expert_controls"]),
     )
 
 
@@ -720,6 +1332,10 @@ def _translation_source_updates(source: str, profile: str = "normal", audio_mode
         gr.update(visible=not is_ocr),
         gr.update(visible=is_ocr),
         gr.update(visible=not is_ocr),
+        # R28: the workspace card always describes audio, whichever source is
+        # active, but it has to be re-probed here too -- otherwise it keeps the
+        # value it was built with at page load and drifts from the card above.
+        _translation_source_status_html("audio", profile, audio_mode, audio_engine, audio_usage),
     )
 
 
@@ -753,9 +1369,24 @@ def _audio_language_for_game(game: str, current_language: str):
     return current
 
 
+# ORT v9.0.7 R28 -----------------------------------------------------------
+# The audio status is rendered by TWO components -- `source_status` under
+# "Sumber aktif" and `audio_availability` inside the AUDIO WORKSPACE -- but the
+# handlers only ever updated one of them. Switching the source refreshed
+# `source_status`; changing the device, engine or usage refreshed
+# `audio_availability`. So the page could show, at the same moment:
+#
+#     Mesin efektif=LOCAL_LIVE; perangkat lokal=HYBRID     (top)
+#     Mesin efektif=LOCAL_LIVE; perangkat lokal=CPU        (workspace)
+#
+# Reproduced in both directions. Every handler below already computes exactly
+# the HTML the other component needs -- `_setup_audio_ui` was already returning
+# it twice -- so the fix is to hand the same value to both everywhere, and wire
+# both components into every handler's outputs.
 def _refresh_audio_devices_ui(audio_mode: str, profile: str, audio_engine: str, audio_usage: str):
     choices, value, message = audio_devices_for_ui(True, audio_mode, audio_engine)
-    return gr.update(choices=choices, value=value), message, _translation_source_status_html("audio", profile, audio_mode, audio_engine, audio_usage)
+    status_html = _translation_source_status_html("audio", profile, audio_mode, audio_engine, audio_usage)
+    return gr.update(choices=choices, value=value), message, status_html, status_html
 
 
 def _setup_audio_ui(audio_mode: str, profile: str, audio_engine: str, audio_usage: str):
@@ -769,12 +1400,14 @@ def _setup_audio_ui(audio_mode: str, profile: str, audio_engine: str, audio_usag
 def _audio_mode_updates(audio_mode: str, profile: str, audio_engine: str, audio_usage: str):
     mode = str(audio_mode or "hybrid").lower()
     choices, value, _ = audio_devices_for_ui(False, mode, audio_engine)
+    status_html = _translation_source_status_html("audio", profile, mode, audio_engine, audio_usage)
     return (
         _audio_profile_description(profile, mode),
         gr.update(value=f"Siapkan Fallback Lokal {mode.upper()}" if str(audio_engine) != "local" else f"Siapkan Audio {mode.upper()}"),
-        _translation_source_status_html("audio", profile, mode, audio_engine, audio_usage),
+        status_html,
         audio_runtime_status_text(profile, mode, audio_engine, audio_usage),
         gr.update(choices=choices, value=value),
+        status_html,
     )
 
 
@@ -783,25 +1416,29 @@ def _audio_engine_updates(audio_engine: str, audio_mode: str, profile: str, audi
     _save_ui_pref(audio_engine=engine)
     choices, value, message = audio_devices_for_ui(False, audio_mode, engine)
     setup_label = f"Siapkan Audio {str(audio_mode).upper()}" if engine == "local" else f"Siapkan Fallback Lokal {str(audio_mode).upper()}"
+    status_html = _translation_source_status_html("audio", profile, audio_mode, engine, audio_usage)
     return (
-        _translation_source_status_html("audio", profile, audio_mode, engine, audio_usage),
+        status_html,
         audio_runtime_status_text(profile, audio_mode, engine, audio_usage),
         gr.update(choices=choices, value=value),
         message,
         gr.update(value=setup_label),
+        status_html,
     )
 
 
 def _audio_usage_updates(audio_usage: str, profile: str, audio_mode: str, audio_engine: str):
     usage = str(audio_usage or "live_media").lower()
     _save_ui_pref(audio_usage=usage)
-    return _translation_source_status_html("audio", profile, audio_mode, audio_engine, usage)
+    status_html = _translation_source_status_html("audio", profile, audio_mode, audio_engine, usage)
+    return status_html, status_html
 
 
 def _setup_audio_cloud_ui(audio_engine: str, profile: str, audio_mode: str, audio_usage: str):
     message = setup_audio_cloud_runtime_text()
     combined = message + "\n\n" + audio_cloud_runtime_status_text()
-    return combined, _translation_source_status_html("audio", profile, audio_mode, audio_engine, audio_usage)
+    status_html = _translation_source_status_html("audio", profile, audio_mode, audio_engine, audio_usage)
+    return combined, status_html, status_html
 
 
 def _save_audio_cloud_ui(region: str, api_key: str, language: str, audio_engine: str, profile: str, audio_mode: str, audio_usage: str):
@@ -813,13 +1450,15 @@ def _save_audio_cloud_ui(region: str, api_key: str, language: str, audio_engine:
     }.get(str(language or "").lower(), str(language or "ja-JP"))
     message = save_audio_cloud_config_from_ui(region, api_key, source_locale, "id")
     combined = message + "\n\n" + audio_cloud_runtime_status_text()
-    return combined, gr.update(value=""), _translation_source_status_html("audio", profile, audio_mode, audio_engine, audio_usage)
+    status_html = _translation_source_status_html("audio", profile, audio_mode, audio_engine, audio_usage)
+    return combined, gr.update(value=""), status_html, status_html
 
 
 def _clear_audio_cloud_ui(audio_engine: str, profile: str, audio_mode: str, audio_usage: str):
     message = clear_audio_cloud_credentials_text()
     combined = message + "\n\n" + audio_cloud_runtime_status_text()
-    return combined, _translation_source_status_html("audio", profile, audio_mode, audio_engine, audio_usage)
+    status_html = _translation_source_status_html("audio", profile, audio_mode, audio_engine, audio_usage)
+    return combined, status_html, status_html
 
 
 def _upload_path(value) -> str:
@@ -966,7 +1605,28 @@ def _refresh_all(game: str):
     return _status_html(status), runtime_summary_text(), log, err_md, notice_md
 
 
-def _start(model, game, mode, engine, interval_ms, ocr_resolution, settings_mode, responsive_story_mode, diagnostic_profile, mode_buffer_enabled, translation_source="ocr"):
+def _start(model, game, mode, engine, interval_ms, ocr_resolution, settings_mode, responsive_story_mode, diagnostic_profile, mode_buffer_enabled, translation_source="ocr", resource_mode="stable", resource_level=3, device_resource="adaptive", provider="easyocr_craft", languages="en", ui_level=None):
+    # ORT_V9_0_7: persist the ladder before launching so start() -- which reads
+    # it from prefs -- scales the OCR interval, resolution, and CT2 beam from
+    # exactly what the user has on screen. Basic is forced to the locked
+    # default here too, mirroring the audio path.
+    saved_ui_mode = _normalize_ui_mode(ui_level or _load_saved_prefs().get("ui_mode", "basic"))
+    if saved_ui_mode == "basic":
+        from app.ocr.ocr_provider_registry import effective_devices
+        defaults = basic_capture_defaults(_builtin_model_values(model, game), "cuda" in effective_devices(provider))
+        mode, engine = defaults["mode"], defaults["engine"]
+        interval_ms, ocr_resolution = defaults["interval_ms"], defaults["ocr_resolution"]
+        settings_mode = defaults["settings_mode"]
+        responsive_story_mode, diagnostic_profile, mode_buffer_enabled = False, "baseline", False
+        resource_mode, resource_level, device_resource = BASIC_RESOURCE_DEFAULTS
+    options, problem = _validated_ocr_options(provider, languages, resource_mode, resource_level, device_resource, "tools")
+    if problem:
+        return _status_html("STATUS: ERROR"), runtime_summary_text(), gr.update(), problem, problem, ""
+    options["basic"] = saved_ui_mode == "basic"
+    from app.ocr.ocr_provider_registry import effective_devices
+    if "cuda" not in effective_devices(provider):
+        engine = "cpu"
+    _save_ui_pref(ocr_provider=provider, ocr_languages=languages)
     if str(translation_source or "ocr").strip().lower() != "ocr":
         _, log, _, notice = refresh_state()
         msg = (
@@ -983,7 +1643,7 @@ def _start(model, game, mode, engine, interval_ms, ocr_resolution, settings_mode
             interval_ms = 90
     except Exception:
         pass
-    status, log, msg, notice = start_model(model, game, mode, engine, interval_ms, ocr_resolution, "normal" if manual else "auto", manual, settings_mode, bool(responsive_story_mode), str(diagnostic_profile or "baseline"), bool(mode_buffer_enabled))
+    status, log, msg, notice = start_model(model, game, mode, engine, interval_ms, ocr_resolution, "normal" if manual else "auto", manual, settings_mode, bool(responsive_story_mode), str(diagnostic_profile or "baseline"), bool(mode_buffer_enabled), ocr_options=options)
     err_md = ""
     if "ERROR" in (status or ""):
         err_md = f"**Error:**\n\n```\n{msg}\n```"
@@ -991,8 +1651,34 @@ def _start(model, game, mode, engine, interval_ms, ocr_resolution, settings_mode
     return _status_html(status), runtime_summary_text(), log, msg, err_md, notice_md
 
 
-def _start_audio(model, game, input_mode, device_index, language, language_correction, language_lock, processing, audio_usage, audio_engine, audio_mode, profile, test_file):
+def _load_saved_prefs() -> dict:
+    """Fresh read of webui_prefs.json (the module-level PREFS is a boot snapshot)."""
+    try:
+        path = PROJECT_ROOT / "webui_prefs.json"
+        if path.exists():
+            data = json.loads(path.read_text(encoding="utf-8-sig"))
+            if isinstance(data, dict):
+                return data
+    except Exception:
+        pass
+    return {}
+
+
+def _start_audio(model, game, input_mode, device_index, language, language_correction, language_lock, processing, audio_usage, audio_engine, audio_mode, profile, vad_backend, resource_mode, resource_level, device_resource, test_file):
     file_path = _upload_path(test_file)
+    saved = _load_saved_prefs()
+    # The subtitle effect lives on the Pengaturan UI page; read the saved value
+    # at start time so that page stays the single source of truth.
+    overlay_stream_mode = str(saved.get("audio_overlay_stream_mode", "default") or "default").lower()
+    if overlay_stream_mode not in {"default", "typewriter"}:
+        overlay_stream_mode = "default"
+    # ORT_V9_0_7: Basic always runs the developer-chosen ladder default, no
+    # matter what values the (hidden) controls still hold from earlier modes.
+    if _normalize_ui_mode(saved.get("ui_mode", "recommended")) == "basic":
+        resource_mode, resource_level, device_resource = BASIC_RESOURCE_DEFAULTS
+    resource_mode = _norm_resource_mode(resource_mode)
+    resource_level = _norm_resource_level(resource_level)
+    device_resource = _norm_device_resource(device_resource)
     _save_ui_pref(
         translation_source="audio",
         audio_input_mode=str(input_mode or "loopback"),
@@ -1005,6 +1691,10 @@ def _start_audio(model, game, input_mode, device_index, language, language_corre
         audio_mode=str(audio_mode or "hybrid"),
         audio_usage=str(audio_usage or "live_media"),
         audio_engine=str(audio_engine or "azure_fallback"),
+        audio_vad_backend=str(vad_backend or "auto"),
+        audio_resource_mode=resource_mode,
+        audio_resource_level=resource_level,
+        device_resource=device_resource,
     )
     status, log, msg, notice = start_audio_model(
         model,
@@ -1020,6 +1710,11 @@ def _start_audio(model, game, input_mode, device_index, language, language_corre
         audio_engine,
         language_correction,
         language_lock,
+        vad_backend,
+        overlay_stream_mode,
+        resource_mode,
+        resource_level,
+        device_resource,
     )
     err_md = ""
     if "ERROR" in (status or ""):
@@ -1203,21 +1898,17 @@ def _oa_ui_mode_is_developer(mode: str) -> bool:
 
 
 def _oa_ui_mode_updates(mode: str):
-    token = "developer" if _oa_ui_mode_is_developer(mode) else "normal"
+    # ORT_V9_0_6_STAGE4: the Lab shares the universal Basic/Normal/Developer
+    # level. Lab internals treat Basic like Normal (preset → status → start);
+    # the difference is the banner and that the choice syncs across pages.
+    token = str(mode or "normal").strip().lower()
+    if token not in {"basic", "normal", "developer"}:
+        token = "developer" if _oa_ui_mode_is_developer(token) else "normal"
     _save_ui_pref(oa_ui_mode=token)
-    if token == "developer":
-        help_html = (
-            "<div class='developer-banner'><span class='developer-tag'>Developer workspace</span>"
-            "<b>Seluruh kontrak pipeline dan diagnostik ditampilkan.</b>"
-            "<span>Gunakan mode ini saat membangun provider, memeriksa ID internal, A/B test, JSON plan, dan log runtime.</span></div>"
-        )
-    else:
-        help_html = (
-            "<div class='guided-banner'><b>Normal Mode:</b>"
-            "<span>pilih preset → periksa status siap → tekan Mulai Audio Lab. "
-            "Detail provider tetap disembunyikan agar alur penggunaan konsisten.</span></div>"
-        )
-    return gr.update(value=help_html), gr.update(visible=token == "developer")
+    return (
+        gr.update(value=_oa_banner_html(_LAB_TO_UI_LEVEL.get(token, "recommended"))),
+        gr.update(visible=token == "developer"),
+    )
 
 
 def _oa_overlay_mode_updates(mode: str):
@@ -1249,14 +1940,16 @@ def _oa_game_profile_updates(game: str, current_language: str):
 
 
 def _oa_resource_policy_updates(policy: str):
-    token = str(policy or "normal").strip().lower()
-    if token not in {"efficient", "normal", "optimal"}:
-        token = "normal"
+    # ORT_V9_0_7: the Lab shares the unified ladder tokens. Legacy names
+    # (normal/optimal) keep resolving through the same normalizer.
+    from app.runtime.resource_levels import normalize_resource_mode
+
+    token = normalize_resource_mode(policy)
     _save_ui_pref(oa_resource_policy=token)
     descriptions = {
-        "efficient": "**Efficient:** satu stream ASR ringan, tanpa koreksi model kedua, konteks lebih pendek, prioritas stabilitas dan penggunaan resource rendah.",
-        "normal": "**Normal:** satu model utama yang stabil. Japanese Specialist tetap digunakan ketika dipilih, tetapi dual-stream correction dimatikan.",
-        "optimal": "**Optimal:** mengukur headroom VRAM dan latency preflight. GPU hanya dipakai ketika cukup sehat; jika tidak, sistem beralih ke CPU single-stream.",
+        "efficient": "**Efisien:** latensi serendah dan beban seringan mungkin — beam kecil, thread ditekan, final dipercepat; akurasi dikorbankan sesuai level. VRAM guard menuntut headroom besar sehingga GPU sibuk otomatis jatuh ke CPU.",
+        "stable": "**Stabil:** tanpa hambatan adalah prioritas — decode lebih jarang, margin besar, penjaga VRAM konservatif agar game tidak pernah berebut resource dengan ASR.",
+        "intensive": "**Intensive:** akurasi maksimal — jendela kalimat panjang, beam besar, koreksi specialist aktif di level tinggi; berat dan mengharapkan GPU dengan VRAM lega.",
     }
     return descriptions[token]
 
@@ -1785,6 +2478,11 @@ def _oa_start_audio_ui(
         oa_overlay_show_source=bool(overlay_show_source),
         oa_overlay_alignment=str(overlay_alignment or "left"),
     )
+    # ORT_V9_0_7: the Lab reuses the ladder level/device saved on the main
+    # page; resource_policy_environment() reads these as its fallback.
+    _lab_saved = _load_saved_prefs()
+    os.environ["ORT_AUDIO_RESOURCE_LEVEL"] = str(_norm_resource_level(_lab_saved.get("audio_resource_level", 3)))
+    os.environ["ORT_DEVICE_RESOURCE"] = _norm_device_resource(_lab_saved.get("device_resource", "adaptive"))
     status, log, msg, notice = architecture_start_audio(
         game,
         input_mode,
@@ -1898,9 +2596,22 @@ default_model = PREFS.get("model", basic_choices[0] if basic_choices else None)
 if default_model not in basic_choices:
     default_model = basic_choices[0] if basic_choices else None
 _initial_model_preset = get_model_user_preset(default_model) if default_model else {}
+
+# The Lab keeps its own model family, so testing Lite there does not rewrite the
+# family the Mulai page is set to. Before this the Lab reused `basic_choices`,
+# which is built once from the Mulai family, and the Lab had no family picker of
+# its own -- so it could only ever list Normal V1-V5 and the Lite / IDN / Lite
+# IDN / Fast cores were unreachable from that page.
+oa_ocr_initial_group = PREFS.get("oa_ocr_model_group", initial_group)
+if oa_ocr_initial_group not in GROUP_LABELS:
+    oa_ocr_initial_group = "normal"
+oa_ocr_choices = available_model_choices(oa_ocr_initial_group)
+oa_ocr_default_model = PREFS.get("oa_ocr_model", None)
+if oa_ocr_default_model not in oa_ocr_choices:
+    oa_ocr_default_model = oa_ocr_choices[0] if oa_ocr_choices else None
 init_proc = _proc_payload(PREFS.get("game", "GFL2_EXILIUM"))
 seed_data = get_game_data(PREFS.get("game", "GFL2_EXILIUM"))
-INITIAL_UI_MODE = _normalize_ui_mode(PREFS.get("ui_mode", "recommended"))
+INITIAL_UI_MODE = _normalize_ui_mode(PREFS.get("ui_mode", "basic"))
 _INITIAL_VIS = _ui_mode_visibility(INITIAL_UI_MODE)
 INITIAL_TRANSLATION_SOURCE = str(PREFS.get("translation_source", "ocr") or "ocr").lower()
 if INITIAL_TRANSLATION_SOURCE not in {"ocr", "audio"}:
@@ -1921,6 +2632,40 @@ INITIAL_AUDIO_LANGUAGE_CORRECTION = str(PREFS.get("audio_language_correction", "
 if INITIAL_AUDIO_LANGUAGE_CORRECTION not in {"off", "conservative", "balanced", "aggressive"}:
     INITIAL_AUDIO_LANGUAGE_CORRECTION = "balanced"
 INITIAL_AUDIO_LANGUAGE_LOCK = bool(PREFS.get("audio_language_lock", False))
+# ORT_V9_0_6_STAGE4
+INITIAL_AUDIO_VAD_BACKEND = str(PREFS.get("audio_vad_backend", "auto") or "auto").lower()
+if INITIAL_AUDIO_VAD_BACKEND not in {"auto", "heuristic", "silero", "hybrid"}:
+    INITIAL_AUDIO_VAD_BACKEND = "auto"
+INITIAL_AUDIO_OVERLAY_STREAM_MODE = str(PREFS.get("audio_overlay_stream_mode", "default") or "default").lower()
+if INITIAL_AUDIO_OVERLAY_STREAM_MODE not in {"default", "typewriter"}:
+    INITIAL_AUDIO_OVERLAY_STREAM_MODE = "default"
+# ORT_V9_0_7: RESOURCE_LADDER prefs.
+from app.runtime.resource_levels import (  # noqa: E402
+    LEVEL_LABELS as RESOURCE_LEVEL_LABELS,
+    normalize_device_resource as _norm_device_resource,
+    normalize_resource_level as _norm_resource_level,
+    normalize_resource_mode as _norm_resource_mode,
+    resolve_resource_plan,
+)
+
+INITIAL_RESOURCE_MODE = _norm_resource_mode(PREFS.get("audio_resource_mode", "stable"))
+INITIAL_RESOURCE_LEVEL = _norm_resource_level(PREFS.get("audio_resource_level", 3))
+INITIAL_DEVICE_RESOURCE = _norm_device_resource(PREFS.get("device_resource", "adaptive"))
+# Basic locks the ladder to the developer-chosen default (Stabil-Menengah).
+BASIC_RESOURCE_DEFAULTS = BASIC_RESOURCES
+
+# Overlay page defaults mirror AudioOverlay's env defaults in audio_main.py.
+INITIAL_OVERLAY_MODE = str(PREFS.get("audio_overlay_mode", "adaptive") or "adaptive").lower()
+if INITIAL_OVERLAY_MODE not in {"adaptive", "fixed", "custom"}:
+    INITIAL_OVERLAY_MODE = "adaptive"
+INITIAL_OVERLAY_WIDTH = max(40, min(100, int(PREFS.get("audio_overlay_width_percent", 92) or 92)))
+INITIAL_OVERLAY_HEIGHT = max(100, min(720, int(PREFS.get("audio_overlay_height_px", 190) or 190)))
+INITIAL_OVERLAY_FONT = max(10, min(30, int(PREFS.get("audio_overlay_font_size", 15) or 15)))
+INITIAL_OVERLAY_OPACITY = max(45, min(100, int(PREFS.get("audio_overlay_opacity_percent", 91) or 91)))
+INITIAL_OVERLAY_ALIGNMENT = str(PREFS.get("audio_overlay_alignment", "left") or "left").lower()
+if INITIAL_OVERLAY_ALIGNMENT not in {"left", "center"}:
+    INITIAL_OVERLAY_ALIGNMENT = "left"
+INITIAL_OVERLAY_SHOW_SOURCE = bool(PREFS.get("audio_overlay_show_source", True))
 INITIAL_AUDIO_MODE = str(PREFS.get("audio_mode", "hybrid") or "hybrid").lower()
 if INITIAL_AUDIO_MODE not in {"cpu", "gpu", "hybrid"}:
     INITIAL_AUDIO_MODE = "hybrid"
@@ -1945,13 +2690,28 @@ _OA_ASR_CHOICES = architecture_provider_choices("asr")
 _OA_STREAMING_CHOICES = architecture_provider_choices("streaming")
 _OA_TRANSLATION_CHOICES = architecture_provider_choices("translation")
 _OA_OVERLAY_CHOICES = architecture_provider_choices("overlay")
-INITIAL_OA_UI_MODE = "developer" if str(PREFS.get("oa_ui_mode", "normal")).lower() in {"developer", "expert"} else "normal"
+# ORT_V9_0_6_STAGE4: the Lab starts on the same universal level as the main
+# page so both radios agree; whichever the user changes last wins for both.
+INITIAL_OA_UI_MODE = _UI_LEVEL_TO_LAB[_normalize_ui_mode(PREFS.get("ui_mode", "recommended"))]
+INITIAL_OA_SOURCE = "ocr" if str(PREFS.get("oa_source", "ocr")).lower() == "ocr" else "audio"
+# ORT_V9_0_7_R5: open-source OCR engines available to the Lab.
+try:
+    from app.ocr.ocr_provider_registry import PROVIDERS as _OCR_PROVIDERS, normalize_ocr_provider as _norm_ocr_provider
+
+    _OA_OCR_CHOICES = [
+        (f"{spec.label} · {spec.backend} · ~{spec.approx_weights_mb} MB", pid)
+        for pid, spec in _OCR_PROVIDERS.items()
+    ]
+    INITIAL_OA_OCR_PROVIDER = _norm_ocr_provider(PREFS.get("oa_ocr_provider", "easyocr_craft"))
+    INITIAL_OCR_PROVIDER = _norm_ocr_provider(PREFS.get("ocr_provider", "easyocr_craft"))
+except Exception:
+    _OA_OCR_CHOICES = [("EasyOCR · CRAFT + CRNN", "easyocr_craft")]
+    INITIAL_OA_OCR_PROVIDER = "easyocr_craft"
+    INITIAL_OCR_PROVIDER = "easyocr_craft"
 INITIAL_OA_OVERLAY_MODE = str(PREFS.get("oa_overlay_mode", "adaptive") or "adaptive").lower()
 if INITIAL_OA_OVERLAY_MODE not in {"adaptive", "fixed", "custom"}:
     INITIAL_OA_OVERLAY_MODE = "adaptive"
-INITIAL_OA_RESOURCE_POLICY = str(PREFS.get("oa_resource_policy", "normal") or "normal").lower()
-if INITIAL_OA_RESOURCE_POLICY not in {"efficient", "normal", "optimal"}:
-    INITIAL_OA_RESOURCE_POLICY = "normal"
+INITIAL_OA_RESOURCE_POLICY = _norm_resource_mode(PREFS.get("oa_resource_policy", "stable"))
 INITIAL_OA_ASR_MODEL_PROVIDER = normalize_asr_model_provider(PREFS.get("oa_asr_model_provider", PROVIDER_KOTOBA))
 INITIAL_OA_DELIVERY_MODE = str(PREFS.get("oa_delivery_mode", "offline") or "offline").lower()
 if INITIAL_OA_DELIVERY_MODE not in {"offline", "online", "hybrid"}:
@@ -1973,11 +2733,13 @@ _OA_INITIAL_RUNTIME_STATUS = architecture_runtime_validation_text(
     INITIAL_OA_LANGUAGE, 2, INITIAL_OA_UI_MODE,
 )
 
+CSS += TUTORIAL_CSS
+
 with gr.Blocks(title=APP_DISPLAY_NAME) as demo:
     gr.HTML(
         f"<div class='hero'><div class='hero-topline'>"
         f"<span class='release-badge'>{APP_VERSION_TAG}</span>"
-        "<span class='release-channel'>Original Pipeline · Open Architecture Lab</span>"
+        "<span class='release-channel'>ORT Tools · Open Architecture Lab</span>"
         f"</div><h1>{APP_DISPLAY_NAME}</h1>"
         f"<p class='hero-subtitle'>{RELEASE_NAME}. Pilih sumber terjemahan, game, dan tingkat tampilan; "
         "pengaturan lanjutan hanya muncul ketika benar-benar dibutuhkan.</p></div>"
@@ -1987,15 +2749,36 @@ with gr.Blocks(title=APP_DISPLAY_NAME) as demo:
             candidate_notice = gr.HTML("")
         with gr.Column(scale=1, elem_id="exit_btn"):
             exit_btn = gr.Button("Exit", variant="stop")
+    # ORT_V9_0_6_STAGE4: live stylesheet driven by the universal UI level.
+    ui_level_css = gr.HTML(_ui_mode_css(INITIAL_UI_MODE), visible=True)
 
-    with gr.Tabs():
-        with gr.Tab("Mulai"):
+    tutorial_mode_signal = gr.HTML(tutorial_mode_marker(INITIAL_UI_MODE), apply_default_css=False, elem_id="ort-tutorial-mode-signal")
+    gr.HTML(tutorial_html(INITIAL_UI_MODE), js_on_load=TUTORIAL_JS, apply_default_css=False, elem_id="ort-tutorial")
+
+    with gr.Tabs(elem_id="ort-workspaces") as main_tabs:
+        with gr.Tab("ORT Tools", id="tab_mulai"):
             with gr.Group(elem_classes=["workspace-card"]):
-                gr.HTML("<div class='setup-header'><div><div class='section-kicker'>Persiapan</div><div class='section-title'>Atur sesi penerjemahan</div><div class='section-copy'>Pilih game dan sudut pandang. Normal menjaga halaman tetap ringkas; Developer menampilkan seluruh parameter pembangunan, runtime, dan diagnostik.</div></div><span class='step-badge'>1</span></div>")
+                gr.HTML("<div class='setup-header'><div><div class='section-kicker'>Persiapan</div><div class='section-title'>Atur sesi penerjemahan</div><div class='section-copy'>Pilih game dan bahasa teks di layar. Basic membantu Anda langsung menerjemahkan; Normal dan Developer menyediakan pengaturan tambahan.</div></div><span class='step-badge'>1</span></div>")
                 with gr.Row():
                     game_dropdown = gr.Dropdown(label="Game", choices=GAME_CHOICES, value=PREFS.get("game", "GFL2_EXILIUM"))
-                    ui_mode = gr.Radio(label="Tingkat tampilan", choices=[("Normal", "recommended"), ("Developer", "developer")], value=INITIAL_UI_MODE, elem_id="ui_level")
-                    settings_mode = gr.Radio(label="Konfigurasi", choices=[("Otomatis", "recommended"), ("Manual", "manual")], value=PREFS.get("settings_mode", "recommended"))
+                    ui_mode = gr.Radio(
+                        label="Tingkat tampilan",
+                        choices=[("Basic · Sederhana", "basic"), ("Normal", "recommended"), ("Developer", "developer")],
+                        value=INITIAL_UI_MODE,
+                        elem_id="ui_level",
+                    )
+                    settings_mode = gr.Radio(
+                        label="Konfigurasi",
+                        choices=[("Otomatis", "recommended"), ("Manual", "manual")],
+                        value="recommended" if INITIAL_UI_MODE == "basic" else PREFS.get("settings_mode", "recommended"),
+                        visible=_INITIAL_VIS["settings_mode"],
+                    )
+                gr.HTML(
+                    "<div class='ort-help'><b>Tingkat tampilan<span class='q'>?</span></b>"
+                    "<div class='tip'><b>Basic</b> menyederhanakan seluruh halaman: pengaturan teknis dikunci pada nilai yang sudah "
+                    "ditentukan developer, log dan panel analitis disembunyikan. <b>Normal</b> membuka kustomisasi dengan tampilan bersih — "
+                    "penjelasan muncul saat kursor diarahkan seperti ini. <b>Developer</b> menampilkan seluruh instruksi, diagnostik, dan alasan desain.</div></div>"
+                )
                 gr.HTML("<div class='smallnote'><b>Otomatis</b> memakai profil aman sesuai game. <b>Manual</b> mempertahankan pilihan model, engine, interval, dan resolusi OCR Anda.</div>")
 
             with gr.Group(elem_classes=["source-stage"]):
@@ -2008,53 +2791,148 @@ with gr.Blocks(title=APP_DISPLAY_NAME) as demo:
                 )
                 source_status = gr.HTML(_translation_source_status_html(INITIAL_TRANSLATION_SOURCE, INITIAL_AUDIO_PROFILE, INITIAL_AUDIO_MODE, INITIAL_AUDIO_ENGINE, INITIAL_AUDIO_USAGE))
 
+            basic_header_panel = gr.HTML(
+                "<div class='basic-banner'><b>Mulai menerjemahkan layar</b><span>1. Pilih game dan bahasa teks. "
+                "2. Gunakan profil bawaan lalu tekan Mulai OCR. 3. Pilih area dialog pada layar game. "
+                "F1 untuk jeda, F2 untuk memilih ulang area, Stop untuk mengakhiri sesi. Pengaturan teknis ditentukan otomatis.</span></div>",
+                visible=_INITIAL_VIS["basic_header"],
+            )
+            with gr.Group(visible=_INITIAL_VIS["expert_controls"]) as audio_resource_panel:
+                gr.HTML("<div class='section-kicker'>Resource program &amp; perangkat</div>")
+                with gr.Row():
+                    audio_resource_mode = gr.Radio(
+                        label="Mode resource program",
+                        choices=[
+                            ("Efisien · Latensi & ringan", "efficient"),
+                            ("Stabil · Tanpa hambatan", "stable"),
+                            ("Intensive · Akurasi maksimal", "intensive"),
+                        ],
+                        value=INITIAL_RESOURCE_MODE,
+                    )
+                    device_resource_radio = gr.Radio(
+                        label="Resource perangkat",
+                        choices=[
+                            ("Hemat · Tekan CPU/GPU/RAM", "saver"),
+                            ("Adaptif · Rekomendasi", "adaptive"),
+                            ("Kualitas Optimal · Pakai headroom", "quality"),
+                        ],
+                        value=INITIAL_DEVICE_RESOURCE,
+                    )
+                audio_resource_level = gr.Slider(
+                    label="Level resource · Terendah → Rendah → Menengah → Tinggi → Maks",
+                    minimum=1, maximum=5, step=1,
+                    value=INITIAL_RESOURCE_LEVEL,
+                )
+                gr.HTML(
+                    "<div class='ort-help'><b>Mode &amp; level resource<span class='q'>?</span></b>"
+                    "<div class='tip'>Level berarti «makin banyak keunggulan mode itu». <b>Efisien Maks</b> = sistem "
+                    "tercepat &amp; teringan (beam 1, thread ±50%, final dipercepat) dengan akurasi dikorbankan. "
+                    "<b>Stabil Maks</b> = margin terbesar — GPU lama/VRAM sempit tetap mulus. <b>Intensive Maks</b> = "
+                    "pemrosesan lebih teliti (beam hingga 2; konteks audio hingga 96 kata) dan paling berat. Ujung tangga "
+                    "saling bersentuhan: Efisien-Terendah ≈ Stabil-Maks, jadi tiga «Menengah» itu benar-benar tiga "
+                    "runtime berbeda. Resource perangkat mengatur mesinnya: Hemat menekan thread &amp; menaikkan "
+                    "penjaga VRAM; Kualitas Optimal memakai headroom penuh.</div></div>"
+                )
+
             guided_header_panel = gr.HTML(
                 "<div class='guided-banner'><b>Alur cepat:</b><span>pilih OCR atau Audio → gunakan pengaturan bawaan → tekan tombol Mulai yang sesuai. Panel teknis tetap tersimpan tetapi tidak memenuhi layar.</span></div>",
                 visible=_INITIAL_VIS["guided_header"],
             )
             developer_header_panel = gr.HTML(
                 "<div class='developer-banner'><span class='developer-tag'>Developer workspace</span><b>Kontrol profesional aktif.</b><span>Model, capture, OCR, engine, policy, runtime, hardware, dan diagnostic tersedia dalam satu workspace.</span></div>",
-                visible=_INITIAL_VIS["developer_header"],
+                visible=True, elem_classes=["ort-dev-only"],
             )
 
             with gr.Row():
                 with gr.Column(scale=3):
                     with gr.Group(visible=INITIAL_TRANSLATION_SOURCE == "ocr", elem_classes=["transition-panel"]) as ocr_runtime_panel:
                         gr.HTML("<div class='setup-header'><div><div class='section-kicker'>OCR workspace</div><div class='section-title'>Konfigurasi pembacaan layar</div></div><span class='step-badge'>3</span></div>")
-                        game_profile_card = gr.HTML(profile_html(PREFS.get("game", "GFL2_EXILIUM"), _settings_mode_is_manual(PREFS.get("settings_mode", "recommended"))))
+                        ocr_languages = gr.Dropdown(label="Bahasa teks di layar (bukan suara)", choices=OCR_LANGUAGE_CHOICES, value="ch_sim,en" if INITIAL_OCR_PROVIDER == "rapidocr_onnx" else PREFS.get("ocr_languages", "en"), interactive=INITIAL_OCR_PROVIDER != "rapidocr_onnx")
+                        ocr_language_note = gr.Markdown(_ocr_language_update(INITIAL_OCR_PROVIDER, "en")[1])
+                        game_profile_card = gr.HTML(profile_html(PREFS.get("game", "GFL2_EXILIUM"), _settings_mode_is_manual(PREFS.get("settings_mode", "recommended"))), visible=_INITIAL_VIS["profile_card"])
                         with gr.Accordion("Rekomendasi sistem", open=False, visible=_INITIAL_VIS["recommendation"]) as recommendation_panel:
                             gr.HTML("<div class='pro-hint'>Alasan pemilihan model, Safe Game, Fast, CPU/GPU, resolusi OCR, dan interval.</div>")
                             recommendation_box = gr.Textbox(label="Rekomendasi", value=recommendation_text(PREFS.get("game", "GFL2_EXILIUM"), _settings_mode_is_manual(PREFS.get("settings_mode", "recommended"))), interactive=False, lines=11, elem_classes=["mono"])
                             apply_rec_btn = gr.Button("Terapkan rekomendasi", variant="secondary")
-                        with gr.Accordion("Diagnostic dashboard", open=False, visible=_INITIAL_VIS["diagnostic"]) as dashboard_diagnostic_panel:
+                        with gr.Accordion("Diagnostic dashboard", open=False, visible=True, elem_classes=["ort-dev-only"]) as dashboard_diagnostic_panel:
                             gr.HTML("<div class='pro-hint'>Strategy, core bridge, runtime action, cache, Online Assist, Fast engine, dan session log.</div>")
                             diagnostic_box = gr.Textbox(label="Diagnostic", value=diagnostic_text(), interactive=False, lines=16, elem_classes=["mono"])
                             refresh_diag_btn = gr.Button("Refresh diagnostic")
                         with gr.Group(visible=_INITIAL_VIS["model_controls"]) as model_controls_panel:
                             with gr.Row():
-                                model_group = gr.Radio(label="Keluarga model", choices=group_choices(), value=initial_group)
-                                model_dropdown = gr.Dropdown(label="Model", choices=basic_choices, value=default_model)
-                            model_default_msg = gr.HTML(model_user_preset_badge_html(default_model))
-                            reset_model_default_btn = gr.Button("Reset default model", elem_id="reset_model_default_btn", visible=model_user_preset_is_modified(default_model))
-                            with gr.Accordion("Detail model terpilih", open=False):
-                                model_md = gr.Markdown(_model_desc(default_model))
-                            with gr.Group(visible=_INITIAL_VIS["advanced_controls"], elem_classes=["developer-controls", "transition-panel"]) as advanced_controls_panel:
-                                gr.HTML(f"<div class='section-kicker'>Advanced OCR controls · {APP_VERSION_TAG}</div><div class='smallnote'>Perubahan Mode / Engine / Interval / OCR disimpan otomatis per model. Badge <b style='color:#fb923c'>• Modification</b> menandai override dari default bawaan.</div>")
+                                model_group = gr.Radio(label="Keluarga model", choices=group_choices(), value=initial_group, elem_classes=["ocr-technical"])
+                                model_dropdown = gr.Dropdown(label="Profil terjemahan", choices=basic_choices, value=default_model)
+                            with gr.Group(visible=_INITIAL_VIS["model_detail"]) as model_detail_panel:
+                                model_default_msg = gr.HTML(model_user_preset_badge_html(default_model))
+                                reset_model_default_btn = gr.Button("Reset default model", elem_id="reset_model_default_btn", visible=model_user_preset_is_modified(default_model))
+                                with gr.Accordion("Detail model terpilih", open=False):
+                                    model_md = gr.Markdown(_model_desc(default_model))
+                            # ORT_V9_0_6_STAGE4: core controls survive Basic
+                            # (Mode Buffer, capture strategy, engine); expert
+                            # controls (interval, resolution, A/B) do not.
+                            with gr.Group(visible=_INITIAL_VIS["core_controls"], elem_classes=["transition-panel"]) as core_controls_panel:
+                                gr.HTML(f"<div class='section-kicker'>Kontrol utama · {APP_VERSION_TAG}</div><div class='smallnote'>Perubahan Mode / Engine disimpan otomatis per model. Badge <b style='color:#fb923c'>• Modification</b> menandai override dari default bawaan.</div>")
                                 mode_buffer_checkbox = gr.Checkbox(label="Mode Buffer", value=bool(PREFS.get("mode_buffer_enabled", False)))
                                 gr.HTML("<div class='mode-buffer-help' title='Mode Buffer menambahkan jeda kecil terkontrol agar final terjemahan lebih lengkap/stabil saat rekaman. Default OFF.'><b>Mode Buffer</b><span class='q'>?</span><div class='tip'>Menambahkan buffer kecil terkontrol untuk membantu hasil story lebih lengkap. Opsi ini dapat menambah sedikit latensi dan tetap OFF secara default.</div></div>")
                                 with gr.Row():
                                     mode_dropdown = gr.Dropdown(label="Strategi capture", choices=[("Auto / Story Otomatis", "auto"), ("Freeze Manual / Klik User", "freeze"), ("Interval / Freeze Otomatis", "interval")], value=_initial_model_preset.get("mode", PREFS.get("mode", "auto")))
-                                    engine_dropdown = gr.Dropdown(label="Engine OCR / Terjemahan", choices=[("CPU", "cpu"), ("GPU", "gpu"), ("Hybrid", "hybrid")], value=_initial_model_preset.get("engine", PREFS.get("engine", "hybrid")))
+                                    engine_dropdown = gr.Dropdown(label="Mesin OCR (perangkat)", choices=_ocr_engine_device_choices(INITIAL_OCR_PROVIDER), value=_ocr_device_migrate(_initial_model_preset.get("engine", PREFS.get("engine", "gpu"))))
+                                gr.HTML(_ocr_engine_advice_html(INITIAL_OCR_PROVIDER))
+                                gr.HTML(
+                                    "<div class='ort-help'><b>Strategi capture<span class='q'>?</span></b>"
+                                    "<div class='tip'>Auto mengikuti teks dialog progresif; Freeze memproses klik manual; "
+                                    "Interval mengambil snapshot otomatis dengan jeda tetap. Perangkat menentukan eksekusi OCR: "
+                                    "CPU untuk kompatibilitas, GPU jika tersedia, Adaptif mengizinkan perpindahan otomatis.</div></div>"
+                                )
+                            # ORT_V9_0_7_R5: engine choice on the main page too.
+                            # Lives outside the expert panel because which
+                            # engine runs changes latency and accuracy more
+                            # than any other single OCR setting.
+                            with gr.Group(elem_classes=["transition-panel"]) as ocr_engine_panel:
+                                gr.HTML("<div class='section-kicker'>Mesin OCR</div>")
+                                ocr_provider = gr.Dropdown(
+                                    label="Mesin pembaca teks · gunakan bawaan jika belum yakin",
+                                    choices=_OA_OCR_CHOICES,
+                                    value=INITIAL_OCR_PROVIDER,
+                                )
+                                gr.HTML("<div class='ort-help'><b>Mesin pembaca<span class='q'>?</span></b><div class='tip'>Gunakan EasyOCR sebagai bawaan. Mesin lain dapat dicoba di Open Architecture Lab. Kecepatan dan akurasi dipengaruhi font, bahasa tulisan, area tangkapan, dan perangkat pengguna.</div></div>")
+
+                                ocr_provider_status = gr.Markdown(_ocr_provider_short_status(INITIAL_OCR_PROVIDER))
+                            with gr.Group(visible=_INITIAL_VIS["expert_controls"], elem_classes=["developer-controls", "transition-panel"]) as expert_controls_panel:
+                                gr.HTML(f"<div class='section-kicker'>Advanced OCR controls · {APP_VERSION_TAG}</div><div class='smallnote'>Interval dan resolusi disimpan otomatis per model. Nilai di luar rekomendasi dapat menurunkan akurasi story.</div>")
                                 responsive_story_mode = gr.Checkbox(label="Responsive Story / Dialog Cepat", value=bool(PREFS.get("responsive_story_mode", False)))
-                                gr.Markdown(f"Memprioritaskan dialog terbaru, membuang hasil generasi lama, dan mempertahankan overlay sampai hasil baru siap pada {APP_VERSION_TAG}.")
+                                gr.Markdown(f"Memprioritaskan dialog terbaru, membuang hasil generasi lama, dan mempertahankan overlay sampai hasil baru siap pada {APP_VERSION_TAG}.", elem_classes=["ort-note"])
                                 with gr.Row():
                                     interval_slider = gr.Slider(label="Interval capture (ms)", minimum=45, maximum=1200, step=5, value=max(45, int(_initial_model_preset.get("interval_ms", PREFS.get("interval_ms", 160)))))
-                                    ocr_resolution_slider = gr.Slider(label="Resolusi OCR (%)", minimum=5, maximum=100, step=5, value=int(_initial_model_preset.get("ocr_resolution", PREFS.get("ocr_resolution", 65))))
+                                    ocr_resolution_slider = gr.Slider(label="Resolusi OCR (%)", minimum=40, maximum=100, step=1, value=int(_initial_model_preset.get("ocr_resolution", PREFS.get("ocr_resolution", 65))))
+                                gr.HTML(
+                                    "<div class='ort-help'><b>Interval &amp; Resolusi<span class='q'>?</span></b>"
+                                    "<div class='tip'>Interval = jeda antar tangkapan layar (ms); lebih kecil lebih responsif tetapi lebih berat. Mode Interval memakai batas minimum 90 ms. "
+                                    "Resolusi OCR = persentase skala gambar sebelum dibaca; lebih tinggi lebih akurat tetapi lebih lambat.</div></div>"
+                                )
                                 with gr.Accordion("Profil diagnostic A/B", open=False):
                                     diagnostic_profile = gr.Dropdown(label="Profil uji", choices=[("Baseline Correctness", "baseline"), ("Responsive Story", "responsive_story"), ("Diagnostic No-Name-ROI", "diagnostic_no_name_roi")], value=str(PREFS.get("diagnostic_profile", "baseline")))
                                     gr.Markdown("**Peringatan:** No-Name-ROI hanya untuk pengukuran performa; label KSVK/Helen/Helena dapat hilang atau salah.")
                                 gr.HTML("<div class='mode-guide'><b>Strategi capture:</b> Auto mengikuti teks dialog progresif; Freeze memproses klik manual; Interval mengambil snapshot otomatis dengan jeda tetap.</div>")
-                        performance_policy_info = gr.Markdown("**Performance policy:** Fast CT2 dipertahankan ketika aktif; OCR ultra-rendah tidak direkomendasikan untuk story. Status card membedakan requested dan effective settings.", visible=_INITIAL_VIS["policy"])
+                        performance_policy_info = gr.Markdown("**Performance policy:** Fast CT2 dipertahankan ketika aktif; OCR ultra-rendah tidak direkomendasikan untuk story. Status card membedakan requested dan effective settings.", visible=True, elem_classes=["ort-dev-only"])
+                        # ORT_V9_0_7_R19: what the chosen COMBINATION adds up to.
+                        # Core, resource mode, and device resource are each shown
+                        # on their own above; this is the only place that reads
+                        # them together and states the resulting goal -- which is
+                        # also what decides whether unfinished fragments are shown
+                        # or held, so the player can see why the overlay behaves
+                        # the way it does.
+                        with gr.Group(elem_classes=["intent-summary"]):
+                            gr.HTML("<div class='section-kicker'>Kesimpulan kombinasi</div><div class='smallnote'>Dibaca dari Core + mode resource + resource perangkat. Menentukan apakah potongan kalimat yang belum selesai ditampilkan atau ditahan.</div>")
+                            intent_summary_box = gr.HTML(_intent_summary_html(
+                                default_model,
+                                INITIAL_RESOURCE_MODE,
+                                INITIAL_RESOURCE_LEVEL,
+                                INITIAL_DEVICE_RESOURCE,
+                            ))
+                        with gr.Group(elem_classes=["overlay-quick"]):
+                            gr.HTML("<div class='section-kicker'>Overlay subtitle</div><div class='smallnote'>Tampilan box terjemahan diatur terpusat di halaman Pengaturan UI.</div>")
+                            ocr_overlay_jump_btn = gr.Button("Panduan tampilan subtitle OCR", variant="secondary")
 
                     with gr.Group(visible=INITIAL_TRANSLATION_SOURCE == "audio", elem_classes=["audio-preview", "transition-panel"]) as audio_preview_panel:
                         gr.HTML("<div class='setup-header'><div><div class='section-kicker'>Audio workspace</div><div class='section-title'>Real-Time Video Translation</div><div class='section-copy'>Audio video/game dikirim sebagai aliran satu arah per 20 ms. Azure maupun Local Live memperbarui subtitle selama karakter masih berbicara; jeda hanya mengunci final dan tidak lagi memulai proses terjemahan.</div></div><span class='step-badge'>3</span></div>")
@@ -2119,6 +2997,47 @@ with gr.Blocks(title=APP_DISPLAY_NAME) as demo:
                                 label="Kunci bahasa utama (code-switch sementara tetap dideteksi)",
                                 value=INITIAL_AUDIO_LANGUAGE_LOCK,
                             )
+                        # ORT_V9_0_7: RESOURCE_LADDER controls.
+                        with gr.Group(visible=_INITIAL_VIS["audio_experimental"]) as audio_experimental_panel:
+                            audio_vad_backend = gr.Radio(
+                                label="Deteksi suara (VAD) · uji coba",
+                                choices=[
+                                    ("Auto · Ikuti mode resource", "auto"),
+                                    ("Heuristik · Energi RMS (default lama)", "heuristic"),
+                                    ("Silero VAD · Neural", "silero"),
+                                    ("Hybrid · Energi + Silero", "hybrid"),
+                                ],
+                                value=INITIAL_AUDIO_VAD_BACKEND,
+                            )
+                            gr.HTML(
+                                "<div class='ort-help'><b>Deteksi suara (VAD)<span class='q'>?</span></b>"
+                                "<div class='tip'>Heuristik hanya mengukur kerasnya suara sehingga BGM/SFX game sering dikira dialog. "
+                                "Silero adalah model neural kecil yang sudah ikut terpasang. Hybrid memakai energi sebagai penyaring murah "
+                                "lalu Silero sebagai penentu. Jika model Silero tidak ditemukan, sistem otomatis kembali ke Heuristik.</div></div>"
+                            )
+                            gr.Markdown(
+                                "**VAD:** Heuristik hanya mengukur kerasnya suara, sehingga BGM/SFX game sering dikira dialog. "
+                                "Silero adalah model neural (1,25 MB, sudah ikut terpasang bersama faster-whisper — tidak ada unduhan baru) "
+                                "dan biayanya terukur ±0,37% dari satu core CPU. Hybrid memakai energi sebagai penyaring murah lalu "
+                                "Silero sebagai penentu. Jika model Silero tidak ditemukan, sistem otomatis kembali ke Heuristik tanpa gagal.",
+                                elem_classes=["ort-note"],
+                            )
+                        # R28: same slot and same framing as the OCR page --
+                        # below the resource ladder, above Overlay subtitle.
+                        # Audio used to leave it empty even though the launcher
+                        # applies the very same ladder on this path.
+                        with gr.Group(elem_classes=["intent-summary"]):
+                            gr.HTML("<div class='section-kicker'>Kesimpulan kombinasi</div><div class='smallnote'>Dibaca dari profil ASR + mesin audio + mode resource + resource perangkat. Menentukan apakah subtitle diperbarui selama ucapan berlangsung atau menunggu ucapan selesai.</div>")
+                            audio_intent_summary_box = gr.HTML(_audio_intent_summary_html(
+                                INITIAL_AUDIO_PROFILE,
+                                INITIAL_AUDIO_ENGINE,
+                                INITIAL_RESOURCE_MODE,
+                                INITIAL_RESOURCE_LEVEL,
+                                INITIAL_DEVICE_RESOURCE,
+                            ))
+                        with gr.Group(elem_classes=["overlay-quick"]):
+                            gr.HTML("<div class='section-kicker'>Overlay subtitle</div><div class='smallnote'>Gunakan F4–F8 saat OCR aktif untuk mengatur gaya, posisi, font, dan lebar subtitle. Panduan tersedia di Pengaturan UI.</div>")
+                            audio_overlay_jump_btn = gr.Button("🎛️ Buka Pengaturan Overlay & Efek", variant="secondary")
                         audio_profile = gr.Radio(
                             label="Respons subtitle / profil fallback",
                             choices=[("Instant · Paling real-time", "speed"), ("Balanced · Rekomendasi", "normal"), ("Accurate · Jeda lebih longgar", "accurate")],
@@ -2157,14 +3076,14 @@ with gr.Blocks(title=APP_DISPLAY_NAME) as demo:
                     with gr.Group(elem_classes=["workspace-card"]):
                         gr.HTML("<div class='section-kicker'>Runtime monitor</div><div class='section-title'>Status aktif</div>")
                         state_box = gr.HTML(_status_html("STATUS: IDLE"))
-                        runtime_status_cards = gr.HTML(runtime_effective_status_html())
-                        with gr.Accordion("Runtime ringkas", open=False, visible=_INITIAL_VIS["runtime_summary"]) as runtime_summary_panel:
+                        runtime_status_cards = gr.HTML(runtime_effective_status_html(), visible=_INITIAL_VIS["runtime_status_cards"])
+                        with gr.Accordion("Runtime ringkas", open=False, visible=True, elem_classes=["ort-dev-only"]) as runtime_summary_panel:
                             runtime_box = gr.Textbox(label="Runtime summary", value=runtime_summary_text(), interactive=False, lines=6, elem_classes=["mono"])
-                        with gr.Accordion("Spesifikasi perangkat", open=False, visible=_INITIAL_VIS["hardware"]) as hardware_panel:
+                        with gr.Accordion("Spesifikasi perangkat", open=False, visible=True, elem_classes=["ort-dev-only"]) as hardware_panel:
                             hardware_box = gr.Textbox(label="Hardware", value=hardware_summary_text(), interactive=False, lines=8, elem_classes=["mono"])
                         error_box = gr.Markdown("")
 
-            with gr.Accordion("Aktivitas, Live Log & AI Recap", open=INITIAL_UI_MODE == "developer", elem_classes=["log-accordion"]):
+            with gr.Accordion("Aktivitas, Live Log & AI Recap", open=INITIAL_UI_MODE == "developer", visible=_INITIAL_VIS["logs"], elem_classes=["log-accordion"]) as logs_accordion:
                 with gr.Row():
                     gr.HTML("""
                     <div class='copylog-wrap'>
@@ -2173,9 +3092,9 @@ with gr.Blocks(title=APP_DISPLAY_NAME) as demo:
                     </div>
                     """)
                     prompt_btn = gr.Button("Buat prompt recap")
-                    reset_live_log_btn = gr.Button("Reset live log")
                     analyze_session_btn = gr.Button("Analyze last session")
-                log_box = gr.Textbox(label="Live log", lines=16, interactive=False, autoscroll=True, elem_classes=["logbox"], elem_id="live_log")
+                gr.Markdown("Log lengkap disimpan selama sesi. Stop mempertahankan log; Mulai OCR/Audio berikutnya memulai log baru.")
+                log_box = gr.Textbox(label="Live log sesi lengkap", lines=16, interactive=False, autoscroll=True, elem_classes=["logbox"], elem_id="live_log")
                 ai_prompt_box = gr.Textbox(label="Prompt AI Recap", value="", interactive=False, lines=10, elem_classes=["mono"], elem_id="ai_prompt_box")
                 session_report_box = gr.Textbox(label="Analisis sesi / rekomendasi performa", value="", interactive=False, lines=9, elem_classes=["mono"])
                 gr.HTML("""
@@ -2186,17 +3105,561 @@ with gr.Blocks(title=APP_DISPLAY_NAME) as demo:
                   <span id='aicopy_status' style='color:#a7f3d0;align-self:center'></span>
                 </div>
                 """)
-            with gr.Accordion("Catatan rilis dan kompatibilitas", open=False):
+            with gr.Accordion("Catatan rilis dan kompatibilitas", open=False, elem_classes=["release-notes"]):
                 gr.Markdown(USER_NOTE)
 
-        with gr.Tab("Model Browser"):
+        with gr.Tab("Open Architecture Lab", id="tab_lab"):
+            gr.HTML(
+                "<div class='oa-lab-banner'><h2>ORT Open Architecture Lab</h2>"
+                "<p>Uji mesin OCR open-source dengan alur eksperimen Lab. ORT Tools memakai pipeline pengembangan ORT. "
+                "Normal Mode menyediakan alur sederhana; Developer Mode membuka provider, kontrak runtime, A/B, JSON, dan diagnostik. "
+                "Satu ProcessManager tetap mencegah pipeline produksi dan Lab berjalan bersamaan.</p></div>"
+            )
+
+            with gr.Group(elem_classes=["workspace-card"]):
+                gr.HTML("<div class='setup-header'><div><div class='section-kicker'>Tampilan Lab</div><div class='section-title'>Pilih sudut pandang penggunaan</div><div class='section-copy'>Normal untuk penggunaan sehari-hari. Developer untuk pembangunan provider, pengujian, dan diagnosis.</div></div><span class='step-badge'>1</span></div>")
+                oa_ui_mode = gr.Radio(
+                    label="Mode tampilan Lab",
+                    choices=[("Basic · Sederhana", "basic"), ("Normal", "normal"), ("Developer", "developer")],
+                    value=INITIAL_OA_UI_MODE,
+                )
+                oa_mode_help = gr.HTML(_oa_banner_html(INITIAL_UI_MODE))
+                gr.HTML(
+                    "<div class='ort-help'><b>Tingkat tampilan<span class='q'>?</span></b>"
+                    "<div class='tip'>Pilihan ini sama dengan yang ada di halaman ORT Tools dan berlaku untuk seluruh halaman — "
+                    "mengubahnya di sini juga mengubah halaman ORT Tools, dan sebaliknya. Yang membedakan kedua halaman hanyalah "
+                    "arsitekturnya: halaman ORT Tools memakai sistem yang sudah ada di perangkat Anda, halaman ini memakai "
+                    "arsitektur open-source dari komunitas/GitHub.</div></div>"
+                )
+
+            # ORT_V9_0_7_R6: OCR and Audio were interleaved on this page, so a
+            # user configuring one still saw the other's controls. The main page
+            # has always had this split; the Lab now matches it.
+            with gr.Group(elem_classes=["source-stage"]):
+                gr.HTML("<div class='setup-header'><div><div class='section-kicker'>Sumber terjemahan Lab</div><div class='section-title'>Pilih apa yang diuji</div><div class='section-copy'>Sama seperti halaman ORT Tools: OCR dan Audio saling eksklusif supaya satu overlay tidak menerima dua hasil.</div></div><span class='step-badge'>2</span></div>")
+                # NAME: deliberately not `oa_source` -- the developer contract
+                # panel further down already binds that name to its "Source
+                # Provider" dropdown. Reusing it made the later definition win,
+                # so this radio ended up with no handler attached at all and
+                # rendered as a dead control.
+                oa_lab_source = gr.Radio(
+                    label="Sumber Lab aktif",
+                    choices=[("OCR · mesin open-source", "ocr"), ("Audio · pipeline ASR", "audio")],
+                    value=INITIAL_OA_SOURCE,
+                )
+
+
+            with gr.Group(elem_classes=["workspace-card"], visible=INITIAL_OA_SOURCE == "audio") as oa_preset_panel:
+                gr.HTML("<div class='setup-header'><div><div class='section-kicker'>Preset Lab</div><div class='section-title'>Pilih pipeline yang akan diuji</div><div class='section-copy'>Japanese Live Lab adalah preset eksperimen pertama yang dapat dijalankan langsung untuk anime atau game Jepang.</div></div><span class='step-badge'>2</span></div>")
+                with gr.Row():
+                    oa_preset = gr.Dropdown(
+                        label="Preset arsitektur",
+                        choices=_OA_PRESET_CHOICES,
+                        value="japanese_live_lab",
+                    )
+                    oa_apply_preset_btn = gr.Button("Terapkan ulang preset", variant="secondary", visible=_INITIAL_VIS["lab_expert"])
+                    oa_refresh_btn = gr.Button("Validasi provider", visible=_INITIAL_VIS["lab_expert"])
+
+            # ORT_V9_0_7_R5: open-source OCR engines, mirroring the ASR
+            # provider pattern the Lab already uses.
+            with gr.Group(elem_classes=["workspace-card"], visible=INITIAL_OA_SOURCE == "ocr") as oa_ocr_panel:
+                gr.HTML("<div class='setup-header'><div><div class='section-kicker'>OCR Lab · mesin open-source</div><div class='section-title'>Pilih mesin pembaca teks</div><div class='section-copy'>Setiap mesin adalah proyek open-source dengan lisensi dan sumbernya sendiri. Lab melaporkan apa adanya: mesin yang belum terpasang ditandai, bukan disembunyikan.</div></div><span class='step-badge'>OCR</span></div>")
+                with gr.Row():
+                    oa_ocr_provider = gr.Dropdown(
+                        label="Mesin OCR",
+                        choices=_OA_OCR_CHOICES,
+                        value=INITIAL_OA_OCR_PROVIDER,
+                    )
+
+                gr.HTML("<div class='ort-help'><b>Pilih mesin pembaca<span class='q'>?</span></b><div class='tip'>EasyOCR adalah baseline pipeline ORT. RapidOCR memakai model PP-OCR melalui ONNX. Tesseract memakai executable sistem. Ketersediaan bahasa, perangkat, dan kecepatan berbeda; bandingkan dengan teks game yang sama.</div></div>")
+
+                oa_ocr_short_status = gr.Markdown(_ocr_provider_short_status(INITIAL_OA_OCR_PROVIDER))
+                oa_ocr_status = gr.Markdown(_oa_ocr_provider_table(), elem_classes=["ocr-technical"])
+                with gr.Accordion("Pemasangan mesin OCR · buka jika belum siap", open=False):
+                    with gr.Row():
+                        oa_ocr_refresh_btn = gr.Button("Periksa status mesin OCR", variant="secondary", elem_classes=["ocr-technical"])
+                        oa_ocr_setup_btn = gr.Button("Pasang / lihat petunjuk mesin yang dipilih")
+                    oa_ocr_setup_log = gr.Textbox(
+                        label="Log pemasangan mesin OCR",
+                        value="",
+                        interactive=False,
+                        lines=8,
+                        elem_classes=["mono"],
+                    )
+
+            # ORT_V9_0_7_R7: the Lab OCR section was an engine picker with no
+            # way to run anything. It now mirrors the main page's OCR controls,
+            # with the engine choice above as the difference.
+            with gr.Group(elem_classes=["workspace-card"], visible=INITIAL_OA_SOURCE == "ocr") as oa_ocr_runtime_panel:
+                gr.HTML("<div class='setup-header'><div><div class='section-kicker'>OCR Lab runtime</div><div class='section-title'>Atur sesi dan mulai terjemahan layar</div><div class='section-copy'>Pengaturan sama seperti halaman ORT Tools. Yang berbeda hanya mesin pembacanya, yang dipilih di atas.</div></div><span class='step-badge'>3</span></div>")
+                with gr.Row():
+                    oa_ocr_game = gr.Dropdown(label="Game / profil", choices=GAME_CHOICES, value=PREFS.get("oa_ocr_game", PREFS.get("game", "GFL2_EXILIUM")))
+                    # NAME: "Pilih Inti (Core)" rather than "model", because the
+                    # OCR engine picker above is also a model choice. Keeping
+                    # both called "model" made it ambiguous which one was meant.
+                    oa_ocr_model_group = gr.Radio(
+                        label="Keluarga model", elem_classes=["ocr-technical"],
+                        choices=group_choices(),
+                        value=oa_ocr_initial_group,
+                    )
+                    oa_ocr_model = gr.Dropdown(label="Profil terjemahan", choices=oa_ocr_choices, value=oa_ocr_default_model)
+                oa_ocr_core_defaults = gr.Markdown(_core_default_note(oa_ocr_default_model), elem_classes=["ocr-technical"])
+                oa_ocr_languages = gr.Dropdown(
+                    label="Bahasa teks di layar",
+                    choices=OCR_LANGUAGE_CHOICES,
+                    value="ch_sim,en" if INITIAL_OA_OCR_PROVIDER == "rapidocr_onnx" else str(PREFS.get("oa_ocr_languages", "en")),
+                    interactive=INITIAL_OA_OCR_PROVIDER != "rapidocr_onnx",
+                )
+                oa_ocr_language_note = gr.Markdown(_ocr_language_update(INITIAL_OA_OCR_PROVIDER, "en")[1])
+                gr.HTML("<div class='ort-help'><b>Bahasa tulisan<span class='q'>?</span></b><div class='tip'>Pilih sesuai tulisan yang terlihat. Game dengan suara Jepang tetapi teks Inggris tetap memakai OCR Inggris. RapidOCR bawaan memiliki model bahasa tetap, sedangkan Tesseract memerlukan traineddata bahasa yang sesuai.</div></div>")
+
+                with gr.Row():
+                    oa_ocr_mode = gr.Dropdown(
+                        label="Strategi capture", elem_classes=["ocr-technical"],
+                        choices=[("Auto / Story Otomatis", "auto"), ("Freeze Manual / Klik User", "freeze"), ("Interval / Freeze Otomatis", "interval")],
+                        value=str(PREFS.get("oa_ocr_mode", "auto")),
+                    )
+                    oa_ocr_engine_device = gr.Dropdown(
+                        label="Perangkat pemrosesan OCR", elem_classes=["ocr-technical"],
+                        choices=_ocr_engine_device_choices(INITIAL_OA_OCR_PROVIDER),
+                        value=_ocr_device_migrate(PREFS.get("oa_ocr_engine_device", "gpu")),
+                    )
+                oa_ocr_engine_advice = gr.HTML(_ocr_engine_advice_html(INITIAL_OA_OCR_PROVIDER))
+                oa_ocr_mode_buffer = gr.Checkbox(label="Mode Buffer", value=bool(PREFS.get("oa_ocr_mode_buffer", False)), elem_classes=["ocr-technical"])
+                # Interval and OCR resolution are per-Core defaults, so they sit
+                # with the Core picker rather than in a separate block far away.
+                with gr.Group(visible=_INITIAL_VIS["expert_controls"]) as oa_ocr_tuning_panel:
+                    gr.HTML("<div class='section-kicker'>Penyetelan Inti terpilih</div><div class='smallnote'>Nilai bawaan mengikuti Core yang dipilih di atas. Mengubahnya di sini menimpa bawaan tersebut untuk sesi Lab.</div>")
+                    with gr.Row():
+                        oa_ocr_interval = gr.Slider(label="Interval capture (ms)", minimum=45, maximum=1200, step=5, value=int(PREFS.get("oa_ocr_interval_ms", 405)))
+                        oa_ocr_resolution = gr.Slider(label="Resolusi OCR (%)", minimum=40, maximum=100, step=1, value=int(PREFS.get("oa_ocr_resolution", 47)))
+                with gr.Group(visible=_INITIAL_VIS["expert_controls"]) as oa_ocr_resource_panel:
+                    with gr.Row():
+                        oa_ocr_resource_mode = gr.Radio(
+                            label="Mode resource",
+                            choices=[("Efisien", "efficient"), ("Stabil", "stable"), ("Intensive", "intensive")],
+                            value=str(PREFS.get("oa_ocr_resource_mode", "stable")),
+                        )
+                        oa_ocr_device_resource = gr.Radio(
+                            label="Resource perangkat",
+                            choices=[("Hemat", "saver"), ("Adaptif", "adaptive"), ("Kualitas Optimal", "quality")],
+                            value=str(PREFS.get("oa_ocr_device_resource", "adaptive")),
+                        )
+                    oa_ocr_resource_level = gr.Slider(
+                        label="Level resource · Terendah → Maks", minimum=1, maximum=5, step=1,
+                        value=int(PREFS.get("oa_ocr_resource_level", 3)),
+                    )
+                # ORT_V9_0_7_R19: same conclusion card as the Mulai page. The
+                # policy it states is already shared (launcher_backend and
+                # translation_engine are common), so the Lab would otherwise
+                # apply a fragment rule the page never explained.
+                with gr.Group(elem_classes=["intent-summary"]):
+                    gr.HTML("<div class='section-kicker'>Kesimpulan kombinasi</div><div class='smallnote'>Dibaca dari Core + mode resource + resource perangkat. Menentukan apakah potongan kalimat yang belum selesai ditampilkan atau ditahan.</div>")
+                    oa_intent_summary_box = gr.HTML(_intent_summary_html(
+                        oa_ocr_default_model,
+                        str(PREFS.get("oa_ocr_resource_mode", "stable")),
+                        int(PREFS.get("oa_ocr_resource_level", 3)),
+                        str(PREFS.get("oa_ocr_device_resource", "adaptive")),
+                    ))
+                with gr.Group(elem_classes=["overlay-quick"]):
+                    gr.HTML("<div class='section-kicker'>Overlay subtitle</div>")
+                    oa_ocr_overlay_jump_btn = gr.Button("Panduan tampilan subtitle OCR", variant="secondary")
+                with gr.Row(elem_classes=["action-row"]):
+                    oa_ocr_start_btn = gr.Button("Mulai OCR Lab", variant="primary")
+                    oa_ocr_refresh_status_btn = gr.Button("Refresh status")
+                    oa_ocr_stop_btn = gr.Button("Stop", variant="stop")
+                oa_ocr_state = gr.HTML(_status_html("STATUS: IDLE"))
+                oa_ocr_message = gr.Textbox(label="Status sesi OCR Lab", interactive=False)
+                oa_ocr_error = gr.Markdown("")
+                with gr.Accordion("Log lengkap sesi OCR Lab", open=False):
+                    with gr.Row():
+                        gr.HTML("""
+                        <div class='copylog-wrap'>
+                          <button onclick="(function(){const ta=document.querySelector('#oa_ocr_live_log textarea'); if(ta){navigator.clipboard.writeText(ta.value||''); const s=document.getElementById('oa_ocr_copy_status'); if(s){s.textContent='Log OCR Lab tersalin'; setTimeout(()=>s.textContent='',1800);}}})()">Copy Log OCR Lab</button>
+                          <span id='oa_ocr_copy_status'></span>
+                        </div>
+                        """)
+                        oa_ocr_live_log_enabled = gr.Checkbox(label="Log realtime", value=True)
+                    oa_ocr_log = gr.Textbox(
+                        label="Log OCR Lab", value="", interactive=False, lines=14,
+                        autoscroll=True, elem_id="oa_ocr_live_log", elem_classes=["logbox"],
+                    )
+                    # Poll the same session log the main page reads, so the Lab log
+                    # updates while a session runs instead of only on button press.
+                    oa_ocr_log_timer = gr.Timer(value=1.0, active=True) if hasattr(gr, "Timer") else None
+
+            with gr.Group(elem_classes=["workspace-card"], visible=INITIAL_OA_SOURCE == "audio") as oa_audio_panel:
+                gr.HTML("<div class='setup-header'><div><div class='section-kicker'>Audio Lab runtime</div><div class='section-title'>Atur sesi dan mulai terjemahan</div><div class='section-copy'>Urutannya selalu sama: pilih sumber → atur box → validasi → Preload & Mulai Audio Lab. Segmentasi adaptif memisahkan jeda panjang dan menggulir subtitle saat monolog terlalu panjang.</div></div><span class='step-badge'>3</span></div>")
+                oa_preview_active = gr.State(False)
+                with gr.Row():
+                    oa_lab_game = gr.Dropdown(
+                        label="Game / profil",
+                        choices=OA_GAME_CHOICES,
+                        value=INITIAL_OA_GAME,
+                    )
+                    oa_overlay_mode = gr.Radio(
+                        label="Mode box terjemahan",
+                        choices=[
+                            ("Adaptif · mengikuti teks", "adaptive"),
+                            ("Fix · ukuran tetap mengikuti monitor", "fixed"),
+                            ("Custom · ukuran dan layout bebas", "custom"),
+                        ],
+                        value=INITIAL_OA_OVERLAY_MODE,
+                        visible=_INITIAL_VIS["lab_expert"],
+                    )
+                    oa_preview_btn = gr.Button("Preview", variant="secondary", visible=_INITIAL_VIS["lab_expert"])
+                oa_preview_status = gr.Markdown("Preview belum aktif", visible=_INITIAL_VIS["lab_expert"])
+                with gr.Group(elem_classes=["overlay-quick"]):
+                    gr.HTML("<div class='section-kicker'>Overlay subtitle</div><div class='smallnote'>Efek tampil (Default/Typewriter) dan preset bentuk box diatur terpusat di halaman Pengaturan UI.</div>")
+                    oa_overlay_jump_btn = gr.Button("🎛️ Buka Pengaturan Overlay & Efek", variant="secondary")
+                oa_profile_language_note = gr.Markdown(
+                    _oa_game_profile_updates(INITIAL_OA_GAME, INITIAL_OA_LANGUAGE)[1],
+                    elem_classes=["ort-note"],
+                )
+                gr.Markdown("**Mesin terjemahan Audio Lab:** ORTCore Fast V2 dipilih otomatis oleh route arsitektur. Daftar model OCR tidak lagi digunakan pada halaman ini.", elem_classes=["ort-note"])
+                # Outer group follows the UI level; the inner two keep their
+                # existing overlay-mode logic so the two rules never collide.
+                with gr.Group(visible=_INITIAL_VIS["lab_expert"]) as oa_overlay_settings_block:
+                    with gr.Group(visible=INITIAL_OA_OVERLAY_MODE in {"fixed", "custom"}) as oa_overlay_size_panel:
+                        with gr.Row():
+                            oa_overlay_width = gr.Slider(
+                                label="Lebar box terhadap monitor (%)",
+                                minimum=40,
+                                maximum=100,
+                                step=1,
+                                value=int(PREFS.get("oa_overlay_width_percent", 92)),
+                            )
+                            oa_overlay_height = gr.Slider(
+                                label="Tinggi box tetap (px)",
+                                minimum=110,
+                                maximum=420,
+                                step=5,
+                                value=int(PREFS.get("oa_overlay_height_px", 190)),
+                            )
+                            oa_overlay_opacity = gr.Slider(
+                                label="Opacity box (%)",
+                                minimum=45,
+                                maximum=100,
+                                step=1,
+                                value=int(PREFS.get("oa_overlay_opacity_percent", 91)),
+                            )
+                    with gr.Group(visible=INITIAL_OA_OVERLAY_MODE == "custom") as oa_overlay_custom_panel:
+                        with gr.Row():
+                            oa_overlay_font = gr.Slider(
+                                label="Ukuran font terjemahan",
+                                minimum=10,
+                                maximum=30,
+                                step=1,
+                                value=int(PREFS.get("oa_overlay_font_size", 15)),
+                            )
+                            oa_overlay_alignment = gr.Radio(
+                                label="Perataan teks",
+                                choices=[("Kiri", "left"), ("Tengah", "center")],
+                                value=str(PREFS.get("oa_overlay_alignment", "left")),
+                            )
+                            oa_overlay_show_source = gr.Checkbox(
+                                label="Tampilkan preview Inggris",
+                                value=bool(PREFS.get("oa_overlay_show_source", True)),
+                            )
+                with gr.Row():
+                    oa_lab_input_mode = gr.Radio(
+                        label="Sumber audio",
+                        choices=[("Audio internal (WASAPI)", "loopback"), ("File WAV uji", "file")],
+                        value=INITIAL_AUDIO_INPUT,
+                    )
+                    oa_lab_device = gr.Dropdown(
+                        label="Perangkat output / loopback",
+                        choices=_AUDIO_DEVICE_CHOICES,
+                        value=INITIAL_AUDIO_DEVICE,
+                        interactive=INITIAL_AUDIO_INPUT != "file",
+                    )
+                oa_lab_test_file = gr.File(
+                    label="Replay file Lab (WAV PCM 16-bit)",
+                    file_types=["audio"],
+                    type="filepath",
+                    visible=INITIAL_AUDIO_INPUT == "file",
+                )
+                with gr.Row():
+                    oa_lab_language = gr.Dropdown(
+                        label="Bahasa utama",
+                        choices=INITIAL_OA_LANGUAGE_CHOICES,
+                        value=INITIAL_OA_LANGUAGE,
+                    )
+                    oa_lab_audio_mode = gr.Radio(
+                        label="Perangkat ASR",
+                        choices=[("CPU", "cpu"), ("GPU", "gpu"), ("Hybrid", "hybrid")],
+                        value=INITIAL_AUDIO_MODE,
+                    )
+                    oa_resource_policy = gr.Radio(
+                        label="Kebijakan resource",
+                        choices=[
+                            ("Efisien · Latensi & ringan", "efficient"),
+                            ("Stabil · Tanpa hambatan", "stable"),
+                            ("Intensive · Akurasi maksimal", "intensive"),
+                        ],
+                        value=INITIAL_OA_RESOURCE_POLICY,
+                        visible=_INITIAL_VIS["lab_expert"],
+                    )
+                oa_resource_note = gr.Markdown(
+                    _oa_resource_policy_updates(INITIAL_OA_RESOURCE_POLICY),
+                    visible=_INITIAL_VIS["lab_expert"],
+                )
+                # Provider contract, setup, delivery routing, and benchmark are
+                # one contiguous expert region; Basic never shows any of it.
+                with gr.Group(visible=_INITIAL_VIS["lab_expert"]) as oa_provider_block:
+                  with gr.Row():
+                    oa_asr_model_provider = gr.Dropdown(
+                        label="Model ASR Jepang · hard lock",
+                        choices=OA_ASR_MODEL_CHOICES,
+                        value=INITIAL_OA_ASR_MODEL_PROVIDER,
+                    )
+                    oa_model_lock = gr.Checkbox(
+                        label="Kunci model selama sesi",
+                        value=True,
+                        interactive=False,
+                    )
+                  oa_provider_status = gr.HTML(
+                      _oa_provider_status_ui(INITIAL_OA_ASR_MODEL_PROVIDER, INITIAL_AUDIO_MODE)
+                  )
+                  oa_setup_target = gr.Radio(
+                      label="Target setup/download · wajib dipilih setiap kali",
+                      choices=[("CPU", "cpu"), ("GPU", "gpu"), ("CPU + GPU", "both")],
+                      value=None,
+                      info="Pilihan ini hanya mengatur model/runtime yang akan dipasang. Perangkat ASR untuk sesi tetap dipilih pada pengaturan di atas.",
+                  )
+                  with gr.Row():
+                      oa_setup_provider_btn = gr.Button("Siapkan model yang dipilih", variant="secondary")
+                      oa_refresh_provider_btn = gr.Button("Periksa status model")
+                  oa_provider_progress = gr.HTML(_oa_progress_html())
+                  with gr.Row():
+                      oa_delivery_mode = gr.Radio(
+                          label="Mode delivery",
+                          choices=[("Offline", "offline"), ("Online", "online"), ("Hybrid Cloud + Local", "hybrid")],
+                          value=INITIAL_OA_DELIVERY_MODE,
+                      )
+                      oa_cloud_provider = gr.Dropdown(
+                          label="Cloud provider",
+                          choices=[("Azure Speech · live", "azure"), ("Google Cloud · benchmark catalog", "google"), ("AWS Transcribe · benchmark catalog", "aws")],
+                          value=INITIAL_OA_CLOUD_PROVIDER,
+                      )
+                  oa_delivery_note = gr.Markdown(
+                      _oa_delivery_mode_updates(INITIAL_OA_DELIVERY_MODE, INITIAL_OA_CLOUD_PROVIDER)
+                  )
+                  oa_provider_setup_log = gr.Textbox(
+                      label="Log unduhan & setup provider",
+                      value="",
+                      interactive=False,
+                      lines=14,
+                      elem_classes=["mono"],
+                      info="Log ini terisi otomatis saat setup dimulai dan menunjukkan fase download, ukuran, persentase, verifikasi, keberhasilan, atau kegagalan.",
+                  )
+                  with gr.Row():
+                      oa_copy_provider_log_btn = gr.Button("Salin log setup provider", visible=False)
+                      oa_provider_copy_message = gr.Markdown("")
+                  with gr.Accordion("Provider Benchmark Lab · WAV yang sama", open=False):
+                      oa_benchmark_file = gr.File(
+                          label="Klip benchmark WAV PCM", file_types=["audio"], type="filepath"
+                      )
+                      oa_benchmark_providers = gr.CheckboxGroup(
+                          label="Model yang dibandingkan",
+                          choices=OA_ASR_MODEL_CHOICES,
+                          value=[item[1] for item in OA_ASR_MODEL_CHOICES],
+                      )
+                      oa_benchmark_device = gr.Radio(
+                          label="Device benchmark", choices=[("CPU", "cpu"), ("GPU", "cuda")], value="cpu"
+                      )
+                      oa_benchmark_btn = gr.Button("Jalankan benchmark provider")
+                      oa_benchmark_output = gr.Markdown("Benchmark belum dijalankan.")
+                oa_lab_profile = gr.Radio(
+                    label="Respons subtitle",
+                    choices=[("Instant", "speed"), ("Balanced · Rekomendasi", "normal"), ("Accurate", "accurate")],
+                    value=INITIAL_AUDIO_PROFILE,
+                )
+                with gr.Row():
+                    oa_setup_audio_btn = gr.Button("Siapkan Runtime Audio Lab", variant="secondary")
+                    oa_refresh_devices_btn = gr.Button("Deteksi ulang perangkat")
+                oa_device_message = gr.Textbox(
+                    label="Status perangkat",
+                    value=_AUDIO_DEVICE_MESSAGE,
+                    interactive=False,
+                    lines=2,
+                )
+                with gr.Accordion("Setup runtime Lab", open=False, visible=_INITIAL_VIS["lab_expert"]) as oa_setup_runtime_accordion:
+                    oa_audio_setup_log = gr.Textbox(
+                        label="Setup Audio Lab",
+                        value=audio_runtime_status_text(INITIAL_AUDIO_PROFILE, INITIAL_AUDIO_MODE, "local", "live_media"),
+                        interactive=False,
+                        lines=14,
+                        elem_classes=["mono"],
+                    )
+
+                oa_runtime_validation = gr.Markdown(_OA_INITIAL_RUNTIME_STATUS)
+                with gr.Row(elem_classes=["action-row"]):
+                    oa_validate_runtime_btn = gr.Button("Validasi Pipeline Lab", visible=_INITIAL_VIS["lab_expert"])
+                    oa_start_audio_btn = gr.Button("Preload & Mulai Audio Lab", variant="primary", elem_id="oa_start_primary")
+                    oa_stop_audio_btn = gr.Button("Stop Audio Lab", variant="stop")
+                    oa_refresh_runtime_btn = gr.Button("Refresh Status Lab", visible=_INITIAL_VIS["lab_expert"])
+
+                oa_runtime_state = gr.HTML(_status_html("STATUS: IDLE"))
+                oa_runtime_message = gr.Textbox(label="Status sesi Audio Lab", interactive=False)
+                oa_runtime_error = gr.Markdown("")
+                with gr.Accordion("Runtime monitor & log Lab", open=INITIAL_UI_MODE == "developer", visible=_INITIAL_VIS["lab_expert"]) as oa_runtime_monitor_accordion:
+                    gr.HTML("""
+                    <div class='copylog-wrap'>
+                      <button onclick="(function(){const ta=document.querySelector('#oa_live_log textarea'); if(ta){navigator.clipboard.writeText(ta.value); const s=document.getElementById('oa_copylog_status'); if(s){s.textContent='Log Lab tersalin'; setTimeout(()=>s.textContent='',1800);}}})()">Copy Log Lab</button>
+                      <span id='oa_copylog_status'></span>
+                    </div>
+                    <div class='smallnote'>Log diperbarui otomatis selama sesi. Pause hanya menghentikan tampilan, bukan pencatatan ke file.</div>
+                    """)
+                    oa_realtime_log_enabled = gr.Checkbox(
+                        label="Log realtime",
+                        value=True,
+                    )
+                    oa_runtime_summary = gr.Textbox(
+                        label="Runtime Audio Lab",
+                        value=audio_runtime_status_text(INITIAL_AUDIO_PROFILE, INITIAL_AUDIO_MODE, "local", "live_media"),
+                        interactive=False,
+                        lines=10,
+                        elem_classes=["mono"],
+                    )
+                    oa_runtime_log = gr.Textbox(
+                        label="Live log Audio Lab",
+                        value="",
+                        interactive=False,
+                        lines=18,
+                        autoscroll=True,
+                        elem_id="oa_live_log",
+                        elem_classes=["logbox"],
+                    )
+                    oa_provider_transparency = gr.Markdown(_oa_provider_transparency_text())
+                    oa_live_timer = gr.Timer(value=0.75, active=True) if hasattr(gr, "Timer") else None
+
+            with gr.Group(
+                visible=_INITIAL_VIS["lab_developer"] and INITIAL_OA_SOURCE == "audio",
+                elem_classes=["developer-controls", "workspace-card"],
+            ) as oa_developer_panel:
+                gr.HTML("<div class='setup-header'><div><div class='section-kicker'>Developer contract</div><div class='section-title'>Provider dan kebijakan pipeline</div><div class='section-copy'>Panel ini adalah POV developer. User Normal tidak perlu mengubah ID provider atau membaca JSON runtime.</div></div><span class='step-badge'>DEV</span></div>")
+                with gr.Row():
+                    oa_source = gr.Dropdown(label="Source Provider", choices=_OA_SOURCE_CHOICES, value=_OA_INITIAL[0])
+                    oa_vad = gr.Dropdown(label="VAD Provider", choices=_OA_VAD_CHOICES, value=_OA_INITIAL[1])
+                    oa_asr = gr.Dropdown(label="ASR Provider", choices=_OA_ASR_CHOICES, value=_OA_INITIAL[2])
+                with gr.Row():
+                    oa_streaming = gr.Dropdown(label="Streaming Strategy", choices=_OA_STREAMING_CHOICES, value=_OA_INITIAL[3])
+                    oa_translation = gr.Dropdown(label="Translation Route", choices=_OA_TRANSLATION_CHOICES, value=_OA_INITIAL[4])
+                    oa_overlay = gr.Dropdown(label="Overlay Provider", choices=_OA_OVERLAY_CHOICES, value=_OA_INITIAL[5])
+                with gr.Row():
+                    oa_language_correction = gr.Dropdown(
+                        label="Language watchdog",
+                        choices=[
+                            ("Off", "off"),
+                            ("Conservative", "conservative"),
+                            ("Balanced", "balanced"),
+                            ("Aggressive", "aggressive"),
+                        ],
+                        value=INITIAL_AUDIO_LANGUAGE_CORRECTION,
+                    )
+                    oa_language_lock = gr.Checkbox(
+                        label="Kunci bahasa utama",
+                        value=INITIAL_AUDIO_LANGUAGE_LOCK,
+                    )
+                    oa_runtime_agreement = gr.Slider(
+                        label="Agreement passes",
+                        minimum=2,
+                        maximum=4,
+                        step=1,
+                        value=2,
+                    )
+                oa_status = gr.Markdown(_OA_INITIAL[9])
+                with gr.Row():
+                    with gr.Column(scale=2):
+                        gr.Markdown("### Pipeline aktif di Lab")
+                        oa_diagram = gr.HTML(_OA_INITIAL[6])
+                    with gr.Column(scale=3):
+                        gr.Markdown("### Provider, asal, dan lisensi")
+                        oa_provider_table = gr.HTML(_OA_INITIAL[7])
+                with gr.Accordion("Rencana pipeline JSON", open=False):
+                    oa_config_json = gr.Textbox(
+                        label="Open Architecture Plan",
+                        value=_OA_INITIAL[8],
+                        interactive=False,
+                        lines=18,
+                        elem_classes=["mono"],
+                    )
+                with gr.Row():
+                    oa_custom_name = gr.Textbox(label="Nama preset custom", value="my_open_architecture_lab")
+                    oa_save_btn = gr.Button("Simpan preset Lab")
+                    oa_export_btn = gr.Button("Export architecture plan")
+                oa_action_message = gr.Textbox(
+                    label="Status penyimpanan/export",
+                    value="",
+                    interactive=False,
+                    lines=3,
+                )
+
+                gr.Markdown("## A/B Architecture Comparison")
+                with gr.Row():
+                    oa_compare_left = gr.Dropdown(label="Pipeline A", choices=_OA_PRESET_CHOICES, value="original_audio")
+                    oa_compare_right = gr.Dropdown(label="Pipeline B", choices=_OA_PRESET_CHOICES, value="japanese_live_lab")
+                    oa_compare_btn = gr.Button("Bandingkan arsitektur")
+                oa_compare_output = gr.Markdown(
+                    architecture_compare_presets("original_audio", "japanese_live_lab")
+                )
+
+                with gr.Accordion("Confirmed Prefix / Local Agreement Demo", open=False):
+                    gr.Markdown("Masukkan hipotesis ASR berurutan, satu baris per pembaruan. Tokenizer Lab mendukung Latin dan CJK/Jepang.")
+                    oa_hypotheses = gr.Textbox(
+                        label="ASR hypotheses",
+                        value="私たちは\n私たちはここを\n私たちはここを離れなければならない",
+                        lines=7,
+                    )
+                    oa_agreement = gr.Slider(label="Demo agreement passes", minimum=2, maximum=4, step=1, value=2)
+                    oa_demo_btn = gr.Button("Jalankan confirmed-prefix demo")
+                    oa_demo_html = gr.HTML("")
+                    oa_demo_json = gr.Textbox(label="Demo JSON", value="", interactive=False, lines=14, elem_classes=["mono"])
+
+        with gr.Tab("Model Browser", id="tab_model_browser"):
             gr.Markdown("Model v7 disederhanakan menjadi grup yang jelas. Alias model lama tetap diarahkan agar tidak memutus launcher lama.")
             catalog_html = gr.HTML(_render_catalog(initial_group))
 
-        with gr.Tab("Pengaturan UI"):
-            gr.Markdown("Tampilan box terjemahan utama dan indikator ping/ms/game/engine tetap dipertahankan. Patch v7 fokus ke profil, performa, dan alur backend.")
+        with gr.Tab("Pengaturan UI", id="tab_pengaturan_ui"):
+            gr.Markdown("## Tampilan subtitle OCR\nPengaturan OCR dilakukan pada overlay saat sesi berjalan. Berlaku untuk ORT Tools dan OCR Lab.")
+            gr.Markdown("| Tombol | Fungsi |\n|---|---|\n| **F1** | Jeda / lanjutkan OCR |\n| **F2** | Pilih ulang area dialog |\n| **F4** | Ganti gaya tampilan |\n| **F5** | Ganti posisi box |\n| **F6 / F7** | Kecilkan / besarkan huruf |\n| **F8** | Ganti lebar box |")
+            gr.Markdown("Tombol di atas bekerja pada runtime OCR. Pengaturan Audio di bawah hanya berlaku untuk subtitle Audio.")
+            with gr.Accordion("Pengaturan subtitle Audio", open=False):
+                gr.HTML("<div class='setup-header'><div><div class='section-kicker'>Overlay &amp; Efek</div><div class='section-title'>Pengaturan box terjemahan</div><div class='section-copy'>Halaman khusus untuk bentuk, ukuran, dan efek tampil subtitle. Berlaku untuk mode kerja Audio; perubahan diterapkan saat sesi audio berikutnya dimulai.</div></div></div>")
+                with gr.Group(elem_classes=["workspace-card"]):
+                    gr.HTML("<div class='section-kicker'>Bentuk &amp; ukuran</div>")
+                    overlay_mode_radio = gr.Radio(
+                        label="Mode box terjemahan",
+                        choices=[("Adaptif · mengikuti teks", "adaptive"), ("Fix · ukuran tetap mengikuti monitor", "fixed"), ("Custom · ukuran dan layout bebas", "custom")],
+                        value=INITIAL_OVERLAY_MODE,
+                    )
+                    with gr.Row():
+                        overlay_width_slider = gr.Slider(label="Lebar overlay (% layar)", minimum=40, maximum=100, step=1, value=INITIAL_OVERLAY_WIDTH)
+                        overlay_height_slider = gr.Slider(label="Tinggi overlay (px) · mode Fix/Custom", minimum=100, maximum=720, step=5, value=INITIAL_OVERLAY_HEIGHT)
+                    with gr.Row():
+                        overlay_font_slider = gr.Slider(label="Ukuran font", minimum=10, maximum=30, step=1, value=INITIAL_OVERLAY_FONT)
+                        overlay_opacity_slider = gr.Slider(label="Opasitas (%)", minimum=45, maximum=100, step=1, value=INITIAL_OVERLAY_OPACITY)
+                    with gr.Row():
+                        overlay_alignment_radio = gr.Radio(label="Perataan teks", choices=[("Kiri", "left"), ("Tengah", "center")], value=INITIAL_OVERLAY_ALIGNMENT)
+                        overlay_show_source_checkbox = gr.Checkbox(label="Tampilkan baris Preview EN di atas terjemahan", value=INITIAL_OVERLAY_SHOW_SOURCE)
+                with gr.Group(elem_classes=["workspace-card"]):
+                    gr.HTML("<div class='section-kicker'>Efek subtitle</div>")
+                    overlay_effect_radio = gr.Radio(
+                        label="Efek tampil subtitle",
+                        choices=[("Default · Langsung ganti", "default"), ("Typewriter · Mengalir mengikuti ucapan", "typewriter")],
+                        value=INITIAL_AUDIO_OVERLAY_STREAM_MODE,
+                    )
+                    gr.HTML(
+                        "<div class='ort-help'><b>Typewriter<span class='q'>?</span></b>"
+                        "<div class='tip'>Subtitle diketik mengalir mengikuti alur karakter berbicara, bukan langsung diganti utuh. "
+                        "Saat ASR mengoreksi kalimat, bagian awal yang sudah sepakat tetap ditahan agar tidak berkedip. "
+                        "Animasi selalu mengejar dalam ±340 ms sehingga tidak pernah tertinggal dari ucapan.</div></div>"
+                    )
+                overlay_settings_status = gr.HTML("<div class='smallnote'>Perubahan tersimpan otomatis dan dipakai saat sesi audio berikutnya dimulai.</div>")
+                gr.Markdown("Tampilan box terjemahan utama dan indikator ping/ms/game/engine tetap dipertahankan. Patch v7 fokus ke profil, performa, dan alur backend.", elem_classes=["ort-note"])
 
-        with gr.Tab("Pengolahan Data"):
+        with gr.Tab("Pengolahan Data", id="tab_data"):
             gr.Markdown("## Pengolahan Data & Identitas\nKelola speaker tepercaya, istilah, alias OCR, dan blacklist berdasarkan game profile. Nama multi-kata dipertahankan sebagai satu identitas utuh.")
             _identity_initial = get_identity_ui_payload(PREFS.get("game", "GFL2_EXILIUM"), bool(SETTINGS.get("simple_view_enabled", True)))
             with gr.Row():
@@ -2297,353 +3760,7 @@ with gr.Blocks(title=APP_DISPLAY_NAME) as demo:
                         special_color = gr.Radio(label="Warna label Kata Khusus", choices=[(COLOR_LABELS[c], c) for c in COLOR_CHOICES], value=init_proc[9])
                     save_proc_btn = gr.Button("Simpan Pengaturan Pengolahan Data")
 
-        with gr.Tab("Open Architecture Lab"):
-            gr.HTML(
-                "<div class='oa-lab-banner'><h2>ORT Open Architecture Lab</h2>"
-                "<p>Lingkungan eksperimen terisolasi untuk menjalankan dan membandingkan pipeline Audio Lab. "
-                "Normal Mode menyediakan alur sederhana; Developer Mode membuka provider, kontrak runtime, A/B, JSON, dan diagnostik. "
-                "Satu ProcessManager tetap mencegah pipeline produksi dan Lab berjalan bersamaan.</p></div>"
-            )
-
-            with gr.Group(elem_classes=["workspace-card"]):
-                gr.HTML("<div class='setup-header'><div><div class='section-kicker'>Tampilan Lab</div><div class='section-title'>Pilih sudut pandang penggunaan</div><div class='section-copy'>Normal untuk penggunaan sehari-hari. Developer untuk pembangunan provider, pengujian, dan diagnosis.</div></div><span class='step-badge'>1</span></div>")
-                oa_ui_mode = gr.Radio(
-                    label="Mode tampilan Lab",
-                    choices=[("Normal", "normal"), ("Developer", "developer")],
-                    value=INITIAL_OA_UI_MODE,
-                )
-                oa_mode_help = gr.HTML(
-                    "<div class='developer-banner'><span class='developer-tag'>Developer workspace</span><b>Seluruh kontrak pipeline dan diagnostik ditampilkan.</b><span>Gunakan mode ini saat membangun provider, memeriksa ID internal, A/B test, JSON plan, dan log runtime.</span></div>"
-                    if INITIAL_OA_UI_MODE == "developer"
-                    else "<div class='guided-banner'><b>Normal Mode:</b><span>pilih preset → periksa status siap → tekan Mulai Audio Lab. Detail provider disembunyikan agar alur tetap konsisten.</span></div>"
-                )
-
-            with gr.Group(elem_classes=["workspace-card"]):
-                gr.HTML("<div class='setup-header'><div><div class='section-kicker'>Preset Lab</div><div class='section-title'>Pilih pipeline yang akan diuji</div><div class='section-copy'>Japanese Live Lab adalah preset eksperimen pertama yang dapat dijalankan langsung untuk anime atau game Jepang.</div></div><span class='step-badge'>2</span></div>")
-                with gr.Row():
-                    oa_preset = gr.Dropdown(
-                        label="Preset arsitektur",
-                        choices=_OA_PRESET_CHOICES,
-                        value="japanese_live_lab",
-                    )
-                    oa_apply_preset_btn = gr.Button("Terapkan ulang preset", variant="secondary")
-                    oa_refresh_btn = gr.Button("Validasi provider")
-
-            with gr.Group(elem_classes=["workspace-card"]):
-                gr.HTML("<div class='setup-header'><div><div class='section-kicker'>Audio Lab runtime</div><div class='section-title'>Atur sesi dan mulai terjemahan</div><div class='section-copy'>Urutannya selalu sama: pilih sumber → atur box → validasi → Preload & Mulai Audio Lab. Segmentasi adaptif memisahkan jeda panjang dan menggulir subtitle saat monolog terlalu panjang.</div></div><span class='step-badge'>3</span></div>")
-                oa_preview_active = gr.State(False)
-                with gr.Row():
-                    oa_lab_game = gr.Dropdown(
-                        label="Game / profil",
-                        choices=OA_GAME_CHOICES,
-                        value=INITIAL_OA_GAME,
-                    )
-                    oa_overlay_mode = gr.Radio(
-                        label="Mode box terjemahan",
-                        choices=[
-                            ("Adaptif · mengikuti teks", "adaptive"),
-                            ("Fix · ukuran tetap mengikuti monitor", "fixed"),
-                            ("Custom · ukuran dan layout bebas", "custom"),
-                        ],
-                        value=INITIAL_OA_OVERLAY_MODE,
-                    )
-                    oa_preview_btn = gr.Button("Preview", variant="secondary")
-                oa_preview_status = gr.Markdown("Preview belum aktif")
-                oa_profile_language_note = gr.Markdown(
-                    _oa_game_profile_updates(INITIAL_OA_GAME, INITIAL_OA_LANGUAGE)[1]
-                )
-                gr.Markdown("**Mesin terjemahan Audio Lab:** ORTCore Fast V2 dipilih otomatis oleh route arsitektur. Daftar model OCR tidak lagi digunakan pada halaman ini.")
-                with gr.Group(visible=INITIAL_OA_OVERLAY_MODE in {"fixed", "custom"}) as oa_overlay_size_panel:
-                    with gr.Row():
-                        oa_overlay_width = gr.Slider(
-                            label="Lebar box terhadap monitor (%)",
-                            minimum=40,
-                            maximum=100,
-                            step=1,
-                            value=int(PREFS.get("oa_overlay_width_percent", 92)),
-                        )
-                        oa_overlay_height = gr.Slider(
-                            label="Tinggi box tetap (px)",
-                            minimum=110,
-                            maximum=420,
-                            step=5,
-                            value=int(PREFS.get("oa_overlay_height_px", 190)),
-                        )
-                        oa_overlay_opacity = gr.Slider(
-                            label="Opacity box (%)",
-                            minimum=45,
-                            maximum=100,
-                            step=1,
-                            value=int(PREFS.get("oa_overlay_opacity_percent", 91)),
-                        )
-                with gr.Group(visible=INITIAL_OA_OVERLAY_MODE == "custom") as oa_overlay_custom_panel:
-                    with gr.Row():
-                        oa_overlay_font = gr.Slider(
-                            label="Ukuran font terjemahan",
-                            minimum=10,
-                            maximum=30,
-                            step=1,
-                            value=int(PREFS.get("oa_overlay_font_size", 15)),
-                        )
-                        oa_overlay_alignment = gr.Radio(
-                            label="Perataan teks",
-                            choices=[("Kiri", "left"), ("Tengah", "center")],
-                            value=str(PREFS.get("oa_overlay_alignment", "left")),
-                        )
-                        oa_overlay_show_source = gr.Checkbox(
-                            label="Tampilkan preview Inggris",
-                            value=bool(PREFS.get("oa_overlay_show_source", True)),
-                        )
-                with gr.Row():
-                    oa_lab_input_mode = gr.Radio(
-                        label="Sumber audio",
-                        choices=[("Audio internal (WASAPI)", "loopback"), ("File WAV uji", "file")],
-                        value=INITIAL_AUDIO_INPUT,
-                    )
-                    oa_lab_device = gr.Dropdown(
-                        label="Perangkat output / loopback",
-                        choices=_AUDIO_DEVICE_CHOICES,
-                        value=INITIAL_AUDIO_DEVICE,
-                        interactive=INITIAL_AUDIO_INPUT != "file",
-                    )
-                oa_lab_test_file = gr.File(
-                    label="Replay file Lab (WAV PCM 16-bit)",
-                    file_types=["audio"],
-                    type="filepath",
-                    visible=INITIAL_AUDIO_INPUT == "file",
-                )
-                with gr.Row():
-                    oa_lab_language = gr.Dropdown(
-                        label="Bahasa utama",
-                        choices=INITIAL_OA_LANGUAGE_CHOICES,
-                        value=INITIAL_OA_LANGUAGE,
-                    )
-                    oa_lab_audio_mode = gr.Radio(
-                        label="Perangkat ASR",
-                        choices=[("CPU", "cpu"), ("GPU", "gpu"), ("Hybrid", "hybrid")],
-                        value=INITIAL_AUDIO_MODE,
-                    )
-                    oa_resource_policy = gr.Radio(
-                        label="Kebijakan resource",
-                        choices=[
-                            ("Efficient", "efficient"),
-                            ("Normal · Stabil", "normal"),
-                            ("Optimal · Adaptif", "optimal"),
-                        ],
-                        value=INITIAL_OA_RESOURCE_POLICY,
-                    )
-                oa_resource_note = gr.Markdown(_oa_resource_policy_updates(INITIAL_OA_RESOURCE_POLICY))
-                with gr.Row():
-                    oa_asr_model_provider = gr.Dropdown(
-                        label="Model ASR Jepang · hard lock",
-                        choices=OA_ASR_MODEL_CHOICES,
-                        value=INITIAL_OA_ASR_MODEL_PROVIDER,
-                    )
-                    oa_model_lock = gr.Checkbox(
-                        label="Kunci model selama sesi",
-                        value=True,
-                        interactive=False,
-                    )
-                oa_provider_status = gr.HTML(
-                    _oa_provider_status_ui(INITIAL_OA_ASR_MODEL_PROVIDER, INITIAL_AUDIO_MODE)
-                )
-                oa_setup_target = gr.Radio(
-                    label="Target setup/download · wajib dipilih setiap kali",
-                    choices=[("CPU", "cpu"), ("GPU", "gpu"), ("CPU + GPU", "both")],
-                    value=None,
-                    info="Pilihan ini hanya mengatur model/runtime yang akan dipasang. Perangkat ASR untuk sesi tetap dipilih pada pengaturan di atas.",
-                )
-                with gr.Row():
-                    oa_setup_provider_btn = gr.Button("Siapkan model yang dipilih", variant="secondary")
-                    oa_refresh_provider_btn = gr.Button("Periksa status model")
-                oa_provider_progress = gr.HTML(_oa_progress_html())
-                with gr.Row():
-                    oa_delivery_mode = gr.Radio(
-                        label="Mode delivery",
-                        choices=[("Offline", "offline"), ("Online", "online"), ("Hybrid Cloud + Local", "hybrid")],
-                        value=INITIAL_OA_DELIVERY_MODE,
-                    )
-                    oa_cloud_provider = gr.Dropdown(
-                        label="Cloud provider",
-                        choices=[("Azure Speech · live", "azure"), ("Google Cloud · benchmark catalog", "google"), ("AWS Transcribe · benchmark catalog", "aws")],
-                        value=INITIAL_OA_CLOUD_PROVIDER,
-                    )
-                oa_delivery_note = gr.Markdown(
-                    _oa_delivery_mode_updates(INITIAL_OA_DELIVERY_MODE, INITIAL_OA_CLOUD_PROVIDER)
-                )
-                oa_provider_setup_log = gr.Textbox(
-                    label="Log unduhan & setup provider",
-                    value="",
-                    interactive=False,
-                    lines=14,
-                    elem_classes=["mono"],
-                    info="Log ini terisi otomatis saat setup dimulai dan menunjukkan fase download, ukuran, persentase, verifikasi, keberhasilan, atau kegagalan.",
-                )
-                with gr.Row():
-                    oa_copy_provider_log_btn = gr.Button("Salin log setup provider", visible=False)
-                    oa_provider_copy_message = gr.Markdown("")
-                with gr.Accordion("Provider Benchmark Lab · WAV yang sama", open=False):
-                    oa_benchmark_file = gr.File(
-                        label="Klip benchmark WAV PCM", file_types=["audio"], type="filepath"
-                    )
-                    oa_benchmark_providers = gr.CheckboxGroup(
-                        label="Model yang dibandingkan",
-                        choices=OA_ASR_MODEL_CHOICES,
-                        value=[item[1] for item in OA_ASR_MODEL_CHOICES],
-                    )
-                    oa_benchmark_device = gr.Radio(
-                        label="Device benchmark", choices=[("CPU", "cpu"), ("GPU", "cuda")], value="cpu"
-                    )
-                    oa_benchmark_btn = gr.Button("Jalankan benchmark provider")
-                    oa_benchmark_output = gr.Markdown("Benchmark belum dijalankan.")
-                oa_lab_profile = gr.Radio(
-                    label="Respons subtitle",
-                    choices=[("Instant", "speed"), ("Balanced · Rekomendasi", "normal"), ("Accurate", "accurate")],
-                    value=INITIAL_AUDIO_PROFILE,
-                )
-                with gr.Row():
-                    oa_setup_audio_btn = gr.Button("Siapkan Runtime Audio Lab", variant="secondary")
-                    oa_refresh_devices_btn = gr.Button("Deteksi ulang perangkat")
-                oa_device_message = gr.Textbox(
-                    label="Status perangkat",
-                    value=_AUDIO_DEVICE_MESSAGE,
-                    interactive=False,
-                    lines=2,
-                )
-                with gr.Accordion("Setup runtime Lab", open=False):
-                    oa_audio_setup_log = gr.Textbox(
-                        label="Setup Audio Lab",
-                        value=audio_runtime_status_text(INITIAL_AUDIO_PROFILE, INITIAL_AUDIO_MODE, "local", "live_media"),
-                        interactive=False,
-                        lines=14,
-                        elem_classes=["mono"],
-                    )
-
-                oa_runtime_validation = gr.Markdown(_OA_INITIAL_RUNTIME_STATUS)
-                with gr.Row(elem_classes=["action-row"]):
-                    oa_validate_runtime_btn = gr.Button("Validasi Pipeline Lab")
-                    oa_start_audio_btn = gr.Button("Preload & Mulai Audio Lab", variant="primary", elem_id="oa_start_primary")
-                    oa_stop_audio_btn = gr.Button("Stop Audio Lab", variant="stop")
-                    oa_refresh_runtime_btn = gr.Button("Refresh Status Lab")
-
-                oa_runtime_state = gr.HTML(_status_html("STATUS: IDLE"))
-                oa_runtime_message = gr.Textbox(label="Status sesi Audio Lab", interactive=False)
-                oa_runtime_error = gr.Markdown("")
-                with gr.Accordion("Runtime monitor & log Lab", open=True):
-                    gr.HTML("""
-                    <div class='copylog-wrap'>
-                      <button onclick="(function(){const ta=document.querySelector('#oa_live_log textarea'); if(ta){navigator.clipboard.writeText(ta.value); const s=document.getElementById('oa_copylog_status'); if(s){s.textContent='Log Lab tersalin'; setTimeout(()=>s.textContent='',1800);}}})()">Copy Log Lab</button>
-                      <span id='oa_copylog_status'></span>
-                    </div>
-                    <div class='smallnote'>Log diperbarui otomatis selama sesi. Pause hanya menghentikan tampilan, bukan pencatatan ke file.</div>
-                    """)
-                    oa_realtime_log_enabled = gr.Checkbox(
-                        label="Log realtime",
-                        value=True,
-                    )
-                    oa_runtime_summary = gr.Textbox(
-                        label="Runtime Audio Lab",
-                        value=audio_runtime_status_text(INITIAL_AUDIO_PROFILE, INITIAL_AUDIO_MODE, "local", "live_media"),
-                        interactive=False,
-                        lines=10,
-                        elem_classes=["mono"],
-                    )
-                    oa_runtime_log = gr.Textbox(
-                        label="Live log Audio Lab",
-                        value="",
-                        interactive=False,
-                        lines=18,
-                        autoscroll=True,
-                        elem_id="oa_live_log",
-                        elem_classes=["logbox"],
-                    )
-                    oa_provider_transparency = gr.Markdown(_oa_provider_transparency_text())
-                    oa_live_timer = gr.Timer(value=0.75, active=True) if hasattr(gr, "Timer") else None
-
-            with gr.Group(
-                visible=INITIAL_OA_UI_MODE == "developer",
-                elem_classes=["developer-controls", "workspace-card"],
-            ) as oa_developer_panel:
-                gr.HTML("<div class='setup-header'><div><div class='section-kicker'>Developer contract</div><div class='section-title'>Provider dan kebijakan pipeline</div><div class='section-copy'>Panel ini adalah POV developer. User Normal tidak perlu mengubah ID provider atau membaca JSON runtime.</div></div><span class='step-badge'>DEV</span></div>")
-                with gr.Row():
-                    oa_source = gr.Dropdown(label="Source Provider", choices=_OA_SOURCE_CHOICES, value=_OA_INITIAL[0])
-                    oa_vad = gr.Dropdown(label="VAD Provider", choices=_OA_VAD_CHOICES, value=_OA_INITIAL[1])
-                    oa_asr = gr.Dropdown(label="ASR Provider", choices=_OA_ASR_CHOICES, value=_OA_INITIAL[2])
-                with gr.Row():
-                    oa_streaming = gr.Dropdown(label="Streaming Strategy", choices=_OA_STREAMING_CHOICES, value=_OA_INITIAL[3])
-                    oa_translation = gr.Dropdown(label="Translation Route", choices=_OA_TRANSLATION_CHOICES, value=_OA_INITIAL[4])
-                    oa_overlay = gr.Dropdown(label="Overlay Provider", choices=_OA_OVERLAY_CHOICES, value=_OA_INITIAL[5])
-                with gr.Row():
-                    oa_language_correction = gr.Dropdown(
-                        label="Language watchdog",
-                        choices=[
-                            ("Off", "off"),
-                            ("Conservative", "conservative"),
-                            ("Balanced", "balanced"),
-                            ("Aggressive", "aggressive"),
-                        ],
-                        value=INITIAL_AUDIO_LANGUAGE_CORRECTION,
-                    )
-                    oa_language_lock = gr.Checkbox(
-                        label="Kunci bahasa utama",
-                        value=INITIAL_AUDIO_LANGUAGE_LOCK,
-                    )
-                    oa_runtime_agreement = gr.Slider(
-                        label="Agreement passes",
-                        minimum=2,
-                        maximum=4,
-                        step=1,
-                        value=2,
-                    )
-                oa_status = gr.Markdown(_OA_INITIAL[9])
-                with gr.Row():
-                    with gr.Column(scale=2):
-                        gr.Markdown("### Pipeline aktif di Lab")
-                        oa_diagram = gr.HTML(_OA_INITIAL[6])
-                    with gr.Column(scale=3):
-                        gr.Markdown("### Provider, asal, dan lisensi")
-                        oa_provider_table = gr.HTML(_OA_INITIAL[7])
-                with gr.Accordion("Rencana pipeline JSON", open=False):
-                    oa_config_json = gr.Textbox(
-                        label="Open Architecture Plan",
-                        value=_OA_INITIAL[8],
-                        interactive=False,
-                        lines=18,
-                        elem_classes=["mono"],
-                    )
-                with gr.Row():
-                    oa_custom_name = gr.Textbox(label="Nama preset custom", value="my_open_architecture_lab")
-                    oa_save_btn = gr.Button("Simpan preset Lab")
-                    oa_export_btn = gr.Button("Export architecture plan")
-                oa_action_message = gr.Textbox(
-                    label="Status penyimpanan/export",
-                    value="",
-                    interactive=False,
-                    lines=3,
-                )
-
-                gr.Markdown("## A/B Architecture Comparison")
-                with gr.Row():
-                    oa_compare_left = gr.Dropdown(label="Pipeline A", choices=_OA_PRESET_CHOICES, value="original_audio")
-                    oa_compare_right = gr.Dropdown(label="Pipeline B", choices=_OA_PRESET_CHOICES, value="japanese_live_lab")
-                    oa_compare_btn = gr.Button("Bandingkan arsitektur")
-                oa_compare_output = gr.Markdown(
-                    architecture_compare_presets("original_audio", "japanese_live_lab")
-                )
-
-                with gr.Accordion("Confirmed Prefix / Local Agreement Demo", open=False):
-                    gr.Markdown("Masukkan hipotesis ASR berurutan, satu baris per pembaruan. Tokenizer Lab mendukung Latin dan CJK/Jepang.")
-                    oa_hypotheses = gr.Textbox(
-                        label="ASR hypotheses",
-                        value="私たちは\n私たちはここを\n私たちはここを離れなければならない",
-                        lines=7,
-                    )
-                    oa_agreement = gr.Slider(label="Demo agreement passes", minimum=2, maximum=4, step=1, value=2)
-                    oa_demo_btn = gr.Button("Jalankan confirmed-prefix demo")
-                    oa_demo_html = gr.HTML("")
-                    oa_demo_json = gr.Textbox(label="Demo JSON", value="", interactive=False, lines=14, elem_classes=["mono"])
-
-        with gr.Tab("Shortcut"):
+        with gr.Tab("Shortcut", id="tab_shortcut"):
             shortcut_box = gr.Textbox(label="Shortcut config", lines=12, elem_classes=["jsonbox"], value=json.dumps({
                 "esc_exit_enabled": False,
                 "bindings": {
@@ -2655,7 +3772,7 @@ with gr.Blocks(title=APP_DISPLAY_NAME) as demo:
                 }
             }, ensure_ascii=False, indent=2), interactive=False)
 
-        with gr.Tab("Runtime & Tools"):
+        with gr.Tab("Runtime & Tools", id="tab_runtime_tools"):
             gr.Markdown("Panel troubleshooting runtime, GPU, Lite GPU Efficient, Fast CT2, OCR, IDN Quality Layer, dan repair.")
             with gr.Accordion("Perluas: Runtime & GPU Doctor", open=False):
                 with gr.Row():
@@ -2821,11 +3938,10 @@ with gr.Blocks(title=APP_DISPLAY_NAME) as demo:
         ],
         outputs=[oa_runtime_validation],
     )
-    oa_ui_mode.change(
-        _oa_ui_mode_updates,
-        inputs=[oa_ui_mode],
-        outputs=[oa_mode_help, oa_developer_panel],
-    )
+    # No oa_ui_mode.change handler on purpose. ui_mode.change already owns
+    # oa_mode_help and oa_developer_panel, and mirroring the value into
+    # oa_ui_mode used to re-fire a second full handler round on every switch --
+    # double work per click, which froze the page under rapid switching.
     oa_validate_runtime_btn.click(
         _oa_runtime_validation_ui,
         inputs=[
@@ -2944,18 +4060,46 @@ with gr.Blocks(title=APP_DISPLAY_NAME) as demo:
     )
 
     # Dashboard events
-    start_btn.click(_start, inputs=[model_dropdown, game_dropdown, mode_dropdown, engine_dropdown, interval_slider, ocr_resolution_slider, settings_mode, responsive_story_mode, diagnostic_profile, mode_buffer_checkbox, translation_source], outputs=[state_box, runtime_box, log_box, launch_msg, error_box, candidate_notice])
-    audio_start_btn.click(_start_audio, inputs=[model_dropdown, game_dropdown, audio_input_mode, audio_device, audio_language, audio_language_correction, audio_language_lock, audio_processing, audio_usage, audio_engine, audio_mode, audio_profile, audio_test_file], outputs=[state_box, runtime_box, log_box, launch_msg, error_box, candidate_notice])
+    start_btn.click(_start, inputs=[model_dropdown, game_dropdown, mode_dropdown, engine_dropdown, interval_slider, ocr_resolution_slider, settings_mode, responsive_story_mode, diagnostic_profile, mode_buffer_checkbox, translation_source, audio_resource_mode, audio_resource_level, device_resource_radio, ocr_provider, ocr_languages, ui_mode], outputs=[state_box, runtime_box, log_box, launch_msg, error_box, candidate_notice])
+    audio_start_btn.click(_start_audio, inputs=[model_dropdown, game_dropdown, audio_input_mode, audio_device, audio_language, audio_language_correction, audio_language_lock, audio_processing, audio_usage, audio_engine, audio_mode, audio_profile, audio_vad_backend, audio_resource_mode, audio_resource_level, device_resource_radio, audio_test_file], outputs=[state_box, runtime_box, log_box, launch_msg, error_box, candidate_notice])
+
+    # ORT_V9_0_7: persist ladder choices on USER action only (.input). The UI
+    # level handler resets the displayed values when entering Basic; .change
+    # would persist that programmatic reset and wipe the user's real setting.
+    def _save_resource_prefs(mode_value, level_value, device_value):
+        _save_ui_pref(
+            audio_resource_mode=_norm_resource_mode(mode_value),
+            audio_resource_level=_norm_resource_level(level_value),
+            device_resource=_norm_device_resource(device_value),
+        )
+    for _resource_control in (audio_resource_mode, audio_resource_level, device_resource_radio):
+        _resource_control.input(
+            _save_resource_prefs,
+            inputs=[audio_resource_mode, audio_resource_level, device_resource_radio],
+            outputs=[],
+        )
+
+    # R28: the audio combination card follows every knob that feeds it -- the ASR
+    # profile and engine, plus the same three ladder controls the OCR card uses.
+    for _audio_intent_control in (
+        audio_profile, audio_engine,
+        audio_resource_mode, audio_resource_level, device_resource_radio,
+    ):
+        _audio_intent_control.change(
+            _audio_intent_summary_html,
+            inputs=[audio_profile, audio_engine, audio_resource_mode, audio_resource_level, device_resource_radio],
+            outputs=[audio_intent_summary_box],
+        )
     setup_audio_btn.click(_setup_audio_ui, inputs=[audio_mode, audio_profile, audio_engine, audio_usage], outputs=[audio_setup_log, audio_device, audio_availability, source_status])
-    refresh_audio_devices_btn.click(_refresh_audio_devices_ui, inputs=[audio_mode, audio_profile, audio_engine, audio_usage], outputs=[audio_device, audio_device_message, audio_availability])
-    setup_cloud_btn.click(_setup_audio_cloud_ui, inputs=[audio_engine, audio_profile, audio_mode, audio_usage], outputs=[cloud_setup_log, audio_availability])
-    save_test_cloud_btn.click(_save_audio_cloud_ui, inputs=[azure_region, azure_api_key, audio_language, audio_engine, audio_profile, audio_mode, audio_usage], outputs=[cloud_setup_log, azure_api_key, audio_availability])
-    clear_cloud_btn.click(_clear_audio_cloud_ui, inputs=[audio_engine, audio_profile, audio_mode, audio_usage], outputs=[cloud_setup_log, audio_availability])
+    refresh_audio_devices_btn.click(_refresh_audio_devices_ui, inputs=[audio_mode, audio_profile, audio_engine, audio_usage], outputs=[audio_device, audio_device_message, audio_availability, source_status])
+    setup_cloud_btn.click(_setup_audio_cloud_ui, inputs=[audio_engine, audio_profile, audio_mode, audio_usage], outputs=[cloud_setup_log, audio_availability, source_status])
+    save_test_cloud_btn.click(_save_audio_cloud_ui, inputs=[azure_region, azure_api_key, audio_language, audio_engine, audio_profile, audio_mode, audio_usage], outputs=[cloud_setup_log, azure_api_key, audio_availability, source_status])
+    clear_cloud_btn.click(_clear_audio_cloud_ui, inputs=[audio_engine, audio_profile, audio_mode, audio_usage], outputs=[cloud_setup_log, audio_availability, source_status])
     audio_input_mode.change(_audio_input_updates, inputs=[audio_input_mode], outputs=[audio_test_file, audio_device])
     audio_profile.change(_audio_profile_description, inputs=[audio_profile, audio_mode], outputs=[audio_profile_info])
-    audio_mode.change(_audio_mode_updates, inputs=[audio_mode, audio_profile, audio_engine, audio_usage], outputs=[audio_profile_info, setup_audio_btn, audio_availability, audio_setup_log, audio_device])
-    audio_engine.change(_audio_engine_updates, inputs=[audio_engine, audio_mode, audio_profile, audio_usage], outputs=[audio_availability, audio_setup_log, audio_device, audio_device_message, setup_audio_btn])
-    audio_usage.change(_audio_usage_updates, inputs=[audio_usage, audio_profile, audio_mode, audio_engine], outputs=[audio_availability])
+    audio_mode.change(_audio_mode_updates, inputs=[audio_mode, audio_profile, audio_engine, audio_usage], outputs=[audio_profile_info, setup_audio_btn, audio_availability, audio_setup_log, audio_device, source_status])
+    audio_engine.change(_audio_engine_updates, inputs=[audio_engine, audio_mode, audio_profile, audio_usage], outputs=[audio_availability, audio_setup_log, audio_device, audio_device_message, setup_audio_btn, source_status])
+    audio_usage.change(_audio_usage_updates, inputs=[audio_usage, audio_profile, audio_mode, audio_engine], outputs=[audio_availability, source_status])
     stop_btn.click(_stop, inputs=[game_dropdown], outputs=[state_box, runtime_box, log_box, launch_msg, error_box, candidate_notice, proc_msg, cand_names, cand_special, confirmed_html, names_html, special_html, blacklist_html, original_html, name_color, special_color, popup_toggle, auto_reset_toggle, preview_html, color_legend_html, remove_name_pick, remove_special_pick, remove_blacklist_pick])
     refresh_btn.click(_refresh_all, inputs=[game_dropdown], outputs=[state_box, runtime_box, log_box, error_box, candidate_notice])
     apply_rec_btn.click(_force_apply_recommendation, inputs=[game_dropdown], outputs=[game_profile_card, recommendation_box, model_group, model_dropdown, model_md, mode_dropdown, engine_dropdown, interval_slider, ocr_resolution_slider, settings_mode])
@@ -2964,13 +4108,21 @@ with gr.Blocks(title=APP_DISPLAY_NAME) as demo:
     settings_mode.change(_apply_recommendation, inputs=[game_dropdown, settings_mode], outputs=[game_profile_card, recommendation_box, model_group, model_dropdown, model_md, mode_dropdown, engine_dropdown, interval_slider, ocr_resolution_slider, settings_mode])
     model_group.change(_on_group_change, inputs=[model_group], outputs=[model_dropdown, model_md, catalog_html, model_default_msg, reset_model_default_btn])
     model_dropdown.change(_manual_model_defaults, inputs=[model_dropdown, game_dropdown], outputs=[model_md, mode_dropdown, engine_dropdown, interval_slider, ocr_resolution_slider, settings_mode, model_default_msg, reset_model_default_btn])
+    # ORT_V9_0_7_R19: the conclusion depends on all four controls, so every one
+    # of them refreshes it. Without this the card would state a goal the runtime
+    # is no longer going to apply.
+    for _intent_source in (model_dropdown, audio_resource_mode, audio_resource_level, device_resource_radio):
+        _intent_source.change(
+            _intent_summary_html,
+            inputs=[model_dropdown, audio_resource_mode, audio_resource_level, device_resource_radio],
+            outputs=[intent_summary_box],
+        )
     mode_dropdown.change(_auto_save_model_setting, inputs=[model_dropdown, game_dropdown, mode_dropdown, engine_dropdown, interval_slider, ocr_resolution_slider], outputs=[model_default_msg, reset_model_default_btn, settings_mode])
     engine_dropdown.change(_auto_save_model_setting, inputs=[model_dropdown, game_dropdown, mode_dropdown, engine_dropdown, interval_slider, ocr_resolution_slider], outputs=[model_default_msg, reset_model_default_btn, settings_mode])
     interval_slider.change(_auto_save_model_setting, inputs=[model_dropdown, game_dropdown, mode_dropdown, engine_dropdown, interval_slider, ocr_resolution_slider], outputs=[model_default_msg, reset_model_default_btn, settings_mode])
     ocr_resolution_slider.change(_auto_save_model_setting, inputs=[model_dropdown, game_dropdown, mode_dropdown, engine_dropdown, interval_slider, ocr_resolution_slider], outputs=[model_default_msg, reset_model_default_btn, settings_mode])
     reset_model_default_btn.click(_reset_model_default_click, inputs=[model_dropdown, game_dropdown], outputs=[model_md, model_default_msg, mode_dropdown, engine_dropdown, interval_slider, ocr_resolution_slider, settings_mode, reset_model_default_btn])
     prompt_btn.click(_build_prompt_box, inputs=[log_box, game_dropdown], outputs=[ai_prompt_box])
-    reset_live_log_btn.click(reset_live_log_text, outputs=[log_box])
     analyze_session_btn.click(analyze_last_session_text, outputs=[session_report_box])
 
     # v8.7.6 Multi-game identity UI events
@@ -3030,8 +4182,187 @@ with gr.Blocks(title=APP_DISPLAY_NAME) as demo:
     reset_online_btn.click(lambda: reset_settings_text("online"), outputs=[reset_box])
     reset_all_btn.click(lambda: reset_settings_text("all"), outputs=[reset_box])
     npc_cleanup_btn.click(npc_cleanup_text, outputs=[v8_diag_box])
-    translation_source.change(_translation_source_updates, inputs=[translation_source, audio_profile, audio_mode, audio_engine, audio_usage], outputs=[source_status, ocr_runtime_panel, audio_preview_panel, start_btn, audio_start_btn])
-    ui_mode.change(_ui_mode_updates, inputs=[ui_mode], outputs=[guided_header_panel, developer_header_panel, recommendation_panel, dashboard_diagnostic_panel, model_controls_panel, advanced_controls_panel, runtime_summary_panel, hardware_panel, performance_policy_info])
+    translation_source.change(_translation_source_updates, inputs=[translation_source, audio_profile, audio_mode, audio_engine, audio_usage], outputs=[source_status, ocr_runtime_panel, audio_preview_panel, start_btn, audio_start_btn, audio_availability])
+    # ORT_V9_0_6_STAGE4: universal UI level. The main radio drives everything
+    # (panels, tabs, CSS) and mirrors its value into the Lab radio; the Lab
+    # radio's .input (user action only, so no loop) writes back into the main
+    # radio, whose .change then reapplies the level across all pages.
+    # Lab components that follow the universal level. Everything here is an
+    # expert control: Basic keeps only preset, game/language, audio source,
+    # ASR device, subtitle profile, and Start/Stop plus the status indicator.
+    _LAB_EXPERT_COMPONENTS = [
+        oa_apply_preset_btn, oa_refresh_btn,
+        oa_overlay_mode, oa_preview_btn, oa_preview_status, oa_overlay_settings_block,
+        oa_resource_policy, oa_resource_note,
+        oa_provider_block,
+        oa_setup_runtime_accordion, oa_runtime_monitor_accordion,
+        oa_validate_runtime_btn, oa_refresh_runtime_btn,
+    ]
+
+    def _ui_level_all(mode):
+        """Single source of truth for the level across BOTH pages."""
+        mode = _normalize_ui_mode(mode)
+        base = list(_ui_mode_updates(mode))
+        v = _ui_mode_visibility(mode)
+        lab = [gr.update(visible=v["lab_expert"]) for _ in _LAB_EXPERT_COMPONENTS]
+        # ORT_V9_0_7: the resource ladder follows the UI level. Basic hides it
+        # and shows the locked default; Normal exposes 3 stops on the slider
+        # (Terendah/Menengah/Maks via step=2); Developer exposes all five.
+        # Values are re-read from prefs on every switch, so leaving Basic
+        # restores exactly what the user had set before (.input-only saving
+        # guarantees the Basic reset itself was never persisted).
+        saved = _load_saved_prefs()
+        if mode == "basic":
+            resource_updates = [
+                gr.update(visible=False),
+                gr.update(value=BASIC_RESOURCE_DEFAULTS[0]),
+                gr.update(value=BASIC_RESOURCE_DEFAULTS[1], step=2),
+                gr.update(value=BASIC_RESOURCE_DEFAULTS[2]),
+            ]
+        else:
+            saved_level = _norm_resource_level(saved.get("audio_resource_level", 3))
+            if mode == "recommended" and saved_level in {2, 4}:
+                saved_level = 3
+            resource_updates = [
+                gr.update(visible=True),
+                gr.update(value=_norm_resource_mode(saved.get("audio_resource_mode", "stable"))),
+                gr.update(value=saved_level, step=2 if mode == "recommended" else 1),
+                gr.update(value=_norm_device_resource(saved.get("device_resource", "adaptive"))),
+            ]
+        return tuple(base + lab + [
+            gr.update(visible=v["lab_developer"]),
+            _oa_banner_html(mode),
+        ] + resource_updates + [tutorial_mode_marker(mode)])
+
+    ui_mode.change(
+        _ui_level_all,
+        inputs=[ui_mode],
+        outputs=[
+            basic_header_panel, guided_header_panel, developer_header_panel,
+            recommendation_panel, dashboard_diagnostic_panel, model_controls_panel,
+            core_controls_panel, expert_controls_panel,
+            runtime_summary_panel, hardware_panel, performance_policy_info,
+            logs_accordion, settings_mode,
+            audio_experimental_panel, ui_level_css, oa_ui_mode,
+            game_profile_card, model_detail_panel, runtime_status_cards,
+            oa_ocr_tuning_panel, oa_ocr_resource_panel,
+            *_LAB_EXPERT_COMPONENTS,
+            oa_developer_panel, oa_mode_help,
+            audio_resource_panel, audio_resource_mode, audio_resource_level, device_resource_radio,
+            tutorial_mode_signal,
+        ],
+    )
+    # The Lab radio only writes the level back into the main radio; the main
+    # radio's .change then applies it everywhere. Using .input (user action
+    # only) is what stops the two radios from echoing each other forever.
+    oa_ui_mode.input(
+        lambda level: gr.update(value=_LAB_TO_UI_LEVEL.get(str(level or "normal").lower(), "recommended")),
+        inputs=[oa_ui_mode],
+        outputs=[ui_mode],
+    )
+
+    # Quick-jump buttons from every workspace to the overlay settings page.
+    ocr_overlay_jump_btn.click(lambda: gr.Tabs(selected="tab_pengaturan_ui"), inputs=None, outputs=[main_tabs])
+    audio_overlay_jump_btn.click(lambda: gr.Tabs(selected="tab_pengaturan_ui"), inputs=None, outputs=[main_tabs])
+    oa_overlay_jump_btn.click(lambda: gr.Tabs(selected="tab_pengaturan_ui"), inputs=None, outputs=[main_tabs])
+
+    ocr_provider.change(_ocr_language_update, inputs=[ocr_provider, ocr_languages], outputs=[ocr_languages, ocr_language_note])
+    oa_ocr_provider.change(_ocr_provider_short_status, inputs=[oa_ocr_provider], outputs=[oa_ocr_short_status])
+    oa_ocr_provider.change(_ocr_language_update, inputs=[oa_ocr_provider, oa_ocr_languages], outputs=[oa_ocr_languages, oa_ocr_language_note])
+
+    ocr_provider.change(
+        _ocr_engine_device_update,
+        inputs=[ocr_provider, engine_dropdown],
+        outputs=[engine_dropdown, ocr_provider_status],
+    )
+
+    oa_lab_source.change(
+        _oa_source_updates,
+        inputs=[oa_lab_source, ui_mode],
+        outputs=[oa_ocr_panel, oa_ocr_runtime_panel, oa_preset_panel, oa_audio_panel,
+                 oa_developer_panel, oa_ocr_tuning_panel, oa_ocr_resource_panel],
+    )
+
+    oa_ocr_start_btn.click(
+        _oa_ocr_start,
+        inputs=[oa_ocr_game, oa_ocr_model, oa_ocr_languages, oa_ocr_mode, oa_ocr_engine_device,
+                oa_ocr_mode_buffer, oa_ocr_interval, oa_ocr_resolution, oa_ocr_resource_mode,
+                oa_ocr_resource_level, oa_ocr_device_resource, oa_ocr_provider, ui_mode],
+        outputs=[oa_ocr_state, oa_ocr_message, oa_ocr_error, oa_ocr_log],
+    )
+    oa_ocr_stop_btn.click(_oa_ocr_stop, inputs=None, outputs=[oa_ocr_state, oa_ocr_message, oa_ocr_error, oa_ocr_log])
+    oa_ocr_refresh_status_btn.click(_oa_ocr_refresh, inputs=None, outputs=[oa_ocr_state, oa_ocr_message, oa_ocr_error, oa_ocr_log])
+    oa_ocr_overlay_jump_btn.click(lambda: gr.Tabs(selected="tab_pengaturan_ui"), inputs=None, outputs=[main_tabs])
+    if oa_ocr_log_timer is not None:
+        oa_ocr_log_timer.tick(
+            _oa_ocr_live_tick,
+            inputs=[oa_ocr_live_log_enabled],
+            outputs=[oa_ocr_state, oa_ocr_log],
+        )
+    oa_ocr_model_group.change(
+        _on_oa_ocr_group_change,
+        inputs=[oa_ocr_model_group],
+        outputs=[oa_ocr_model, oa_ocr_core_defaults],
+    )
+    for _oa_intent_source in (oa_ocr_model, oa_ocr_resource_mode, oa_ocr_resource_level, oa_ocr_device_resource):
+        _oa_intent_source.change(
+            _intent_summary_html,
+            inputs=[oa_ocr_model, oa_ocr_resource_mode, oa_ocr_resource_level, oa_ocr_device_resource],
+            outputs=[oa_intent_summary_box],
+        )
+    oa_ocr_model.change(
+        _oa_ocr_core_defaults,
+        inputs=[oa_ocr_model, oa_ocr_game],
+        outputs=[oa_ocr_core_defaults, oa_ocr_interval, oa_ocr_resolution],
+    )
+    oa_ocr_provider.change(
+        _oa_ocr_engine_sync,
+        inputs=[oa_ocr_provider, oa_ocr_engine_device],
+        outputs=[oa_ocr_engine_device],
+    )
+
+    # ORT_V9_0_7_R5: Lab OCR engine controls.
+    oa_ocr_refresh_btn.click(_oa_ocr_refresh_ui, inputs=None, outputs=[oa_ocr_status])
+    oa_ocr_setup_btn.click(
+        _oa_ocr_setup_ui,
+        inputs=[oa_ocr_provider, oa_ocr_engine_device],
+        outputs=[oa_ocr_status, oa_ocr_setup_log],
+    )
+
+
+    def _save_overlay_settings(mode, width, height, font, opacity, alignment, show_source, effect):
+        mode = str(mode or "adaptive").lower()
+        if mode not in {"adaptive", "fixed", "custom"}:
+            mode = "adaptive"
+        effect = str(effect or "default").lower()
+        if effect not in {"default", "typewriter"}:
+            effect = "default"
+        alignment = str(alignment or "left").lower()
+        if alignment not in {"left", "center"}:
+            alignment = "left"
+        _save_ui_pref(
+            audio_overlay_mode=mode,
+            audio_overlay_width_percent=int(width or 92),
+            audio_overlay_height_px=int(height or 190),
+            audio_overlay_font_size=int(font or 15),
+            audio_overlay_opacity_percent=int(opacity or 91),
+            audio_overlay_alignment=alignment,
+            audio_overlay_show_source=bool(show_source),
+            audio_overlay_stream_mode=effect,
+        )
+        effect_label = "Typewriter · Mengalir" if effect == "typewriter" else "Default · Langsung ganti"
+        return (
+            "<div class='smallnote'>Tersimpan ✓ · box <b>" + mode + "</b> · efek <b>" + effect_label
+            + "</b> · dipakai saat sesi audio berikutnya dimulai.</div>"
+        )
+
+    _overlay_setting_inputs = [
+        overlay_mode_radio, overlay_width_slider, overlay_height_slider,
+        overlay_font_slider, overlay_opacity_slider, overlay_alignment_radio,
+        overlay_show_source_checkbox, overlay_effect_radio,
+    ]
+    for _overlay_control in _overlay_setting_inputs:
+        _overlay_control.change(_save_overlay_settings, inputs=_overlay_setting_inputs, outputs=[overlay_settings_status])
 
     timer = gr.Timer(1.0)
     timer.tick(_refresh_all, inputs=[game_dropdown], outputs=[state_box, runtime_box, log_box, error_box, candidate_notice])

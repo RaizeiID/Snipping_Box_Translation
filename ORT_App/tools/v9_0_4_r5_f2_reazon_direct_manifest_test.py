@@ -26,7 +26,7 @@ def main() -> int:
         'def _download_static_file(',
         'headers["Range"]',
         'metadata_preflight=False',
-        '"download_strategy": "direct_static_manifest"',
+        '"download_strategy": "direct_static_manifest_r3"',
         '_reazon_local_warmup_script(',
         'device=target_device, model_root=model_root',
     ]

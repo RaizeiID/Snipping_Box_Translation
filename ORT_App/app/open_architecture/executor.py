@@ -31,8 +31,10 @@ GAME_LANGUAGE_OPTIONS: dict[str, tuple[str, ...]] = {
 
 
 def normalise_resource_policy(value: str) -> str:
-    token = str(value or "normal").strip().lower()
-    return token if token in {"efficient", "normal", "optimal"} else "normal"
+    # ORT_V9_0_7: canonical tokens are the ladder modes; legacy names map over.
+    from app.runtime.resource_levels import normalize_resource_mode
+
+    return normalize_resource_mode(value)
 
 
 def normalise_delivery_mode(value: str) -> str:
@@ -60,37 +62,36 @@ def normalise_game_language(game: str, language: str) -> str:
     return allowed[0]
 
 
-def resource_policy_environment(policy: str) -> dict[str, str]:
+def resource_policy_environment(policy: str, level=None, device_resource: str = None) -> dict[str, str]:
+    # ORT_V9_0_7: every value now comes from the unified resource ladder, so
+    # the Lab and the main pipeline scale identically. Level/device fall back
+    # to the saved WebUI preference so old call sites keep working.
+    from app.runtime.resource_levels import (
+        legacy_policy_token,
+        resolve_resource_plan,
+    )
+
     token = normalise_resource_policy(policy)
-    common = {
-        "ORT_AUDIO_RESOURCE_POLICY": token,
+    if level is None:
+        level = os.environ.get("ORT_AUDIO_RESOURCE_LEVEL", "3")
+    if device_resource is None:
+        device_resource = os.environ.get("ORT_DEVICE_RESOURCE", "adaptive")
+    plan = resolve_resource_plan(token, level, device_resource)
+    return {
+        # Legacy token for readers that still branch on efficient/normal/optimal.
+        "ORT_AUDIO_RESOURCE_POLICY": legacy_policy_token(token),
+        "ORT_AUDIO_RESOURCE_MODE": plan.mode,
+        "ORT_AUDIO_RESOURCE_LEVEL": str(plan.level),
+        "ORT_DEVICE_RESOURCE": plan.device_resource,
         "ORT_AUDIO_DUAL_STREAM": "0",
-        "ORT_AUDIO_BACKGROUND_SPECIALIST_CORRECTION": "0",
+        "ORT_AUDIO_BACKGROUND_SPECIALIST_CORRECTION": "1" if plan.specialist_correction else "0",
         "ORT_AUDIO_ALLOW_ARGOS_RECOVERY": "0",
         "ORT_AUDIO_PROVIDER_TRANSPARENCY": "1",
+        "ORT_AUDIO_CONTEXT_WORDS": str(plan.context_words),
+        "ORT_TRANSLATION_WATCHDOG_SECONDS": "18" if plan.mode == "efficient" else "15",
+        "ORT_AUDIO_VRAM_MIN_FREE_MB": str(plan.vram_min_free_mb),
+        "ORT_AUDIO_PREFLIGHT_MAX_STEADY_MS": str(plan.preflight_max_steady_ms),
     }
-    if token == "efficient":
-        common.update({
-            "ORT_AUDIO_CONTEXT_WORDS": "48",
-            "ORT_TRANSLATION_WATCHDOG_SECONDS": "18",
-            "ORT_AUDIO_VRAM_MIN_FREE_MB": "2300",
-            "ORT_AUDIO_PREFLIGHT_MAX_STEADY_MS": "900",
-        })
-    elif token == "optimal":
-        common.update({
-            "ORT_AUDIO_CONTEXT_WORDS": "64",
-            "ORT_TRANSLATION_WATCHDOG_SECONDS": "15",
-            "ORT_AUDIO_VRAM_MIN_FREE_MB": "1800",
-            "ORT_AUDIO_PREFLIGHT_MAX_STEADY_MS": "1200",
-        })
-    else:
-        common.update({
-            "ORT_AUDIO_CONTEXT_WORDS": "72",
-            "ORT_TRANSLATION_WATCHDOG_SECONDS": "15",
-            "ORT_AUDIO_VRAM_MIN_FREE_MB": "1800",
-            "ORT_AUDIO_PREFLIGHT_MAX_STEADY_MS": "1200",
-        })
-    return common
 
 
 @dataclass(frozen=True)

@@ -24,6 +24,38 @@ from model_strategy import ModelStrategy, strategy_from_env, write_strategy_stat
 from cache_store import ScopedCacheStore
 from fast_model_manager import FastModelManager
 from online_assist_router import OnlineAssistRouter
+
+# ORT_V9_0_7_R16: sentence boundary = terminal punctuation followed by whitespace.
+# The whitespace is captured so the pieces can be rejoined into exactly the
+# original string; a segmenter that loses spacing would silently reflow the
+# subtitle.
+_SENTENCE_BOUNDARY_RE = re.compile(r"(?<=[.!?…])(\s+)")
+# Words for the R21 tiny-chunk guard. Accented letters and apostrophes count, so
+# "ma'am" and "café" are one word each rather than two or none.
+_WORD_RE = re.compile(r"[A-Za-zÀ-ÿ0-9']+")
+
+
+def _split_sentences(text: str):
+    """Split into [(chunk, is_complete, trailing_separator), ...].
+
+    `is_complete` marks a chunk that ended on terminal punctuation, i.e. one the
+    game has finished typing and which will not change again. The last chunk of a
+    growing line is incomplete and must be re-translated every frame.
+
+    Joining chunk+separator across the list reproduces the input exactly.
+    """
+    raw = str(text or "")
+    if not raw.strip():
+        return []
+    pieces = _SENTENCE_BOUNDARY_RE.split(raw)
+    out = []
+    # re.split with one capturing group yields [chunk, sep, chunk, sep, ..., chunk]
+    for index in range(0, len(pieces), 2):
+        chunk = pieces[index]
+        separator = pieces[index + 1] if index + 1 < len(pieces) else ""
+        is_complete = bool(separator) and chunk.rstrip().endswith((".", "!", "?", "…"))
+        out.append((chunk, is_complete, separator))
+    return out
 from online_assist_config import apply_online_config_to_env
 from translation_event_logger import append_translation_event, append_event
 from status_manager import write_status as _write_status, read_status as _read_status
@@ -59,6 +91,11 @@ class TranslationEngine:
         self.naturalized_cache = None
         self.fast_status = FastModelManager(self.base_dir).status()
         self._online_disabled_until = 0.0
+        self._last_cover_reason = ""
+        # ORT_V9_0_7_R16: finished-sentence -> (translation, engine_tag).
+        # Insertion-ordered so the oldest entry is the one evicted.
+        self._sentence_cache: Dict[str, Tuple[str, str]] = {}
+        self._sentence_reuse_count = 0
         self._last_status_write = 0.0
         self.legacy_vault_enabled = os.environ.get("ORT_ENABLE_LEGACY_VAULT", "0") == "1"
         self.final_cache = StableFinalCachePolicy()
@@ -114,10 +151,18 @@ class TranslationEngine:
                     model_dir = Path(os.environ.get("ORT_LITE_CT2_MODEL_DIR") or self.fast_status.get("model_dir") or os.environ.get("TITAN_CT2_EN_ID_DIR", os.environ.get("ORT_FAST_CT2_MODEL_DIR", str(self.base_dir / "models" / "ct2_opus_mt_en_id"))))
                     model_valid = bool((self.fast_status.get("model_validation") or {}).get("likely_valid")) or os.environ.get("ORT_LITE_CT2_ALLOWED", "0") == "1"
                 if model_valid and model_dir.is_dir() and any(model_dir.iterdir()):
+                    # ORT_V9_0_7: TITAN_CT2_BEAM was written by the launcher but
+                    # never read here, so beam stayed pinned at 1 for every
+                    # profile and resource mode. It is now honoured, which is
+                    # what makes the resource ladder's accuracy end real.
+                    try:
+                        beam_size = max(1, min(8, int(os.environ.get("TITAN_CT2_BEAM", "1") or 1)))
+                    except ValueError:
+                        beam_size = 1
                     cfg = CT2Config(
                         model_dir_en_id=str(model_dir),
                         spm_dir_en_id=str(model_dir),
-                        beam_size=1,
+                        beam_size=beam_size,
                         device=os.environ.get("TITAN_CT2_DEVICE", "cpu"),
                         compute_type=os.environ.get("TITAN_CT2_COMPUTE_TYPE", "int8"),
                     )
@@ -153,6 +198,127 @@ class TranslationEngine:
         return time.time() < self._online_disabled_until
 
     def _translate_offline(self, text: str) -> str:
+        """Translate a fragment, reusing per-sentence results across frames.
+
+        ORT_V9_0_7_R16: INCREMENTAL_SENTENCE_TRANSLATE.
+
+        Auto story reveals dialogue a few characters at a time, and every frame
+        used to re-translate the whole accumulated block from scratch. Measured
+        over three field sessions: 67-73% of OCR frames were a continuation of
+        the line before them, and 4.4k-6.8k characters per session were paid for
+        twice or more. Backend cost tracked the block length -- 27 ms at 1-30
+        chars, 155 ms at 91-120 -- while frames kept arriving every ~100 ms, so
+        the queue backed up (509 ms backend behind 146 ms of queue, then 498/274,
+        then 406/351) and the subtitle only caught up once the text stopped
+        growing. That is what reads as "waiting for a lot of text first".
+
+        A finished sentence never changes afterwards, so it is translated once
+        and reused; only the sentence still being typed is re-translated. The
+        split is at sentence boundaries, never mid-sentence, because Indonesian
+        reorders words -- concatenating half-translated clauses would corrupt
+        grammar, while a complete sentence is a legitimate translation unit.
+        """
+        if os.environ.get("ORT_INCREMENTAL_SENTENCE_TRANSLATE", "1") != "1":
+            return self._translate_offline_raw(text)
+        parts = _split_sentences(text)
+        # Nothing to reuse unless at least one sentence is already finished.
+        if len(parts) < 2:
+            return self._translate_offline_raw(text)
+
+        # R16 first gated on block length, because the goal then was purely to
+        # stop paying for re-translation: 27 ms at 1-30 chars, 58 at 31-60, 92 at
+        # 61-90, 155 at 91-120, so short blocks had no latency to win. The guard
+        # against tiny fragments -- "No. I" becoming "No." plus "I" translated in
+        # isolation -- was folded into the same char thresholds.
+        #
+        # R21 separates the two, because splitting turned out to do something the
+        # char gate could not see. Measured over 38 mid-flight fragments from the
+        # field logs: handed a whole fragment, CT2 silently drops everything after
+        # the first full stop -- "strange feeling envelops Helen. She feels a"
+        # came back as "Perasaan aneh menyelimuti Helen." with the tail gone. That
+        # is content loss, not slowness, and it hit 8 of 38 fragments. Per-sentence
+        # translation cuts it to 4 of 38 and lifts coverage 82% -> 85%, level with
+        # Argos, at the same 41 ms median.
+        #
+        # So the block-length gate is retired (nothing to protect) and the tiny
+        # fragment guard becomes what it always meant: no complete chunk may be
+        # shorter than a few words. Verified on 20 sub-40-char lines from the same
+        # logs -- zero of them translate differently under this gate, so "No. I"
+        # and its kind still go to the backend whole.
+        # R29: R21 removed the block-length gate entirely, which went too far.
+        # On a block this short there is no re-translation cost to win, so a
+        # split is all risk and no gain -- R16's original reasoning still holds.
+        # Restored at 40: measured against the field logs, every one of the 40
+        # long blocks that should split still splits, all three of the cases R29
+        # set out to fix are fixed, and the short progressive frames R16 guards
+        # ("No. It goes beyond tha") stay whole. The separation point is 32, so
+        # 40 keeps a margin.
+        min_block = max(0, int(os.environ.get("ORT_INCREMENTAL_MIN_CHARS", "40")))
+        min_prefix = max(0, int(os.environ.get("ORT_INCREMENTAL_MIN_PREFIX_CHARS", "0")))
+        # R29: the word floor belongs on the chunk still being TYPED, not on
+        # finished sentences. R21 applied it to every complete chunk, so a short
+        # opener cancelled the split for the whole block: "Don't worry. Right
+        # now, you're officially registered as a Doll under Mangi Security" was
+        # refused because "Don't worry." has two words, and the whole 80-char
+        # block went to CT2 in one piece -- which is where CT2 drops clauses.
+        # Measured over two field sessions: 21 of 100 long blocks were refused
+        # this way. Moving the floor to the tail lifts splits 23 -> 40, coverage
+        # 89% -> 91%, and content loss 6 -> 4, for +4% backend time. "No. I"
+        # stays protected, because there the TAIL is the one-word fragment.
+        min_words = max(0, int(os.environ.get("ORT_INCREMENTAL_MIN_SENTENCE_WORDS", "3")))
+        complete_prefix = sum(len(chunk) + len(sep) for chunk, done, sep in parts if done)
+        if len(text) < min_block or complete_prefix < min_prefix:
+            return self._translate_offline_raw(text)
+        if min_words:
+            tail = [chunk for chunk, done, _sep in parts if not done and chunk.strip()]
+            if tail and len(_WORD_RE.findall(tail[-1])) < min_words:
+                return self._translate_offline_raw(text)
+
+        out_chunks: list[str] = []
+        reused = 0
+        for chunk, is_complete, separator in parts:
+            if not chunk.strip():
+                out_chunks.append(chunk + separator)
+                continue
+            if is_complete:
+                cached = self._sentence_cache.get(chunk)
+                if cached is not None:
+                    translated, engine_tag = cached
+                    # Keep engine bookkeeping honest: a reused sentence still
+                    # came from that backend, and meta["engine"] is derived from
+                    # this list further up the call chain.
+                    if engine_tag:
+                        self._request_backend_engines.append(engine_tag)
+                    reused += 1
+                    out_chunks.append(translated + separator)
+                    continue
+                before = len(self._request_backend_engines)
+                translated = self._translate_offline_raw(chunk)
+                engine_tag = self._request_backend_engines[before] if len(self._request_backend_engines) > before else ""
+                # Never cache a held or identity result -- those mean the backend
+                # refused, and freezing them would make the refusal permanent.
+                if (
+                    translated
+                    and engine_tag != "ct2_held"
+                    and translated.strip().casefold() != chunk.strip().casefold()
+                ):
+                    self._sentence_cache_put(chunk, translated, engine_tag)
+                out_chunks.append(translated + separator)
+            else:
+                out_chunks.append(self._translate_offline_raw(chunk) + separator)
+
+        if reused:
+            self._sentence_reuse_count += reused
+        return "".join(out_chunks).strip()
+
+    def _sentence_cache_put(self, source: str, translated: str, engine_tag: str) -> None:
+        cache = self._sentence_cache
+        cache[source] = (translated, engine_tag)
+        limit = max(32, int(os.environ.get("ORT_SENTENCE_CACHE_MAX", "512")))
+        while len(cache) > limit:
+            cache.pop(next(iter(cache)))
+
+    def _translate_offline_raw(self, text: str) -> str:
         if self.ct2:
             try:
                 out = self.ct2.translate(text)
@@ -171,6 +337,22 @@ class TranslationEngine:
             os.environ.get("ORT_HARD_STRICT_CT2_STORY", "1") == "1"
             or os.environ.get("ORT_DISABLE_ARGOS_PROGRESSIVE_WHEN_CT2", "1") == "1"
         )
+        # ORT_V9_0_7_R19: the goal decides whether an unfinished fragment is
+        # worth showing. A player on Fast + Efisien Maks picked the speed core to
+        # see words early and accepts rough edges; holding the fragment gives
+        # them a blank overlay, which is the opposite of what they asked for. A
+        # player on V3 + Intensive wants the hold. `intent_release_fragments`
+        # carries that decision in from the launcher; the word floor keeps the
+        # very short scraps out even in the loosest mode, and the FINAL still
+        # comes from CT2 for every goal except pure speed.
+        if strict_suppression and os.environ.get("ORT_STRICT_CT2_RELEASE_FRAGMENTS", "0") == "1":
+            try:
+                floor = max(1, int(os.environ.get("ORT_STRICT_CT2_FRAGMENT_MIN_WORDS", "3")))
+            except ValueError:
+                floor = 3
+            if len(re.findall(r"[A-Za-zÀ-ÿ0-9']+", str(text or ""))) >= floor:
+                strict_suppression = False
+                self._request_backend_fallback_reasons.append("intent_released_fragment")
         if self.ct2 and strict_suppression:
             self._request_backend_engines.append("ct2_held")
             append_event("STRICT_CT2_STORY_FALLBACK_SUPPRESSED", {"reason": self._request_backend_fallback_reasons[-1] if self._request_backend_fallback_reasons else "ct2_no_safe_output", "source": str(text or "")[:200], "hard_strict": os.environ.get("ORT_HARD_STRICT_CT2_STORY", "1") == "1"}, source_module="translation_engine")
@@ -213,6 +395,46 @@ class TranslationEngine:
         append_event("TRUSTED_PREVIEW_TRANSLATED", {"source": src[:300], "translation": output[:400], "latency_ms": extra["ms"]}, source_module="translation_engine")
         return output, extra
 
+    @staticmethod
+    def _word_count(value: str) -> int:
+        return len(re.findall(r"[A-Za-zÀ-ÿ0-9']+", str(value or "")))
+
+    def _cover_choice(self, source: str, offline_out: str, online_out: str) -> tuple[str, str]:
+        """Pick whichever of the two better covers the source line.
+
+        ORT_V9_0_7_R15. V4's contract is offline-first with an online assist that
+        genuinely covers for it -- and is covered in return. Until now the merge
+        was one-directional: any non-empty online string replaced the offline
+        one, so offline only ever covered a *missing* online result, never a
+        *bad* one. A truncated or half-passthrough reply from the provider would
+        silently overwrite a complete offline translation.
+
+        Coverage is measured in words against the source. Online is the accuracy
+        assist, so it keeps the benefit of the doubt and wins ties; it only loses
+        when it clearly drops content the offline path managed to keep.
+        """
+        src_words = self._word_count(source)
+        off_words = self._word_count(offline_out)
+        on_words = self._word_count(online_out)
+
+        if not online_out or online_out == source or len(online_out) < 2:
+            return offline_out, "offline_online_unusable"
+        # Offline produced nothing usable -- this is the case online exists for.
+        if off_words == 0 or not str(offline_out or "").strip():
+            return online_out, "online_covers_empty_offline"
+        if src_words < 4:
+            # Too short to judge coverage; keep the assist's wording.
+            return online_out, "online_short_line"
+        # Reject an online reply that dropped a large part of what offline kept.
+        if off_words >= 4 and on_words < off_words * 0.65:
+            return offline_out, "offline_covers_truncated_online"
+        # Reject a reply that is mostly the source echoed back untranslated.
+        if on_words >= 4 and self._word_count(source) and online_out.casefold() != offline_out.casefold():
+            shared = len(set(re.findall(r"[a-z0-9']+", source.casefold())) & set(re.findall(r"[a-z0-9']+", online_out.casefold())))
+            if shared >= max(3, int(on_words * 0.85)):
+                return offline_out, "offline_covers_online_passthrough"
+        return online_out, "online_covers_offline"
+
     def _translate_online_assist(self, text: str, offline_out: str) -> str:
         if self._online_paused_by_runtime():
             if self.online_router:
@@ -226,10 +448,14 @@ class TranslationEngine:
             return offline_out
         try:
             online_out = (self.online_router.translate(text) or "").strip()
-            if online_out and online_out != text and len(online_out) >= 2:
-                return online_out
+            chosen, reason = self._cover_choice(text, offline_out, online_out)
+            self._last_cover_reason = reason
+            if reason != "online_covers_offline":
+                self.log(f"[TRANSLATION] V4 cover: {reason}")
+            return chosen
         except Exception as exc:
             self._online_disabled_until = time.time() + 25.0
+            self._last_cover_reason = "offline_covers_online_error"
             self.log(f"[TRANSLATION] Online assist paused 25s: {exc}")
         return offline_out
 
@@ -476,8 +702,12 @@ class TranslationEngine:
         self._strict_ct2_request = bool(self.ct2 and os.environ.get("ORT_STRICT_CT2_STORY", "1") == "1" and (hard_story or request_progressive or meta.get("qur_quarantine") == "ambiguous"))
         meta["strict_ct2_story"] = self._strict_ct2_request
         meta["hard_strict_ct2_story"] = hard_story
+        reuse_before = self._sentence_reuse_count
         backend_out, span_backend_calls = translate_spans(source_spans, self._translate_offline)
         meta["backend_span_calls"] = int(span_backend_calls)
+        reused_now = self._sentence_reuse_count - reuse_before
+        if reused_now:
+            meta["sentences_reused"] = int(reused_now)
         applied_backends = set(self._request_backend_engines)
         if applied_backends == {"ct2_fast"}:
             meta["engine"] = "ct2_fast"
@@ -499,7 +729,10 @@ class TranslationEngine:
         # Preserve online-assist behaviour only for lines without immutable entities;
         # entity-bearing lines favour identity correctness over external rewrite.
         if not meta["protected_entities"] and self.strategy.online_policy in {"hybrid", "timeout_assist", "online_assist"}:
+            self._last_cover_reason = ""
             assisted_raw = self._translate_online_assist(translate_src, backend_out)
+            if self._last_cover_reason:
+                meta["v4_cover_reason"] = self._last_cover_reason
             if assisted_raw != backend_out:
                 backend_out = assisted_raw
                 meta["engine"] = "online_router"

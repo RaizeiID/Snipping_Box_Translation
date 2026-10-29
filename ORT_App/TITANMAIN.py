@@ -264,6 +264,16 @@ try:
 except Exception:
     IntervalFastSkipSafety = None
 ORT_LATEST_FRAME_WINS = os.environ.get("ORT_LATEST_FRAME_WINS", "0") == "1"
+# ORT_V9_0_7_R13: once a translation is finished, let it reach the overlay gate
+# even if a newer OCR frame arrived meanwhile, as long as the turn still stands.
+# Set to 0 to restore the exact-generation stale drop.
+ORT_LATE_RESULT_RENDER = os.environ.get("ORT_LATE_RESULT_RENDER", "1") == "1"
+# ORT_V9_0_7_R17: let observed round-trip latency raise the commit interval so
+# the pipeline cannot queue work faster than it drains. Set 0 for fixed pacing.
+ORT_BACKEND_BACKPRESSURE = os.environ.get("ORT_BACKEND_BACKPRESSURE", "1") == "1"
+# ORT_V9_0_7_R20: set by the OCR worker so the shutdown path can read the same
+# session counters. None until a worker starts.
+_RECORDING_TELEMETRY = None
 ORT_ENTITY_SPAN_PIPELINE = os.environ.get("ORT_ENTITY_SPAN_PIPELINE", "0") == "1"
 ORT_SPEAKER_TRANSITION_GUARD = os.environ.get("ORT_SPEAKER_TRANSITION_GUARD", "1") != "0"
 ORT_IDN_ACCURACY_QUALITY_LOCK = os.environ.get("ORT_IDN_ACCURACY_QUALITY_LOCK", "0") == "1"
@@ -458,6 +468,27 @@ def _finalize_runtime_shutdown(reason="exit"):
     try:
         from session_log_manager import close_session
         close_session(reason)
+    except Exception:
+        pass
+    # ORT_V9_0_7_R20: record what this session's combination was and how long it
+    # actually lasted. Duration is the signal that separates a preference from
+    # an experiment -- anyone can pick a core, but only a combination worth
+    # keeping survives a few minutes untouched.
+    try:
+        from app.runtime.intent_history import record_from_env
+
+        stats = {}
+        try:
+            snap = _RECORDING_TELEMETRY.snapshot() if _RECORDING_TELEMETRY is not None else {}
+            stats = {
+                "stale_results_dropped": snap.get("stale_results_dropped", 0),
+                "overlay_committed": snap.get("overlay_committed", 0),
+                "strict_ct2_holds": snap.get("id_preview_suppressed", 0),
+            }
+            duration = float(snap.get("duration_sec", 0) or 0)
+        except Exception:
+            duration = 0.0
+        record_from_env(duration, stats=stats, base_dir=BASE_DIR)
     except Exception:
         pass
     try:
@@ -711,6 +742,56 @@ def _argos_translate(text: str, src: str, dst: str) -> str:
     tr = _argos_get_translator(src, dst)
     return tr.translate(text)
 
+
+_ARGOS_STANDBY_STATE = {"ready": False, "ms": 0, "error": ""}
+
+
+def _start_argos_standby(pairs=(("en", "id"),)):
+    """Bring Argos to a hot standby in the background.
+
+    ORT v9.0.7 R24. Argos was a standby fallback with a start-up cost paid at
+    the worst possible moment. Measured on a clean process:
+
+        import argostranslate      8558 ms   (boot)
+        get_installed_languages()     4 ms   (boot)
+        get_translation()             0 ms   (already done by argos_print_status)
+        FIRST translate()         10662 ms   <- paid lazily, mid-session
+        second translate()           65 ms
+
+    get_translation() only builds the object; the model and the sentence
+    splitter load on the first real call. So the first CT2 -> Argos crossing in
+    a session froze the subtitle for about ten seconds. That crossing is not
+    rare: across 131 recorded sessions there were 881 CT2<->Argos crossings, and
+    33 sessions crossed at least once -- one session in four paid the stall.
+
+    One throwaway translation removes it, and it does not belong on the boot
+    path either, so it runs on a daemon thread while OCR is still initialising.
+    After this the transfer costs one normal Argos call (~65 ms) instead of
+    ~10.7 s: a genuine no-break changeover rather than a restart.
+    """
+    if os.environ.get("ORT_ARGOS_STANDBY", "1") != "1":
+        return None
+
+    def _warm():
+        t0 = time.time()
+        try:
+            for src, dst in pairs:
+                # Deliberately a full sentence: a bare word can skip the
+                # sentence-splitter path that costs most of the ten seconds.
+                _argos_translate("The convoy arrives in fifteen minutes.", src, dst)
+            _ARGOS_STANDBY_STATE["ms"] = int((time.time() - t0) * 1000)
+            _ARGOS_STANDBY_STATE["ready"] = True
+            log(f"[ARGOS] Standby ready in {_ARGOS_STANDBY_STATE['ms']} ms | failover now ~1 call.")
+        except Exception as exc:
+            # A cold Argos is the status quo, not a new failure, so this stays a
+            # warning: CT2 serves every frame unless it fails.
+            _ARGOS_STANDBY_STATE["error"] = f"{type(exc).__name__}: {exc}"
+            log(f"[ARGOS] Standby warm-up failed ({_ARGOS_STANDBY_STATE['error']}); fallback stays cold.")
+
+    th = threading.Thread(target=_warm, name="argos-standby", daemon=True)
+    th.start()
+    return th
+
 def _argos_warn_once(tag: str, msg: str):
     if tag in _ARGOS_WARN_ONCE:
         return
@@ -758,6 +839,23 @@ def _argos_translate_direct(text: str) -> str:
 def _get_translation_engine():
     global TRANSLATION_ENGINE
     if TRANSLATION_ENGINE is None:
+        # ORT_V9_0_7_R4: claim torch's cuDNN before CTranslate2 loads its own.
+        # Measured: importing ctranslate2 and building a Translator BEFORE the
+        # first easyocr GPU Reader aborts the process at native level with
+        # "Could not load symbol cudnnGetLibConfig. Error code 127" -- not a
+        # Python exception, so even `except BaseException` cannot catch it and
+        # the CPU fallback below never runs.
+        # Today boot_system() happens to initialise OCR first (reload_ocr_engine
+        # precedes this call), so the live app is safe. This makes that
+        # ordering explicit instead of accidental, because reload_ocr_engine()
+        # is also reachable later from F9 and from the VRAM recovery path.
+        try:
+            import torch
+
+            if torch.cuda.is_available():
+                torch.cuda.init()
+        except Exception:
+            pass
         try:
             from translation_engine import get_engine
             TRANSLATION_ENGINE = get_engine(BASE_DIR, _argos_translate_direct, logger=log)
@@ -1344,14 +1442,43 @@ def reload_ocr_engine(target_mode: str = None):
         pass
 
     try:
-        reader = easyocr.Reader(["ch_sim", "en"], gpu=target_gpu)
+        langs = _ort_ocr_languages()
+        provider = _ort_ocr_provider()
+        # ORT_V9_0_7_R8: real dual-device hybrid, opt-in.
+        # Measured on this machine it is SLOWER than GPU alone (520 ms vs
+        # 148 ms) because the CPU worker saturates the cores and the GIL that
+        # the GPU worker also needs. It stays available because it is the only
+        # mode that keeps producing when the GPU is fully contended, but it is
+        # never the default and the UI labels the cost in red.
+        want_dual = (
+            str(os.environ.get("ORT_OCR_HYBRID_DUAL", "0")) == "1"
+            and str(os.environ.get("ORT_BOOT_ENGINE", "")).lower() == "hybrid"
+        )
+        if want_dual:
+            from app.ocr.ocr_provider_registry import effective_devices
+
+            if "cuda" in effective_devices(provider):
+                reader = _ORTDualReader(provider, languages=langs)
+                target_gpu = True
+            else:
+                log("[OCR] Hybrid dual requested but this engine has no GPU path; using CPU.")
+                reader = _ORTProviderReader(provider, gpu=False, languages=langs)                     if provider != "easyocr_craft" else easyocr.Reader(langs, gpu=False)
+                target_gpu = False
+        elif provider != "easyocr_craft":
+            from app.ocr.ocr_provider_registry import OCREngine, effective_devices
+
+            wants_gpu = bool(target_gpu) and "cuda" in effective_devices(provider)
+            reader = _ORTProviderReader(provider, gpu=wants_gpu, languages=langs)
+            target_gpu = wants_gpu
+        else:
+            reader = easyocr.Reader(langs, gpu=target_gpu)
         with OCR_LOCK:
             GLOBAL_READER = reader
         IS_USING_GPU = bool(target_gpu)
-        log(f"[SUCCESS] Engine Active: {'GPU' if IS_USING_GPU else 'CPU'}")
+        log(f"[SUCCESS] Engine Active: {provider} | langs={'+'.join(langs)} | {'GPU' if IS_USING_GPU else 'CPU'}")
     except Exception as e:
         log(f"[CRITICAL] OCR init failed -> fallback CPU | {e}")
-        reader = easyocr.Reader(["ch_sim", "en"], gpu=False)
+        reader = easyocr.Reader(_ort_ocr_languages(), gpu=False)
         with OCR_LOCK:
             GLOBAL_READER = reader
         IS_USING_GPU = False
@@ -1440,6 +1567,92 @@ def pick_screen_for_region(region: dict):
 # ==============================================================================
 # UI: Snipping (robust overlay)
 # ==============================================================================
+
+# ORT_V9_0_7_R3: detector working-resolution cap.
+# canvas_size bounds the internal resolution EasyOCR's CRAFT detector runs at,
+# and is the single biggest driver of both its activation VRAM and its time.
+# Measured on this RTX 4050 with the GFL2-like frame:
+#   canvas 2560 (default): peak 247 MB   canvas 960: peak 207 MB, ~4x faster,
+#   accuracy unchanged (88.9% -> 89.2%). Dropping to 640 finally costs accuracy
+#   (77.7%), so 960 is the floor worth using.
+# Saver/efficient runs set this low; leaving it 0 keeps EasyOCR's own default.
+def _ort_ocr_provider() -> str:
+    """Which OCR engine the runtime should use (set by the launcher/Lab)."""
+    try:
+        from app.ocr.ocr_provider_registry import normalize_ocr_provider
+
+        return normalize_ocr_provider(os.environ.get("ORT_OCR_PROVIDER", "easyocr_craft"))
+    except Exception:
+        return "easyocr_craft"
+
+
+def _ort_ocr_languages() -> list:
+    """EasyOCR language packs to load.
+
+    This used to be hardcoded to ["ch_sim", "en"] -- Simplified Chinese plus
+    English -- regardless of the game. Measured on rendered Japanese dialogue,
+    loading the right pack is the single largest OCR win found so far:
+
+        ["ch_sim","en"] : 452 ms, 91% accuracy
+        ["ja","en"]     :  68 ms, 100% accuracy
+
+    Reading Japanese with a Chinese model was costing ~6x the latency AND the
+    accuracy. Defaults stay ch_sim+en so existing setups are unchanged.
+    """
+    raw = str(os.environ.get("ORT_OCR_LANGUAGES", "") or "").strip()
+    if not raw:
+        return ["ch_sim", "en"]
+    langs = [item.strip() for item in raw.replace("+", ",").split(",") if item.strip()]
+    return langs or ["ch_sim", "en"]
+
+
+class _ORTProviderReader:
+    """The selected engine owns text AND box-level OCR, including speaker ROI."""
+
+    def __init__(self, provider_id: str, *, gpu: bool, languages: list):
+        from app.ocr.ocr_provider_registry import OCREngine
+
+        self.provider_id = provider_id
+        self.languages = list(languages)
+        self._engine = OCREngine(provider_id, gpu=gpu, languages=tuple(languages),
+                                 canvas_size=_ort_detect_kwargs().get("canvas_size", 0), log=log)
+        self._engine.load()
+
+    def readtext(self, image, detail=0, paragraph=False, **kwargs):
+        if detail:
+            return self._engine.read_boxes(image, **kwargs)
+        return self._engine.read(image)
+
+
+class _ORTDualReader:
+    """readtext() surface backed by the racing dual-device engine."""
+
+    def __init__(self, provider_id: str, *, languages: list):
+        from app.ocr.ocr_provider_registry import DualDeviceOCREngine
+
+        self.provider_id = provider_id
+        self.languages = list(languages)
+        self._engine = DualDeviceOCREngine(provider_id, languages=tuple(languages), log=log)
+        self._engine.load()
+        self._box_reader = None
+
+    def readtext(self, image, detail=0, paragraph=False, **kwargs):
+        if detail:
+            if self._box_reader is None:
+                self._box_reader = easyocr.Reader(self.languages, gpu=True)
+            kwargs.pop("canvas_size", None)
+            return self._box_reader.readtext(image, detail=detail, paragraph=paragraph, **kwargs)
+        return self._engine.read(image)
+
+
+def _ort_detect_kwargs():
+    try:
+        canvas = int(os.environ.get("ORT_OCR_DETECTOR_CANVAS", "0") or 0)
+    except ValueError:
+        canvas = 0
+    return {"canvas_size": canvas} if canvas >= 320 else {}
+
+
 class SnippingWidget(QWidget):
     selection_made = pyqtSignal(dict)
 
@@ -1987,6 +2200,24 @@ class OCRWorker(QThread):
         except Exception:
             return gray
 
+    def _gray_full_cached(self, img_rgb):
+        """Full-res grayscale of the current frame, computed at most once.
+
+        Keyed on the array's identity and shape rather than its contents: the
+        capture path hands out a fresh array per frame, so identity is enough
+        and hashing megapixels every call would cost more than it saves.
+        """
+        try:
+            key = (id(img_rgb), getattr(img_rgb, "shape", None))
+            cached_key, cached_gray = getattr(self, "_gray_cache", (None, None))
+            if cached_key == key and cached_gray is not None:
+                return cached_gray
+            gray = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
+            self._gray_cache = (key, gray)
+            return gray
+        except Exception:
+            return cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
+
     def _prep_stable_at_percent(self, img_rgb, percent: int):
         """Prepare one OCR view while preserving the original dialog geometry."""
         scale = max(0.35, min(1.20, float(percent) / 100.0))
@@ -2000,9 +2231,75 @@ class OCRWorker(QThread):
                     img_rgb = img_rgb[top:bottom, :, :]
             except Exception:
                 pass
-        up = self._resize_for_v7(img_rgb, scale)
-        gray = cv2.cvtColor(up, cv2.COLOR_RGB2GRAY)
-        return self._enhance_readability_gray_v890(gray, int(percent))
+        # ORT_V9_0_7_R4: grayscale BEFORE the resize.
+        # RGB->gray is a weighted sum and INTER_AREA is a box mean; both are
+        # linear, so they commute -- the result is equivalent while the resize
+        # moves one channel instead of three. Measured 28-34% off the prep stage
+        # (2.4 ms -> 1.7 ms at 47%). Small in absolute terms, but free, and it
+        # matters most on the rescue path where prep runs a second time.
+        #
+        # The full-resolution grayscale is also the ONLY part that does not
+        # depend on `percent`, so it is memoised per source frame. The
+        # readability rescue and the name-ROI pass both re-prep the same frame
+        # at a different percentage; without this they each redid the whole
+        # full-res conversion, and they run precisely when the pipeline is
+        # already under pressure.
+        gray_full = self._gray_full_cached(img_rgb)
+        gray = self._resize_for_v7(gray_full, scale)
+        enhanced = self._enhance_readability_gray_v890(gray, int(percent))
+        return self._detector_scale_rescue_v907(enhanced, scale)
+
+    def _detector_scale_rescue_v907(self, gray, scale: float):
+        """Re-enlarge a heavily downscaled view before the detector reads it.
+
+        CRAFT (EasyOCR's detector) has a minimum legible glyph height. Once the
+        capture is downscaled far enough, dialogue glyphs drop below it and
+        detection collapses -- which is what the measured accuracy cliff between
+        50% and 40% OCR actually is, not a loss of pixel detail.
+
+        Enlarging the already-small image costs very little and hands the
+        detector glyphs inside its working range. Measured on a GFL2-like frame
+        (small, low-contrast text over a busy scene) with the same
+        easyocr(["ch_sim","en"]) this build uses:
+
+            40% OCR : 55.1% -> 94.4% accuracy
+            45% OCR : 82.1% -> 95.9% accuracy
+
+        Detection also stopped thrashing, so OCR time did not increase; it fell
+        in every trial, though the exact figure is noisy run to run.
+
+        Two things that sound helpful and measured WORSE, so they are not done
+        here: sharpening before the downscale (-7.4 points -- it feeds the
+        upscaler noise), and enlarging 2.0x instead of ~1.6x (-2.4 points and
+        much slower). The target effective scale below encodes that sweet spot.
+        """
+        try:
+            if os.environ.get("ORT_OCR_DETECTOR_RESCUE", "1") == "0":
+                return gray
+            # ORT_V9_0_7_R9: the rescue target adapts to how far the capture was
+            # downscaled. The lower the Core's OCR level, the more the detector
+            # needs the glyphs enlarged again. Measured on GFL2-like dialogue:
+            #
+            #   OCR 40%: rescue off 63.4% -> 0.64 gives 83.3% -> 0.72 gives 84.7%
+            #   OCR 45%: rescue off 83.5% -> 0.64 gives 89.2% -> 0.72 gives 89.5%
+            #
+            # This raises accuracy at low OCR levels WITHOUT touching the level
+            # itself, which stays a property of the selected Core.
+            override = os.environ.get("ORT_OCR_DETECTOR_TARGET_SCALE", "").strip()
+            if override:
+                target = float(override)
+            elif scale < 0.45:
+                target = 0.72
+            else:
+                target = 0.64
+            if scale <= 0.0 or scale >= target:
+                return gray
+            factor = max(1.0, min(2.0, target / scale))
+            if factor <= 1.02:
+                return gray
+            return cv2.resize(gray, None, fx=factor, fy=factor, interpolation=cv2.INTER_CUBIC)
+        except Exception:
+            return gray
 
     def _prep_stable(self, img_rgb):
         # v8.7.6: initial OCR follows applied setting; Readability Guard may
@@ -2178,14 +2475,14 @@ class OCRWorker(QThread):
         self.last_readability_rescue_reason = ""
         try:
             if ORT_GFL_SPEAKER_ROI:
-                det = reader.readtext(img_gray, detail=1, paragraph=False)
+                det = reader.readtext(img_gray, detail=1, paragraph=False, **_ort_detect_kwargs())
                 from app.games.gfl_profile import extract_layout_text
                 raw_text, meta = extract_layout_text(det, getattr(img_gray, "shape", (1, 1)))
                 self._last_gfl_layout_meta = dict(meta or {})
                 return raw_text
 
             body_t0 = time.perf_counter()
-            out = reader.readtext(img_gray, detail=0, paragraph=True)
+            out = reader.readtext(img_gray, detail=0, paragraph=True, **_ort_detect_kwargs())
             raw_text = " ".join(out).strip() if out else ""
             body_img = img_gray
             body_percent = int(ORT_RUNTIME_OCR_RESOLUTION_PERCENT)
@@ -2206,7 +2503,7 @@ class OCRWorker(QThread):
                         if retry_percent > body_percent:
                             rt0 = time.perf_counter()
                             retry_img = self._prep_stable_at_percent(source_rgb, retry_percent)
-                            retry_out = reader.readtext(retry_img, detail=0, paragraph=True)
+                            retry_out = reader.readtext(retry_img, detail=0, paragraph=True, **_ort_detect_kwargs())
                             retry_text = " ".join(retry_out).strip() if retry_out else ""
                             selected, before, after, used_retry = select_better_text(raw_text, retry_text, body_percent, retry_percent, ORT_OCR_STORY_MIN_PERCENT)
                             self.last_readability_rescue_ms = (time.perf_counter() - rt0) * 1000.0
@@ -2274,7 +2571,7 @@ class OCRWorker(QThread):
             return []
         t0 = time.time()
         try:
-            return reader.readtext(img_gray, detail=1, paragraph=True)
+            return reader.readtext(img_gray, detail=1, paragraph=True, **_ort_detect_kwargs())
         except Exception:
             return []
         finally:
@@ -2548,6 +2845,10 @@ class TranslatorWorker(QThread):
         self.dialog_accumulator = DialogueTurnAccumulator.from_env() if DialogueTurnAccumulator is not None else None
         self.overlay_commit_gate = OverlayCommitGate.from_env() if OverlayCommitGate is not None else None
         self.recording_telemetry = RecordingTelemetry() if RecordingTelemetry is not None else None
+        # ORT_V9_0_7_R20: the shutdown finalizer runs outside this object, so it
+        # needs a handle to the same counters to record how the session went.
+        global _RECORDING_TELEMETRY
+        _RECORDING_TELEMETRY = self.recording_telemetry
         self.ocr_churn_rescue = OCRChurnRescue.from_env() if OCRChurnRescue is not None else None
         self.turn_finalizer = TurnFinalizer.from_env() if TurnFinalizer is not None else None
         self.bad_cache_shield = BadCacheShield.from_env() if BadCacheShield is not None else None
@@ -2581,6 +2882,36 @@ class TranslatorWorker(QThread):
             return self.turn_state_machine.is_current(turn_id, generation_id)
         except Exception:
             return True
+
+    def _meta_turn_is_current(self, meta: dict) -> bool:
+        """True while the result still describes the line that is on screen.
+
+        ORT_V9_0_7_R13. Deliberately weaker than `_meta_is_current`: it ignores
+        the generation counter and only asks whether the turn is still active.
+
+        `is_current` demands an exact generation match, so any OCR frame landing
+        during the ~100-200 ms translation invalidates the finished result. In
+        session 10:51 that discarded the whole of turn t000001 -- generations
+        1,2,3,5,7 were each translated and each dropped `after_translate` -- and
+        the line only appeared once the text stopped growing. Discarding work
+        that is already paid for renders nothing in its place, which is exactly
+        the lag the player sees.
+
+        Dropping still happens when the turn itself changed, because then the
+        text really is gone from the screen. Within a live turn the overlay
+        commit gate is the correct arbiter: its `stale_generation_rejected` rule
+        already refuses anything that would move the subtitle backwards.
+        """
+        if self.turn_state_machine is None:
+            return True
+        turn_id = str(meta.get("dialog_turn_id") or "").strip()
+        if not turn_id:
+            return True
+        try:
+            current = self.turn_state_machine.current()
+        except Exception:
+            return True
+        return current is None or current.turn_id == turn_id
 
     def _drop_stale_result(self, meta: dict, *, stage: str, source: str = "") -> None:
         try:
@@ -2964,8 +3295,33 @@ class TranslatorWorker(QThread):
                         raw_text=raw_text,
                         speaker_roi_confidence=float(roi_meta.get("confidence", 0.0) or 0.0),
                     )
+                    # ORT v9.0.7 R30: do not print the name twice.
+                    #
+                    # R26 stopped deleting a character name that is the SUBJECT of
+                    # a narration line ("Klukai led Squad 404 in a rapid assault"),
+                    # because stripping it left the sentence with nobody in it. But
+                    # the guard still resolves a speaker for that shape -- v8.8.8
+                    # and v8.8.9 deliberately require it -- so the overlay ended up
+                    # rendering the header AND the body:
+                    #
+                    #     Klukai
+                    #     Klukai led Squad 404 in a rapid assault...
+                    #
+                    # Seen on four of five registered names in the live capture.
+                    # The guard's contract is left alone; the header is simply
+                    # dropped when the body already opens with that same name, so
+                    # the sentence keeps its subject and the label stops repeating
+                    # it. Covers any source of the duplication, not just R26.
                     if pr.speaker:
-                        speaker = pr.speaker
+                        _body_opens_with_speaker = re.match(
+                            r"^\s*" + re.escape(str(pr.speaker)) + r"\b",
+                            str(pr.text or ""),
+                            flags=re.I,
+                        )
+                        if not _body_opens_with_speaker:
+                            speaker = pr.speaker
+                        else:
+                            ocr_meta["speaker_header_suppressed"] = "name_is_sentence_subject"
                     dialog = pr.text
                     # v8.8.9: propagate Prediction Guard metadata into renderer/logs.
                     # Earlier versions logged Green/Yellow/Red but the overlay badge
@@ -3183,7 +3539,7 @@ class TranslatorWorker(QThread):
             out = offline_translate_ram(dialog)
             out = _preserve_tail_punct(dialog, out)
             dt = int((time.time() - t0) * 1000)
-            if not self._meta_is_current(ocr_meta):
+            if not (self._meta_turn_is_current(ocr_meta) if ORT_LATE_RESULT_RENDER else self._meta_is_current(ocr_meta)):
                 self._drop_stale_result(ocr_meta, stage="after_translate", source=dialog)
                 continue
             try:
@@ -3277,6 +3633,16 @@ class TranslatorWorker(QThread):
                     pass
             requested_mode = os.environ.get("ORT_UI_REQUESTED_MODE", os.environ.get("ORT_BOOT_MODE", mode_name)).upper()
             scheduler_profile = os.environ.get("ORT_DIALOG_SCHEDULER_PROFILE", "-")
+            # ORT_V9_0_7_R17: close the loop -- tell the scheduler how long the
+            # round trip actually took, so it can stop committing faster than the
+            # backend drains. `dt` is the whole pipeline cost the player waits on,
+            # not just the model call, which is the number that has to fit inside
+            # the commit interval.
+            if self.dialog_scheduler is not None and ORT_BACKEND_BACKPRESSURE:
+                try:
+                    self.dialog_scheduler.note_backend_latency(dt)
+                except Exception:
+                    pass
             self.debug.emit(f"[PIPE] cache={cache_label} | {dt}ms | engine={engine_label} | requested_mode={requested_mode} | capture_mode={mode_name} | scheduler={scheduler_profile} | responsive={1 if ORT_RESPONSIVE_STORY_MODE else 0} | queue={int(ocr_meta.get('queue_wait_ms', 0.0))}ms | entity={meta_now.get('entity_match_ms', '-')}ms | backend={meta_now.get('backend_translate_ms', '-')}ms | idn={meta_now.get('idn_post_ms', '-')}ms | kind={kind}")
             try:
                 from translation_event_logger import append_translation_event
@@ -3324,7 +3690,7 @@ class TranslatorWorker(QThread):
                 except Exception:
                     pass
 
-            if not self._meta_is_current(ocr_meta):
+            if not (self._meta_turn_is_current(ocr_meta) if ORT_LATE_RESULT_RENDER else self._meta_is_current(ocr_meta)):
                 self._drop_stale_result(ocr_meta, stage="before_overlay_commit", source=dialog)
                 continue
             out = _soft_wrap_long_tokens(out, max_run=18)
@@ -3428,7 +3794,20 @@ class TranslatorWorker(QThread):
                             pass
                         self.debug.emit(f"[COMMIT {APP_VERSION_TAG}] suppress | state={gate_decision.state} | reason={gate_decision.reason}")
                         continue
-                    if not self._meta_is_current(ocr_meta):
+                    # ORT_V9_0_7_R18: the overlay gate has ALREADY approved this
+                    # frame by the time execution reaches here -- the suppress
+                    # branch above is the only other way out. Re-checking the
+                    # exact generation at this point throws away a translation
+                    # that was paid for AND accepted, and renders nothing in its
+                    # place. Field log 15:42:01-15:42:05 shows ten consecutive
+                    # generations (418-427) dying here in a row, which is what
+                    # the player sees as the subtitle freezing mid-sentence.
+                    #
+                    # Same rule as the earlier stages: drop only when the turn
+                    # itself is gone. Within a live turn the gate's own
+                    # `stale_generation_rejected` has already refused anything
+                    # that would move the subtitle backwards.
+                    if not (self._meta_turn_is_current(ocr_meta) if ORT_LATE_RESULT_RENDER else self._meta_is_current(ocr_meta)):
                         self._drop_stale_result(ocr_meta, stage="commit_cas", source=dialog)
                         continue
                     self.overlay_commit_gate.mark_committed(
@@ -3517,12 +3896,42 @@ def _clean_cas_fast_text(s: str) -> str:
     return s
 
 def _is_fast_text_ok(t: str) -> bool:
+    """Is this a usable subtitle LINE?
+
+    The two rejections below are about whole lines: a line that is nothing but
+    "5" is an ammo counter or a timer, not dialogue. Do not call this on a single
+    detection box -- see _is_fast_item_ok.
+    """
     t = (t or "").strip()
     if len(t) < 2:
         return False
     if re.fullmatch(r"\d{1,6}", t):
         return False
     # reject super-symbol heavy tokens (fast)
+    bad = sum(ch in "@#$%^*_=<>~`" for ch in t)
+    if len(t) >= 6 and bad >= 2:
+        return False
+    return True
+
+
+def _is_fast_item_ok(t: str) -> bool:
+    """Is this single detection box worth keeping until lines are merged?
+
+    ORT v9.0.7 R23. This used to be _is_fast_text_ok, which was written for
+    whole lines and applied here by mistake. On an individual box its two line
+    rules delete real words: `len(t) < 2` drops "I" and "a", and the pure-digit
+    rule drops every number up to six figures. Because the box is discarded
+    before _group_boxes_into_lines_fast ever sees it, the word does not come
+    back -- "I have 3 rounds left" is merged from the survivors as "have rounds
+    left". That is the reported symptom: digits and the letter i are skipped.
+
+    A box is not a line, so it gets only the rejection that is true at box
+    level: unusable characters. Whether the RESULT is dialogue stays a question
+    for the merged line, where _is_fast_text_ok still asks it.
+    """
+    t = (t or "").strip()
+    if not t:
+        return False
     bad = sum(ch in "@#$%^*_=<>~`" for ch in t)
     if len(t) >= 6 and bad >= 2:
         return False
@@ -3737,7 +4146,7 @@ class CASWorker(QThread):
                     continue
 
                 txt = _clean_cas_fast_text(txt)
-                if not _is_fast_text_ok(txt):
+                if not _is_fast_item_ok(txt):
                     continue
 
                 x, y, w, h = _bbox_to_rect(bbox)
@@ -3745,7 +4154,15 @@ class CASWorker(QThread):
                     x = int(x / s_det); y = int(y / s_det)
                     w = int(w / s_det); h = int(h / s_det)
 
-                if h < CAS_FAST_MIN_H or w < 22:
+                # R23: the flat 22 px width floor was the second half of the same
+                # mistake. It is a sane floor for a word, but "I", "1" and "!" are
+                # the narrowest glyphs there are -- at a 20 px line height an "I"
+                # box measures about 6 px, so the floor deleted exactly the
+                # characters the user reported missing. Short tokens are therefore
+                # judged against a floor derived from their own height instead of
+                # a constant meant for words.
+                narrow_ok = len(txt) <= 2 and w >= max(3, int(h * 0.18))
+                if h < CAS_FAST_MIN_H or (w < 22 and not narrow_ok):
                     continue
 
                 gx = x + left
@@ -4643,6 +5060,7 @@ def boot_system():
             argos_print_status()
         except Exception:
             pass
+        _start_argos_standby()
     except Exception:
         log("[BOOT] Argos check failed (translation may fallback).")
 

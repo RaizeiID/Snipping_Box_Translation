@@ -1,0 +1,11 @@
+# ORT v9.0.7-R5 -- open-source OCR engines for the Architecture Lab.
+# Optional: the Lab probes each one and stays usable when they are absent.
+#
+# RapidOCR is the PP-OCR family exported to ONNX. It runs on onnxruntime, which
+# this install already ships, so it needs no torch/cuDNN and its weights are
+# ~14 MB against EasyOCR's ~80 MB. That is the combination worth testing when
+# the goal is lower latency and a smaller footprint.
+rapidocr-onnxruntime>=1.3.24
+
+# Classic reference engine. Needs the Tesseract binary on PATH as well.
+# pytesseract>=0.3.10

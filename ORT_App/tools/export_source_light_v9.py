@@ -61,11 +61,11 @@ def should_skip(path: Path, project_root: Path) -> tuple[bool, str]:
 
 def iter_source_files(project_root: Path):
     roots = [
-        project_root / "START_HERE.bat",
+        project_root / "Instalation First.bat",
         project_root / "Start WebUI.bat",
-        project_root / "Start OCR.bat",
-        project_root / "Runtime.bat",
-        project_root / "ORT v9 Setup.bat",
+        project_root / "Repair Struktur ORT.bat",
+        project_root / "README.md",
+        project_root / "docs",
         project_root / "VERSION.txt",
         project_root / ".gitignore",
         project_root / "ORT_App",

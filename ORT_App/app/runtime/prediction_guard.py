@@ -141,6 +141,56 @@ class PredictionGuard:
                 return True
         return False
 
+    def _name_corrector(self):
+        """Built once per guard, from the same registry the rest of this uses."""
+        if not hasattr(self, "_name_corrector_cache"):
+            corrector = None
+            try:
+                from app.ocr.name_autocorrect import NameAutoCorrector, enabled
+                if enabled():
+                    pool = list(self.characters)
+                    for label in self.speaker_labels:
+                        # Single-word display labels are names too; multi-word
+                        # ones are handled as labels and must not be folded.
+                        if label and " " not in label:
+                            pool.append(label)
+                    corrector = NameAutoCorrector(pool)
+            except Exception:
+                corrector = None
+            self._name_corrector_cache = corrector
+        return self._name_corrector_cache
+
+    def _is_narration_subject(self, text: str, matched: str) -> bool:
+        """Is this name the SUBJECT of a sentence rather than a speaker label?
+
+        ORT v9.0.7 R26. A name at the head of a line was always read as a
+        speaker prefix, so it was moved into the speaker field and stripped from
+        the body. For "Nikketa: I'll handle it" that is right. For narration --
+        "Nikketa looks at Balthilde's battered frame" -- it deletes the subject
+        and leaves "looks at Balthilde's battered frame", a sentence with nobody
+        in it. Across the user's logs 691 lines lost their subject this way.
+
+        English separates the two cases by capitalisation. A speaker label is
+        followed by the start of an utterance, which begins with a capital; a
+        name used as a subject is followed by its verb or a conjunction, in
+        lower case. Counted over the same logs, the words that actually follow a
+        lower-case continuation are don't, has, and, once, made, you're, will,
+        thought, fought, lunges, the, would -- every one of them a sentence
+        continuation, not the opening of a line of dialogue.
+
+        Multi-word display labels ("Mangi Security Team Leader") are not routed
+        through here: those are genuine speaker labels and keep their behaviour.
+        """
+        rest = text[len(matched):] if len(text) >= len(matched) else ""
+        rest = rest.lstrip()
+        # An explicit separator means a label, whatever follows it.
+        if rest[:1] in {":", "：", "|", "-", "—", "–"}:
+            return False
+        m = re.match(r"[A-Za-z']+", rest)
+        if not m:
+            return False
+        return m.group(0)[0].islower()
+
     def classify_prefix(self, text: str) -> Dict[str, Any]:
         s = (text or "").strip()
         low = s.lower()
@@ -230,8 +280,16 @@ class PredictionGuard:
             matched = str(prefix.get("matched") or candidate)
             label = str(prefix.get("confidence") or "green").capitalize()
             kind = str(prefix.get("type") or "character_name")
-            # Strip from dialog body if the dialog still contains the prefix.
-            text = self._strip_prefix(text, matched)
+            # Strip from dialog body if the dialog still contains the prefix --
+            # unless the name is the SUBJECT of the sentence rather than a label
+            # in front of one. R26: stripping it there left narration with
+            # nobody in it ("Nikketa looks at the frame" -> "looks at the
+            # frame"), which happened on 691 lines of the user's logs. The
+            # speaker still resolves, because v8.8.8/v8.8.9 deliberately expect
+            # "Poludnitsa delivered something" and "bathildel should retreat" to
+            # produce a speaker; only the deletion was wrong.
+            if not self._is_narration_subject(text, matched):
+                text = self._strip_prefix(text, matched)
             resolved_speaker = candidate
             speaker_confidence = label
             speaker_kind = kind
@@ -258,6 +316,19 @@ class PredictionGuard:
                 text = new_text
                 allow_cache = label == "Green"
                 events.append(PredictionEvent(src, dst, label, kind, "registry_alias_guarded", allow_cache))
+
+        # R27: registry-backed repair for names the registry has no alias row
+        # for. Runs AFTER the alias loop on purpose -- a hand-registered alias
+        # is an explicit decision and must win over a computed match. Every
+        # repair here is Yellow: it is a high-confidence guess, not a certainty,
+        # so it blocks the final cache exactly like the other guarded repairs.
+        corrector = self._name_corrector()
+        if corrector is not None:
+            repaired, repairs = corrector.correct(text, is_blocked=self._is_ambiguous_fragment)
+            if repairs:
+                text = repaired
+                for original, canonical, reason in repairs:
+                    events.append(PredictionEvent(original, canonical, "Yellow", "character_name", f"name_autocorrect_{reason}", False))
 
         for alt in self.alternate_commander:
             if self._contains_boundary(text, alt):

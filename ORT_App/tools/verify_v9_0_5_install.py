@@ -12,15 +12,10 @@ from pathlib import Path
 from typing import Any
 
 TARGET_VERSION = "v9.0.5"
-TARGET_RELEASE = "Engineering Baseline & Resilient Provider Setup"
+TARGET_RELEASE = "R3 Offline Argos & Native CUDA DLL Repair"
 
 REQUIRED_ROOT = (
-    "START_HERE.bat",
-    "Start WebUI.bat",
-    "Start OCR.bat",
-    "Runtime.bat",
-    "ORT v9 Setup.bat",
-    "VERSION.txt",
+    "Instalation First.bat", "Start WebUI.bat", "Repair Struktur ORT.bat", "VERSION.txt",
 )
 REQUIRED_APP = (
     "webui.py",

@@ -29,6 +29,76 @@ from app.runtime.render_signature import (
     ocr_corruption_score,
 )
 
+def _normalise_for_growth(value: str) -> str:
+    """Lowercase alphanumerics only, so OCR punctuation churn is ignored."""
+    return " ".join("".join(ch if ch.isalnum() else " " for ch in str(value or "").lower()).split())
+
+
+def _is_progressive_growth(previous: str, current: str, *, min_gain: int = 6, anchor: int = 16) -> bool:
+    """True when `current` continues `previous` rather than replacing it.
+
+    Deliberately anchored on the TAIL of the previous text rather than a plain
+    startswith. Progressive game dialogue is captured with unstable leading
+    noise -- the field log shows the same line arriving as "u Lentine War. War",
+    then "Lentine War. War never changes", then "ar. War never changes. Only by
+    maintaining..." -- so the beginning cannot be relied on. What is stable is
+    that whatever was already on screen still appears, followed by more text.
+
+    Conservative on purpose: a genuinely new sentence shares no tail with the
+    old one and stays locked, which is what keeps the single-final protection
+    meaningful for real turn changes.
+    """
+    old = _normalise_for_growth(previous)
+    new = _normalise_for_growth(current)
+    if not old or not new:
+        return False
+    tail = (old[-anchor:] if len(old) > anchor else old).strip()
+    if not tail:
+        return False
+    position = new.find(tail)
+    if position < 0:
+        return False
+    # Measure what was APPENDED after the anchor, not the change in total
+    # length. The leading noise varies in size between frames ("Lentine War."
+    # becoming "ar."), so a whole-string comparison can show a net gain of one
+    # character while nine characters of real dialogue actually arrived.
+    appended = new[position + len(tail):].strip()
+    return len(appended) >= min_gain
+
+
+# How long the finished line must have been on screen before a different line is
+# allowed to replace it inside the same turn. Field gaps between real successive
+# lines were 1-4 s; frames inside one typewriter burst are a few hundred ms.
+_REPLACEMENT_SETTLE_MS = int(os.environ.get("ORT_OVERLAY_REPLACEMENT_SETTLE_MS", "800"))
+
+
+def _is_distinct_source_line(previous: str, current: str, *, max_similarity: float = 0.55, min_words: int = 2) -> bool:
+    """True when `current` is a different on-screen line, not a re-render of `previous`.
+
+    ORT_V9_0_7_R12. The single-final lock is aimed at one case: the translator
+    returning a new phrasing of the SAME source. It must not swallow a genuinely
+    new line, but it did, because the turn state machine sometimes keeps one
+    turn_id across a dialogue change. Field log 10:25:24 -> 10:25:30: the turn
+    finalised on "Today's workload has definitely exceeded all my limits", then
+    "Amid the chaos, I quickly locate the central control terminal inside the
+    base" arrived with no new turn_id, and all four of its frames were dropped as
+    `single_final_per_turn_locked`. That whole sentence never reached the player.
+
+    Growth is handled by _is_progressive_growth; this covers replacement. Kept
+    conservative: a re-phrased translation of the same source scores far above
+    the threshold and stays locked, so the anti-flicker guarantee is unchanged.
+    """
+    prev = _normalise_for_growth(previous)
+    cur = _normalise_for_growth(current)
+    if not prev or not cur:
+        return False
+    if len(cur.split()) < min_words:
+        return False
+    if _is_progressive_growth(previous, current):
+        return False
+    return similarity(prev, cur) < max_similarity
+
+
 @dataclass(frozen=True)
 class OverlayCommitDecision:
     commit: bool
@@ -145,6 +215,7 @@ class OverlayCommitGate:
         dialogue_state: str = "",
     ) -> OverlayCommitDecision:
         now = time.time()
+        elapsed_ms = int((now - self.last_commit_ts) * 1000) if self.last_commit_ts else 999999
         plain = str(plain_translation or strip_html(dialog_html) or "").strip()
         source = str(source_text or "").strip()
         turn_id = str(turn_id or "").strip()
@@ -163,9 +234,47 @@ class OverlayCommitGate:
         if turn_id and turn_id in self.final_turns:
             if sig and sig == self.final_turns[turn_id]:
                 return OverlayCommitDecision(False, "final_duplicate_locked", "FINAL_LOCKED", sig, force_visible=self.never_empty)
-            return OverlayCommitDecision(False, "single_final_per_turn_locked", "FINAL_LOCKED", sig, force_visible=self.never_empty)
+            # ORT_V9_0_7_R11: PROGRESSIVE_TYPEWRITER
+            # The single-final lock exists to stop a turn re-rendering when the
+            # translator returns a different phrasing of the SAME sentence. In
+            # GFL2 auto-story the dialogue is typed out progressively, so a turn
+            # keeps growing after the first final was committed -- and this lock
+            # was discarding every later step. Field log: 63 suppressed against
+            # 34 committed, all `single_final_per_turn_locked`, so roughly two
+            # thirds of the typewriter never reached the overlay.
+            #
+            # Growth is not a re-render: if the new source strictly extends what
+            # was already shown, it is new dialogue the player can see on screen
+            # and must be translated too. Only non-growing variants stay locked.
+            if _is_progressive_growth(self.last_source, source):
+                return OverlayCommitDecision(
+                    True, "progressive_growth_after_final", "PROGRESSIVE", sig,
+                    final=False,
+                )
+            # The replacement must also have let the finished line be readable
+            # first. R11 deliberately refuses unrelated text inside a turn, and
+            # that protection is what stops a stray OCR read of another UI
+            # element from replacing live dialogue mid-burst. A real successor
+            # line does not arrive in the same breath as the final it replaces:
+            # in the field log the gap was ~4 s, while spurious reads land inside
+            # the same typewriter burst. Gating on visible time keeps R11's
+            # refusal intact and still lets genuine dialogue through.
+            settle_ms = max(self.min_visible_ms, _REPLACEMENT_SETTLE_MS)
+            if not _is_distinct_source_line(self.last_source, source) or elapsed_ms < settle_ms:
+                return OverlayCommitDecision(False, "single_final_per_turn_locked", "FINAL_LOCKED", sig, force_visible=self.never_empty)
+            # ORT_V9_0_7_R12: the lock belonged to the sentence that just ended.
+            # A different line is on screen now, so retire the lock and let this
+            # frame take the new-turn path below -- that path is what applies the
+            # short-source wait and lets the line finalise on its own terms.
+            # Without the new_turn override it would fall into the same-turn
+            # branch and be rejected by `shorter_preview_no_downgrade`, because a
+            # freshly typed line is shorter than the finished one before it.
+            self.final_turns.pop(turn_id, None)
+            stale_final_lock_retired = True
+        else:
+            stale_final_lock_retired = False
 
-        new_turn = bool(turn_id and turn_id != self.last_turn_id)
+        new_turn = bool(turn_id and turn_id != self.last_turn_id) or stale_final_lock_retired
         elapsed_ms = int((now - self.last_commit_ts) * 1000) if self.last_commit_ts else 999999
         same_html = dialog_html == self.last_dialog_html and speaker_html == self.last_speaker_html
         source_gain = self._source_substantial(source)

@@ -46,7 +46,26 @@
     "Phaetusa",
     "Sweeper",
     "Nyxie",
-    "Klukai"
+    "Klukai",
+    "Basti",
+    "Vasily",
+    "Mechty",
+    "Chiloveig",
+    "Andoris",
+    "Asteria",
+    "Voymastina",
+    "Ateraxis",
+    "Yoshiro",
+    "Cheyanne",
+    "Graurizard",
+    "Igla",
+    "Beluga",
+    "Belka",
+    "Dandelion",
+    "Wulfgar",
+    "Zhaohui",
+    "Lisa",
+    "Faelynn"
   ],
   "speaker_labels_exact": [
     "Mangi Security Team Leader",
@@ -93,7 +112,23 @@
     "Medical Team",
     "Sextans",
     "Igla",
-    "STR-A"
+    "STR-A",
+    "Wildhunt",
+    "Mokosh",
+    "Tlazo Incorporated",
+    "Monsoon Squad",
+    "Squad 404",
+    "Oathguard",
+    "Frame",
+    "Neural cloud",
+    "Boojum",
+    "Nirvana",
+    "Lunasia",
+    "Girard",
+    "FABN",
+    "Parapluie",
+    "Vindicator's Mark",
+    "Shell of Amni"
   ],
   "relationship_candidates": [
     {
@@ -595,6 +630,36 @@
       "candidate": "Nyxie",
       "type": "character_name",
       "confidence": "yellow"
+    },
+    {
+      "ocr": "Bastl",
+      "candidate": "Basti",
+      "type": "character_name",
+      "confidence": "yellow"
+    },
+    {
+      "ocr": "Vomastine",
+      "candidate": "Voymastina",
+      "type": "character_name",
+      "confidence": "yellow"
+    },
+    {
+      "ocr": "Vovmasuna",
+      "candidate": "Voymastina",
+      "type": "character_name",
+      "confidence": "yellow"
+    },
+    {
+      "ocr": "Grarrizar8",
+      "candidate": "Graurizard",
+      "type": "character_name",
+      "confidence": "yellow"
+    },
+    {
+      "ocr": "Astera",
+      "candidate": "Asteria",
+      "type": "character_name",
+      "confidence": "yellow"
     }
   ],
   "ambiguous_blocklist": [
@@ -735,5 +800,12 @@
     "must'ye": "must've",
     "weve": "we've",
     "telljust": "tell just"
-  }
+  },
+  "reviewed_not_entity": [
+    "Darling",
+    "Cecht"
+  ],
+  "classification_log": [
+    "v9.0.7 R33 (2026-07-29): Faelynn=karakter, Cecht=bukan entitas. Diputuskan pemilik proyek."
+  ]
 }

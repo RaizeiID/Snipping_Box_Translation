@@ -112,35 +112,178 @@ REPLACEMENTS = {
     "ksvkis": "KSVK is",
 }
 
-LEADING_NOISE = re.compile(r"^(?:[川州比讦让舒岛从小几叭贸]|I{1,4}|l{1,4}|\|{1,4}|1{1,4}|J{1,3}|M{1,2}|U{1,2}|W{1,2}|m{1,2}|n{1,2}|\?\?)+\s*")
+# ORT v9.0.7 R25 -----------------------------------------------------------
+# The three filters below were removing dialogue, not noise.
+#
+# LEADING_NOISE had no boundary after the glyph run, so it ate the first letter
+# of ordinary words: "Move to grid" -> "ove to grid", "We lost 42" -> "e lost
+# 42", "I saw 416" -> "saw 416". Requiring the run to be followed by whitespace
+# or end-of-string keeps every real word intact, because in "Move" the M is
+# followed by a letter. Single "I" and "A" are then excluded by name -- they are
+# the two English words that are also single letters.
+LEADING_NOISE = re.compile(
+    r"^(?!(?:I|A)(?:\s|$))(?:[川州比讦让舒岛从小几叭贸]|I{1,4}|l{1,4}|\|{1,4}|1{1,4}"
+    r"|J{1,3}|M{1,2}|U{1,2}|W{1,2}|m{1,2}|n{1,2}|\?\?)+(?=\s|$)\s*"
+)
+
+# Weapon codenames are the GFL cast: 416, HK416, UMP45, AK-12, M4A1, G11,
+# WA2000, DSR-50, PPK, KSVK. Structurally they look exactly like the HUD junk
+# the filters hunt -- capitals and digits, often no vowel -- so they were being
+# deleted as noise. They are protected by shape here, and glyph repair skips
+# them too: "M4A1" must never become "M4Al".
+# Mixed letters+digits is unambiguous enough to protect by shape alone.
+CODE_TOKEN = re.compile(r"^[A-Z]{1,4}[-\s]?\d{1,4}[A-Z]{0,2}\d{0,2}$")
+
+# All-digit and all-letter codenames are NOT separable from HUD by shape: "416"
+# is a T-Doll, "153" is a level readout, and nothing about the token says which.
+# Those need to be named. Anything not on this list keeps the old treatment, so
+# adding a name can only ever recover text, never delete it.
+CODE_NAMES = {
+    "416", "9A91", "40", "45", "12", "11",
+    "PPK", "KSVK", "SOP", "SOPMOD", "MDR", "MG", "SMG", "AR", "RF", "HG", "SG",
+    "M4", "M16", "G11", "G36", "P7", "P90", "PP", "AK", "UMP", "HK", "DSR",
+    "WA", "OTs", "ST", "DP", "TS", "IDW", "NTW", "FAL", "SAT", "CMS", "RO",
+}
+
+
+def _is_code_name(clean: str) -> bool:
+    if not clean:
+        return False
+    if CODE_TOKEN.match(clean):
+        return True
+    return clean.upper() in CODE_NAMES
 MULTI_PUNCT = re.compile(r"([!?.,;:])\1{2,}")
 BROKEN_WORD_JOIN = re.compile(r"\b([A-Za-z])\s+([,.;:!?])")
+# Glyph soup that cannot be anything but an artifact -- safe to remove wherever
+# it appears, because no dialogue contains it.
 TRAILING_UI_NOISE = re.compile(
     r"(?:\s+|^)(?:"
     r"LT(?:S|F)[A-Z0-9]{2,}|LTS[IL1]{2,}\d?|SILJLI|JLI|LLI|MJL|OSLU\w*|"
-    r"\d{2,}[,\.][A-Z]+|\d{1,3}[+xX×]\d{3,}|[0-9Il|]{2,}[+;:_\-][0-9A-ZIl|]{2,}|\d{5,}|[A-Z]{0,3}\d{2,}[A-Z0-9]{0,4}|"
     r"T[I1l|]{2,}\d*|[+;:\-]*I?ZJ?L|[~`@#$%^*_+=]{2,}|[川州比让舒岛叭贸]{1,}\w*"
     r")(?=\s|$)",
+    re.I,
+)
+
+# R25: the numeric shapes below used to live in the pattern above and ran
+# anywhere in the line, so `[A-Z]{0,3}\d{2,}[A-Z0-9]{0,4}` deleted every
+# standalone two-digit number it met -- "in 15 minutes" became "in minutes",
+# "Coordinates are 3387 by 9021" became "Coordinates are by". They are real HUD
+# shapes, but only at a line edge; in the middle of a sentence a number is what
+# the character just said. Note the lookahead still requires whitespace or end,
+# so a sentence-final "grid 4512." keeps its number -- the full stop breaks the
+# match, which is exactly the wanted behaviour.
+EDGE_NUMERIC_SHAPE = re.compile(
+    r"^(?:\d{2,}[,\.][A-Z]+|\d{1,3}[+xX×]\d{3,}"
+    r"|[0-9Il|]{2,}[+;:_\-][0-9A-ZIl|]{2,}|\d{5,}|[A-Z]{0,3}\d{2,}[A-Z0-9]{0,4})$",
     re.I,
 )
 SHORT_NOISE_TOKEN = re.compile(r"^(?:[A-Z]*\d+[A-Z0-9,.;:!\-]*|[A-Z]{2,6}|[Il1|]{2,}|[~`@#$%^*_+=;:,.-]+)$")
 
 
+def _is_noise_token(raw: str, clean: str) -> bool:
+    if not clean:
+        return False
+    if _is_code_name(clean):
+        return False
+    # A token carrying sentence punctuation is part of the sentence: "sector 7."
+    # ends a line of dialogue, a HUD counter never does.
+    if raw.rstrip("\"')]}").endswith((".", "!", "?", ",", ";", ":")):
+        return False
+    if SHORT_NOISE_TOKEN.match(clean) and not re.search(r"[aeiouAEIOU]", clean):
+        return True
+    if len(clean) <= 2 and re.search(r"\d|[川州比让舒岛叭贸]", clean):
+        return True
+    if EDGE_NUMERIC_SHAPE.match(clean):
+        return True
+    return False
+
+
 def _strip_noise_tokens(s: str) -> str:
+    """Remove HUD fragments without removing dialogue.
+
+    ORT v9.0.7 R25. This used to test every token in the line, which deleted
+    content wherever content happened to look like a HUD fragment: "in 15
+    minutes" -> "in minutes", "sector 7" -> "sector", "Only 5 of the 20
+    returned" -> "Only of the returned". Measured across the user's own logs,
+    6% of real dialogue lines came out damaged, and of fourteen hand-built
+    codename and coordinate lines, thirteen lost content.
+
+    The distinction the old code was missing is positional. Level counters,
+    timers and footer artifacts sit at the EDGES of a captured line -- that is
+    why the regex above is called TRAILING_UI_NOISE. Numbers and codenames that
+    belong to the dialogue sit BETWEEN words. So the edges are eaten greedily
+    and the interior is left alone, which keeps the original purpose while
+    ending the content loss.
+    """
     if not s:
         return s
     s = TRAILING_UI_NOISE.sub(" ", s)
-    toks = []
-    for tok in s.split():
-        raw = tok.strip()
-        clean = raw.strip("\"'()[]{}<>.,;:!?-–—")
-        # Keep short real words like no/ok/go; drop UI-like fragments.
-        if clean and SHORT_NOISE_TOKEN.match(clean) and not re.search(r"[aeiouAEIOU]", clean):
+    toks = s.split()
+    if not toks:
+        return ""
+
+    def noisy(tok):
+        return _is_noise_token(tok, tok.strip("\"'()[]{}<>.,;:!?-–—"))
+
+    start = 0
+    while start < len(toks) and noisy(toks[start]):
+        start += 1
+    end = len(toks)
+    while end > start and noisy(toks[end - 1]):
+        end -= 1
+    return " ".join(toks[start:end])
+
+
+_ORDINAL_SUFFIX = re.compile(r"^1(?:st|nd|rd|th)\b", re.I)
+
+
+def repair_confusable_glyphs(text: str) -> str:
+    """Undo the glyph substitutions the detector makes on thin characters.
+
+    ORT v9.0.7 R25. 1, I and l share a vertical stroke; 5/s and 0/o share an
+    outline. Counted over the user's own logs, in lines that reached the
+    translator:
+
+        1 + lowercase   ("1can flank")        48
+        lowercase + 5   ("It5 possible")      35
+        1 + Capital     ("1Ve started")       12
+        0 between letters ("l0a0 qulckly")     6
+        1 + apostrophe  ("1've never")          4
+        l + Capital     ("lWas my fault")       1
+
+    Each rule below is anchored so it can only fire where a digit sits in a
+    position a digit cannot legitimately occupy -- fused to lowercase letters.
+    A number standing on its own is never touched, ordinals like "1st" are
+    excluded by name, and any token shaped like a weapon codename is skipped
+    outright, so UMP45, M4A1 and HK416 come through unchanged.
+    """
+    if not text or not re.search(r"[015l]", text):
+        return text
+
+    out = []
+    for tok in re.split(r"(\s+)", str(text)):
+        if not tok.strip():
+            out.append(tok)
             continue
-        if len(clean) <= 2 and re.search(r"\d|[川州比让舒岛叭贸]", clean):
+        core = tok.strip("\"'()[]{}<>.,;:!?-–—")
+        # Codenames and plain numbers are content; never rewrite their glyphs.
+        if _is_code_name(core) or re.fullmatch(r"[\d.,]+", core) or _ORDINAL_SUFFIX.match(core):
+            out.append(tok)
             continue
-        toks.append(raw)
-    return " ".join(toks)
+        t = tok
+        # "1've" -> "I've"
+        t = re.sub(r"(?<![\w])1(?=')", "I", t)
+        # "1can" -> "I can"  /  "1Ve" -> "I Ve"
+        t = re.sub(r"(?<![\w])1(?=[a-z]{2,})", "I ", t)
+        t = re.sub(r"(?<![\w])1(?=[A-Z][a-z])", "I ", t)
+        # "lWas" -> "I Was"
+        t = re.sub(r"(?<![\w])l(?=[A-Z][a-z])", "I ", t)
+        # "It5" -> "Its"; only at the end of an otherwise alphabetic word.
+        t = re.sub(r"(?<=[a-z])5\b", "s", t)
+        # "d0es" -> "does"; only with a letter on both sides.
+        t = re.sub(r"(?<=[a-z])0(?=[a-z])", "o", t)
+        out.append(t)
+    return "".join(out)
 
 
 def normalize_ocr_noise(text: str) -> str:
@@ -156,6 +299,9 @@ def normalize_ocr_noise(text: str) -> str:
     s = s.replace("“", '"').replace("”", '"').replace("’", "'")
     s = re.sub(r"[\u200b\ufeff]", "", s)
     s = LEADING_NOISE.sub("", s).strip()
+    # Before the token filters, so a repaired "1can" is judged as "I can".
+    if os.environ.get("ORT_GLYPH_REPAIR", "1") == "1":
+        s = repair_confusable_glyphs(s)
     s = normalize_numeric_ocr(s)
     s = strip_numeric_ui_noise(s)
     s = _strip_noise_tokens(s)

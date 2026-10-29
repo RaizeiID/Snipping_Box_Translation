@@ -29,6 +29,16 @@ from app.audio.asr_provider_registry import (
     normalize_provider_id,
 )
 from app.audio.locked_asr_adapter import LockedASRProviderAdapter
+from app.audio.speech_detector import (
+    EnergySpeechDetector,
+    build_speech_detector,
+    normalize_backend,
+)
+from app.runtime.resource_levels import (
+    legacy_policy_token,
+    normalize_resource_mode,
+    resolve_plan_from_env,
+)
 
 CUDA_BOOTSTRAP = activate_cuda_dll_search()
 
@@ -75,7 +85,35 @@ def _env_bool(name: str, default: bool = False) -> bool:
 
 
 def _gpu_memory_snapshot() -> dict[str, int | str]:
-    """Read current NVIDIA memory without importing torch into the sidecar."""
+    """Report VRAM the way CUDA actually sees it.
+
+    ORT_V9_0_7_R3: this used nvidia-smi only, and on this Optimus/WDDM laptop
+    that number is not an allocation limit. Measured on an RTX 4050 6 GB while
+    background apps were resident:
+
+        nvidia-smi free : 752 MB      torch free : 5327 MB
+        -> allocating 1.5 GB SUCCEEDED; nvidia-smi then moved by only 57 MB
+           while torch correctly dropped by 1502 MB.
+
+    Windows WDDM virtualises VRAM, so another process holding memory does not
+    stop a compute process from getting it. Trusting nvidia-smi made the guard
+    fall back to CPU while several GB were genuinely available -- exactly the
+    "vram_guard_667mb_below_1800mb" decision seen in the field log. CUDA's own
+    accounting is authoritative; nvidia-smi stays as the fallback for runtimes
+    without torch.
+    """
+    try:
+        import torch  # noqa: PLC0415 -- optional in this sidecar's runtime
+
+        if torch.cuda.is_available():
+            free_bytes, total_bytes = torch.cuda.mem_get_info()
+            return {
+                "free_mb": int(free_bytes / 1048576),
+                "total_mb": int(total_bytes / 1048576),
+                "source": "torch.cuda.mem_get_info",
+            }
+    except Exception:
+        pass
     try:
         result = subprocess.run(
             [
@@ -120,6 +158,35 @@ def _semantic_units(value: Any) -> int:
         else:
             inside_latin = False
     return units
+
+
+# ORT_V9_0_7: REAZON_DEDUP
+def _collapse_adjacent_repeats(value: str, minimum_run: int = 4) -> str:
+    """Collapse an immediately repeated substring: 'XXrest' -> 'Xrest'.
+
+    ReazonSpeech K2 re-decodes a rolling window, and after a window shift or a
+    carry-over the same clause can be emitted twice back-to-back
+    (e.g. 在庫が切れた在庫が切れた...). Only EXACT adjacent repeats of at
+    least `minimum_run` characters are collapsed, so legitimate Japanese
+    reduplication (どんどん, いろいろ -- 2-char runs) is never touched.
+    """
+    text = str(value or "")
+    changed = True
+    while changed:
+        changed = False
+        best_index, best_length = -1, 0
+        for index in range(len(text)):
+            limit = (len(text) - index) // 2
+            for length in range(limit, minimum_run - 1, -1):
+                if length <= best_length:
+                    break
+                if text[index:index + length] == text[index + length:index + 2 * length]:
+                    best_index, best_length = index, length
+                    break
+        if best_length >= minimum_run:
+            text = text[:best_index + best_length] + text[best_index + 2 * best_length:]
+            changed = True
+    return text
 
 
 def _partial_growth(previous: str, current: str) -> float:
@@ -209,6 +276,11 @@ class LocalRealtimePolicy:
     hard_turn_s: float
     semantic_no_speech_passes: int = 2
     chunk_ms: int = 20
+    # ORT_V9_0_6_STAGE4: ADAPTIVE_BUFFER
+    # Consecutive semantic revisions with no meaningful growth. A streak this
+    # long is treated as "the speaker stopped adding words" and is allowed to
+    # close the turn on the short pause, even without terminal punctuation.
+    semantic_stability_passes: int = 2
 
     def as_dict(self) -> dict:
         return {
@@ -227,6 +299,7 @@ class LocalRealtimePolicy:
             "hard_turn_ms": int(self.hard_turn_s * 1000),
             "semantic_no_speech_passes": self.semantic_no_speech_passes,
             "chunk_ms": self.chunk_ms,
+            "semantic_stability_passes": self.semantic_stability_passes,
         }
 
 
@@ -235,7 +308,7 @@ def resolve_policy(profile: str, device: str) -> LocalRealtimePolicy:
     profile_key = str(profile or "normal").strip().lower()
     gpu = str(device or "cpu").strip().lower() == "cuda"
     if profile_key in {"speed", "instant", "fast"}:
-        return LocalRealtimePolicy(
+        base = LocalRealtimePolicy(
             profile="speed", first_partial_s=0.72 if gpu else 0.95,
             partial_interval_s=0.48 if gpu else 0.58, endpoint_s=0.72,
             max_phrase_s=14.0, pre_roll_s=0.36, carry_over_s=0.30,
@@ -243,8 +316,8 @@ def resolve_policy(profile: str, device: str) -> LocalRealtimePolicy:
             short_pause_s=0.48, long_pause_s=1.30,
             subtitle_window_s=11.0, hard_turn_s=16.0,
         )
-    if profile_key in {"accurate", "quality"}:
-        return LocalRealtimePolicy(
+    elif profile_key in {"accurate", "quality"}:
+        base = LocalRealtimePolicy(
             profile="accurate", first_partial_s=1.05 if gpu else 1.30,
             partial_interval_s=0.78 if gpu else 0.92, endpoint_s=1.00,
             max_phrase_s=20.0, pre_roll_s=0.48, carry_over_s=0.38,
@@ -252,13 +325,44 @@ def resolve_policy(profile: str, device: str) -> LocalRealtimePolicy:
             short_pause_s=0.68, long_pause_s=1.75,
             subtitle_window_s=16.0, hard_turn_s=22.0,
         )
+    else:
+        base = LocalRealtimePolicy(
+            profile="normal", first_partial_s=0.84 if gpu else 1.08,
+            partial_interval_s=0.62 if gpu else 0.74, endpoint_s=0.84,
+            max_phrase_s=17.0, pre_roll_s=0.42, carry_over_s=0.34,
+            minimum_rms=0.0035, noise_multiplier=2.45,
+            short_pause_s=0.56, long_pause_s=1.48,
+            subtitle_window_s=13.0, hard_turn_s=19.0,
+        )
+    return _apply_resource_plan(base)
+
+
+def _apply_resource_plan(base: LocalRealtimePolicy) -> LocalRealtimePolicy:
+    """ORT_V9_0_7: RESOURCE_LADDER.
+
+    The subtitle profile (speed/normal/accurate) stays the user's *feel*
+    baseline; the resource ladder then scales it so that Efisien-maks and
+    Intensive-maks are genuinely different runtimes on every axis the
+    controller reads: partial cadence, endpoint, pauses, and window sizes.
+    """
+    plan = resolve_plan_from_env()
     return LocalRealtimePolicy(
-        profile="normal", first_partial_s=0.84 if gpu else 1.08,
-        partial_interval_s=0.62 if gpu else 0.74, endpoint_s=0.84,
-        max_phrase_s=17.0, pre_roll_s=0.42, carry_over_s=0.34,
-        minimum_rms=0.0035, noise_multiplier=2.45,
-        short_pause_s=0.56, long_pause_s=1.48,
-        subtitle_window_s=13.0, hard_turn_s=19.0,
+        profile=base.profile,
+        first_partial_s=round(base.first_partial_s * plan.first_partial_scale, 3),
+        partial_interval_s=round(base.partial_interval_s * plan.partial_interval_scale, 3),
+        endpoint_s=round(base.endpoint_s * plan.endpoint_scale, 3),
+        max_phrase_s=round(base.max_phrase_s * plan.window_scale, 2),
+        pre_roll_s=base.pre_roll_s,
+        carry_over_s=base.carry_over_s,
+        minimum_rms=base.minimum_rms,
+        noise_multiplier=base.noise_multiplier,
+        short_pause_s=round(base.short_pause_s * plan.pause_scale, 3),
+        long_pause_s=round(base.long_pause_s * plan.pause_scale, 3),
+        subtitle_window_s=round(base.subtitle_window_s * plan.window_scale, 2),
+        hard_turn_s=round(base.hard_turn_s * plan.window_scale, 2),
+        semantic_no_speech_passes=base.semantic_no_speech_passes,
+        chunk_ms=base.chunk_ms,
+        semantic_stability_passes=base.semantic_stability_passes,
     )
 
 
@@ -569,6 +673,28 @@ def _contains_japanese(text: str) -> bool:
     return any("\u3040" <= char <= "\u30ff" or "\u4e00" <= char <= "\u9fff" for char in str(text or ""))
 
 
+# ORT_V9_0_6_STAGE4: ADAPTIVE_BUFFER
+# ASCII terminators (".", "!", "?", "\u2026") never appear in real ReazonSpeech/
+# Whisper Japanese output. Only the full-width forms do, plus a small set of
+# sentence-final particles common in dubbed dialogue. Treating an ASCII-only
+# check as "unfinished" forced every completed Japanese line into the long
+# (1.3-1.75s) pause bucket instead of the short one.
+_SENTENCE_TERMINAL_CHARS = (".", "!", "?", "\u2026", "\u3002", "\uff01", "\uff1f")
+_JAPANESE_SOFT_ENDINGS = (
+    "\u3067\u3059", "\u307e\u3059", "\u3067\u3057\u305f", "\u307e\u3057\u305f", "\u3060\u3088", "\u3060\u306d", "\u3060\u308f", "\u3060\u306a",
+    "\u3088\u306d", "\u304b\u306a", "\u306e\u304b", "\u305f\u3044", "\u306a\u3044", "\u3060\u308d\u3046", "\u3067\u3057\u3087\u3046",
+)
+
+
+def _is_sentence_terminal(text: str) -> bool:
+    clean = str(text or "").rstrip()
+    if not clean:
+        return False
+    if clean.endswith(_SENTENCE_TERMINAL_CHARS):
+        return True
+    return _contains_japanese(clean) and clean.endswith(_JAPANESE_SOFT_ENDINGS)
+
+
 def _asr_quality_reasons(text: str, audio_seconds: float, task: str) -> list[str]:
     clean = _clean_text(text)
     if not clean:
@@ -640,9 +766,11 @@ class ModelAdapter:
         )
         self.language_locked = bool(language_locked)
         self.profile = str(profile or "normal").strip().lower()
-        self.resource_policy = str(os.environ.get("ORT_AUDIO_RESOURCE_POLICY", "normal") or "normal").strip().lower()
-        if self.resource_policy not in {"efficient", "normal", "optimal"}:
-            self.resource_policy = "normal"
+        # ORT_V9_0_7: accepts both the legacy tokens and the new mode names.
+        self.resource_policy = legacy_policy_token(
+            os.environ.get("ORT_AUDIO_RESOURCE_MODE")
+            or os.environ.get("ORT_AUDIO_RESOURCE_POLICY", "normal")
+        )
         self._last_reject_reasons: list[str] = []
         self.fast_preview_model: Any = None
         self.fast_preview_model_size = self.fallback_model_size
@@ -1311,7 +1439,9 @@ class StreamingInferenceWorker:
         # Subtitle context is intentionally bounded. Long monologues are rolled
         # into new subtitle windows instead of growing one paragraph forever.
         # ORT_R5_COMPLETE_UTTERANCE: CONTEXT_CAPACITY
-        default_history = 160 if str(os.environ.get("ORT_AUDIO_RESOURCE_POLICY", "normal")).lower() == "efficient" else 240
+        default_history = 160 if legacy_policy_token(
+            os.environ.get("ORT_AUDIO_RESOURCE_MODE") or os.environ.get("ORT_AUDIO_RESOURCE_POLICY", "normal")
+        ) == "efficient" else 240
         history_words = max(96, min(480, int(os.environ.get("ORT_AUDIO_CONTEXT_WORDS", str(default_history)) or default_history)))
         display_words = 192 if profile in {"accurate", "quality"} else 144 if profile == "normal" else 112
         display_words = min(display_words, history_words)
@@ -1362,11 +1492,14 @@ class StreamingInferenceWorker:
             self.correction_worker.stop()
 
     def _minimum_display_interval(self) -> float:
+        # ORT_V9_0_6_STAGE4: ADAPTIVE_BUFFER
+        # Lowered so the interim line advances continuously (phone-live-translate
+        # feel) instead of visibly holding for most of a second between updates.
         if self.profile in {"speed", "instant", "fast"}:
-            return 0.30
+            return 0.18
         if self.profile in {"accurate", "quality"}:
-            return 0.58
-        return 0.46
+            return 0.34
+        return 0.24
 
     def _should_emit_partial(
         self, result_id: str, previous: str, current: str,
@@ -1379,7 +1512,8 @@ class StreamingInferenceWorker:
         units = _semantic_units(clean)
         japanese = _contains_japanese(clean)
         minimum_units = 4 if japanese else 2
-        sentence_end = clean.endswith((".", "!", "?", "…", "。", "！", "？"))
+        sentence_end = _is_sentence_terminal(clean)
+        min_interval = self._minimum_display_interval()
         if not previous:
             minimum_audio = 0.82 if self.profile in {"speed", "instant", "fast"} else 1.00
             if float(audio_seconds or 0.0) < minimum_audio:
@@ -1391,15 +1525,20 @@ class StreamingInferenceWorker:
         elapsed = now - float(self.last_emit_at_by_result.get(result_id, 0.0) or 0.0)
         previous_units = _semantic_units(old)
         unit_growth = units - previous_units
-        meaningful_growth = max(2, int(max(1, previous_units) * 0.18))
-        if unit_growth >= meaningful_growth and elapsed >= 0.38:
+        # ORT_V9_0_6_STAGE4: ADAPTIVE_BUFFER
+        # The old 18%-of-length threshold meant longer utterances needed ever
+        # more new words before the overlay was allowed to move, so a 4s line
+        # could render only once. A flat, small requirement keeps every real
+        # increment visible regardless of how long the turn has grown.
+        meaningful_growth = 1 if japanese else 2
+        if unit_growth >= meaningful_growth and elapsed >= min_interval:
             return True
         rewrite_amount = _partial_growth(old, clean)
-        if elapsed >= 0.95 and units >= minimum_units + 1 and rewrite_amount >= 0.35:
+        if elapsed >= min_interval * 1.7 and units >= minimum_units and rewrite_amount >= 0.25:
             return True
-        if sentence_end and units >= minimum_units and elapsed >= 0.42:
+        if sentence_end and units >= minimum_units and elapsed >= min_interval:
             return True
-        return bool(elapsed >= 1.35 and units >= minimum_units and unit_growth > 0)
+        return bool(elapsed >= min_interval * 3.5 and units >= minimum_units and unit_growth > 0)
 
     def _emit_reject_throttled(self, snapshot: Snapshot, metadata: dict) -> None:
         now = time.monotonic()
@@ -1429,6 +1568,9 @@ class StreamingInferenceWorker:
                 continue
             try:
                 text, metadata = self.model.transcribe(snapshot.samples, stable=snapshot.stable)
+                # ORT_V9_0_7: REAZON_DEDUP -- kill 'XXrest' echoes from rolling
+                # window re-decodes before they reach context or the overlay.
+                text = _collapse_adjacent_repeats(text)
                 previous = self.last_text_by_result.get(snapshot.result_id, "")
                 # ORT_R5_COMPLETE_UTTERANCE: FINAL_COVERAGE_GUARD
                 current_units = _semantic_units(text)
@@ -1508,9 +1650,21 @@ class StreamingInferenceWorker:
 
 
 class UtteranceController:
-    def __init__(self, worker: StreamingInferenceWorker, policy: LocalRealtimePolicy) -> None:
+    def __init__(
+        self,
+        worker: StreamingInferenceWorker,
+        policy: LocalRealtimePolicy,
+        detector: Optional[Any] = None,
+    ) -> None:
         self.worker = worker
         self.policy = policy
+        # ORT_V9_0_6_STAGE4: VAD_BACKEND
+        # The energy rule is now one detector among several. Passing None keeps
+        # the historical behaviour so existing callers and tests are unaffected.
+        self.detector = detector if detector is not None else EnergySpeechDetector(
+            policy.minimum_rms, policy.noise_multiplier
+        )
+        self.last_speech_probability = 0.0
         self.pre_roll: Deque[np.ndarray] = deque()
         self.pre_roll_samples = 0
         self.active_chunks: list[np.ndarray] = []
@@ -1520,13 +1674,15 @@ class UtteranceController:
         self.revision = 0
         self.last_voice_at = 0.0
         self.last_partial_at = 0.0
-        self.noise_floor = 0.0015
         self.sequence = 0
         self.last_semantic_at = 0.0
         self.semantic_silence_since = 0.0
         self.semantic_no_speech_count = 0
         self.last_semantic_text = ""
         self.false_speech_cooldown_until = 0.0
+        # ORT_V9_0_6_STAGE4: ADAPTIVE_BUFFER
+        self.semantic_stable_streak = 0
+        self.last_semantic_units = 0
 
     def _consume_inference_feedback(self, now: float) -> None:
         for row in self.worker.drain_feedback():
@@ -1534,8 +1690,21 @@ class UtteranceController:
                 continue
             kind = str(row.get("kind") or "")
             if kind == "semantic":
+                text = _clean_text(row.get("text"))
+                units = _semantic_units(text)
+                # ORT_V9_0_6_STAGE4: ADAPTIVE_BUFFER
+                # A revision that repeats the same hypothesis (no new units) is
+                # strong independent evidence the speaker has stopped, distinct
+                # from energy-VAD silence which reacts only after the mic goes
+                # quiet. Consecutive stable passes let a turn close on the short
+                # pause even when ASR never inserts terminal punctuation.
+                if units > 0 and units <= self.last_semantic_units and text == self.last_semantic_text:
+                    self.semantic_stable_streak += 1
+                else:
+                    self.semantic_stable_streak = 0
+                self.last_semantic_units = units
                 self.last_semantic_at = float(row.get("at") or now)
-                self.last_semantic_text = _clean_text(row.get("text"))
+                self.last_semantic_text = text
                 self.semantic_silence_since = 0.0
                 self.semantic_no_speech_count = 0
             elif kind == "no_speech":
@@ -1546,14 +1715,22 @@ class UtteranceController:
     def _semantic_boundary_ready(self, now: float) -> tuple[bool, str]:
         if not self.active_result_id or not self.last_semantic_text:
             return False, ""
-        if self.semantic_no_speech_count < self.policy.semantic_no_speech_passes:
-            return False, ""
         since = self.semantic_silence_since or self.last_semantic_at
         silence = max(0.0, now - since)
-        sentence_end = self.last_semantic_text.rstrip().endswith((".", "!", "?", "…"))
-        threshold = self.policy.short_pause_s if sentence_end else self.policy.long_pause_s
+        sentence_end = _is_sentence_terminal(self.last_semantic_text)
+        stable = self.semantic_stable_streak >= self.policy.semantic_stability_passes
+        if self.semantic_no_speech_count < self.policy.semantic_no_speech_passes and not stable:
+            return False, ""
+        if sentence_end or stable:
+            threshold = self.policy.short_pause_s
+        else:
+            threshold = self.policy.long_pause_s
         if silence >= threshold:
-            return True, "semantic_sentence_pause" if sentence_end else "semantic_long_pause"
+            if sentence_end:
+                return True, "semantic_sentence_pause"
+            if stable:
+                return True, "semantic_stable_streak"
+            return True, "semantic_long_pause"
         return False, ""
 
     def _rollover_ready(self, duration: float) -> tuple[bool, str]:
@@ -1565,7 +1742,7 @@ class UtteranceController:
             return True, "hard_turn_limit"
         if duration < self.policy.subtitle_window_s:
             return False, ""
-        sentence_end = self.last_semantic_text.rstrip().endswith((".", "!", "?", "…"))
+        sentence_end = _is_sentence_terminal(self.last_semantic_text)
         if sentence_end or self.semantic_no_speech_count > 0:
             return True, "subtitle_window"
         return False, ""
@@ -1591,6 +1768,8 @@ class UtteranceController:
         self.semantic_silence_since = 0.0
         self.semantic_no_speech_count = 0
         self.last_semantic_text = ""
+        self.semantic_stable_streak = 0
+        self.last_semantic_units = 0
         emit_event(
             "state",
             state="SPEECH_ACTIVE",
@@ -1651,6 +1830,8 @@ class UtteranceController:
         self.semantic_silence_since = 0.0
         self.semantic_no_speech_count = 0
         self.last_semantic_text = ""
+        self.semantic_stable_streak = 0
+        self.last_semantic_units = 0
         self.pre_roll.clear()
         self.pre_roll_samples = 0
         if false_speech:
@@ -1674,11 +1855,11 @@ class UtteranceController:
         if samples.size == 0:
             return
         self._consume_inference_feedback(current)
-        level = _rms(samples)
-        threshold = max(self.policy.minimum_rms, self.noise_floor * self.policy.noise_multiplier)
-        speech = level >= threshold
-        if not speech and not self.active_result_id:
-            self.noise_floor = max(0.0005, min(0.02, self.noise_floor * 0.97 + level * 0.03))
+        # ORT_V9_0_6_STAGE4: VAD_BACKEND
+        decision = self.detector.feed(samples, bool(self.active_result_id))
+        speech = bool(decision.speech)
+        level = float(decision.level)
+        self.last_speech_probability = float(decision.probability)
         self._append_pre_roll(samples)
 
         started_now = False
@@ -1688,7 +1869,12 @@ class UtteranceController:
                 started_now = True
             else:
                 if current < self.false_speech_cooldown_until:
-                    self.noise_floor = max(self.noise_floor, min(0.02, level * 0.55))
+                    # ORT_V9_0_6_STAGE4: VAD_BACKEND
+                    # Raising the floor after a false trigger only means anything
+                    # to the energy rule. A neural backend has no floor to raise.
+                    energy = getattr(self.detector, "energy", self.detector)
+                    if isinstance(energy, EnergySpeechDetector):
+                        energy.noise_floor = max(energy.noise_floor, min(0.02, level * 0.55))
                 return
 
         if not started_now:
@@ -1715,13 +1901,14 @@ class UtteranceController:
         # Once semantic text exists, use a shorter threshold only after sentence
         # punctuation and a longer threshold for an unfinished clause.
         if self.last_semantic_text:
-            semantic_sentence_end = self.last_semantic_text.rstrip().endswith((".", "!", "?", "…"))
-            energy_threshold = self.policy.short_pause_s if semantic_sentence_end else self.policy.long_pause_s
+            semantic_sentence_end = _is_sentence_terminal(self.last_semantic_text)
+            semantic_stable = self.semantic_stable_streak >= self.policy.semantic_stability_passes
+            energy_threshold = self.policy.short_pause_s if (semantic_sentence_end or semantic_stable) else self.policy.long_pause_s
         else:
             energy_threshold = self.policy.endpoint_s
         energy_pause = bool(not speech and current - self.last_voice_at >= energy_threshold)
         if semantic_ready or energy_pause:
-            reason = semantic_reason or ("energy_sentence_pause" if self.last_semantic_text.rstrip().endswith((".", "!", "?", "…")) else "energy_long_pause")
+            reason = semantic_reason or ("energy_sentence_pause" if _is_sentence_terminal(self.last_semantic_text) else "energy_long_pause")
             emit_event(
                 "metric",
                 name="smart_turn_boundary",
@@ -1874,9 +2061,9 @@ def _provider_for_request(value: str, requested_language: str) -> str:
 def run_stream(args: argparse.Namespace) -> int:
     requested_language = str(args.language or "auto")
     language = _language_code(requested_language) or "ja"
-    resource_policy = str(os.environ.get("ORT_AUDIO_RESOURCE_POLICY", "normal") or "normal").strip().lower()
-    if resource_policy not in {"efficient", "normal", "optimal"}:
-        resource_policy = "normal"
+    # ORT_V9_0_7: RESOURCE_LADDER
+    resource_plan = resolve_plan_from_env()
+    resource_policy = legacy_policy_token(resource_plan.mode)
 
     provider_id = _provider_for_request(args.asr_provider, requested_language)
     model_lock = bool(args.model_lock or _env_bool("ORT_AUDIO_MODEL_LOCK", True))
@@ -1901,8 +2088,17 @@ def run_stream(args: argparse.Namespace) -> int:
                 f"supported={spec.supported_devices}"
             )
 
-    if resource_policy == "optimal" and requested_device == "cuda" and effective_device == "cuda":
-        minimum_free_mb = max(900, int(os.environ.get("ORT_AUDIO_VRAM_MIN_FREE_MB", "1800") or 1800))
+    if requested_device == "cuda" and effective_device == "cuda":
+        # ORT_V9_0_7: the VRAM guard now runs on EVERY mode, with the threshold
+        # taken from the resource ladder. Efisien demands a lot of headroom and
+        # falls back to CPU early (a game should never fight the ASR); Intensive
+        # accepts a tight fit because accuracy is worth the risk there. The env
+        # override still wins so the Lab's explicit values keep working.
+        env_min = os.environ.get("ORT_AUDIO_VRAM_MIN_FREE_MB", "").strip()
+        minimum_free_mb = max(
+            900,
+            int(env_min) if env_min else int(resource_plan.vram_min_free_mb),
+        )
         free_mb = int(gpu_memory.get("free_mb", -1) or -1)
         if free_mb >= 0 and free_mb < minimum_free_mb:
             if "cpu" not in spec.supported_devices:
@@ -1976,10 +2172,35 @@ def run_stream(args: argparse.Namespace) -> int:
         active_policy = resolve_policy(args.profile, model.device)
         worker = StreamingInferenceWorker(model)
         worker.start()
-        controller = UtteranceController(worker, active_policy)
+        # ORT_V9_0_6_STAGE4: VAD_BACKEND
+        # ORT_V9_0_7: "auto" (no explicit choice) resolves from the resource
+        # ladder -- Efisien keeps the free energy rule, Stabil/Intensive get
+        # hybrid Silero so BGM/SFX stop opening false turns.
+        vad_backend_choice = str(args.vad_backend or "").strip().lower()
+        if vad_backend_choice in {"", "auto"}:
+            vad_backend_choice = resource_plan.vad_default
+        detector = build_speech_detector(
+            vad_backend_choice,
+            minimum_rms=active_policy.minimum_rms,
+            noise_multiplier=active_policy.noise_multiplier,
+            threshold=float(args.vad_threshold),
+            on_event=lambda state, payload: emit_event(
+                "state", state=state, local_realtime=True, **payload
+            ),
+        )
+        emit_event(
+            "state",
+            state="VAD_BACKEND_READY",
+            requested_backend=normalize_backend(vad_backend_choice),
+            local_realtime=True,
+            **resource_plan.as_dict(),
+            **detector.describe(),
+        )
+        controller = UtteranceController(worker, active_policy, detector)
         emit_event(
             "state",
             state="LOCAL_REALTIME_READY",
+            vad_backend=detector.backend,
             model=model.model_size,
             provider_id=model.provider_id,
             provider_owner=model.spec.owner,
@@ -2125,13 +2346,18 @@ def run_self_test() -> int:
         silence_chunk = np.zeros(chunk_samples, dtype=np.float32)
         # Four seconds of uninterrupted speech: partials must be generated before
         # any pause or endpoint occurs.
+        # ORT_V9_0_6_STAGE4: ADAPTIVE_BUFFER
+        # Sleep is paced to ~1x real-time (each chunk is 20ms of audio). The
+        # previous 1ms sleep compressed 4 audio-seconds into ~0.2 wall-seconds,
+        # which starved every elapsed-time partial gate and made the test blind
+        # to the exact "one partial then a big jump" regression this stage fixes.
         for index in range(200):
             controller.feed(speech_chunk, start + index * 0.02)
-            time.sleep(0.001)
+            time.sleep(0.02)
         # Silence is only used to commit the final result.
         for index in range(20):
             controller.feed(silence_chunk, start + 4.0 + index * 0.02)
-            time.sleep(0.001)
+            time.sleep(0.02)
         final_id = controller.flush(start + 4.5)
         if final_id:
             worker.wait_final(final_id, 2.0)
@@ -2150,8 +2376,13 @@ def run_self_test() -> int:
             for item in partials + finals
         ]
         first_partial_audio_s = float(partials[0].get("audio_seconds", 99.0)) if partials else 99.0
+        # ORT_V9_0_6_STAGE4: ADAPTIVE_BUFFER
+        # partial_count >= 3 is a direct regression guard: the pre-Stage4 gate
+        # let 4 seconds of continuously growing speech through as a single
+        # partial followed by one big final jump (the "kaku"/non-flowing
+        # behaviour reported against real Japanese dialogue).
         passed = bool(
-            len(partials) >= 1
+            len(partials) >= 3
             and len(finals) >= 1
             and first_partial_audio_s < 1.8
             and all(not item.get("stable") for item in partials)
@@ -2196,6 +2427,18 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--language-correction", default=os.environ.get("ORT_AUDIO_LANGUAGE_AUTOCORRECT", "balanced"))
     parser.add_argument("--language-lock", action="store_true", default=str(os.environ.get("ORT_AUDIO_LANGUAGE_LOCK", "0")).lower() in {"1", "true", "yes", "on"})
     parser.add_argument("--start-gate-file", default=os.environ.get("ORT_AUDIO_START_GATE_FILE", ""))
+    # ORT_V9_0_6_STAGE4: VAD_BACKEND
+    parser.add_argument(
+        "--vad-backend",
+        choices=["auto", "heuristic", "silero", "hybrid"],
+        # "auto" defers to the resource ladder at stream start.
+        default=(os.environ.get("ORT_AUDIO_VAD_BACKEND", "").strip().lower() or "auto"),
+    )
+    parser.add_argument(
+        "--vad-threshold",
+        type=float,
+        default=float(os.environ.get("ORT_AUDIO_VAD_THRESHOLD", "0.5") or 0.5),
+    )
     return parser
 
 

@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
@@ -174,16 +175,39 @@ def _float(value: Any, default: float, lo: float, hi: float) -> float:
         return default
 
 
+_LEVEL_TOKEN_RE = re.compile(r"v([1-5])(?![0-9])")
+
+
 def _model_level(model_key: str, family: str) -> int:
-    key = (model_key or "").lower()
-    fam = (family or "").lower()
-    for token in ("v5", "v4", "v3", "v2", "v1"):
-        if token in key or token == fam:
-            return int(token[-1])
+    """Resolve the V1..V5 level, trusting model_key over family.
+
+    ORT_V9_0_7_R15. The previous loop tested `token in key or token == fam` for
+    v5..v1 in descending order, so whichever token matched FIRST won regardless
+    of which argument it came from. `build_strategy` defaults `family="V2"`, so
+    any caller that passed a model_key without also passing the matching family
+    got level 2: `_model_level("v1", "V2")` returned 2, because "v2" == fam was
+    tested before "v1" in key. Production always passes `family=preset.family`
+    so it never surfaced, but it made the function unsafe to call directly and
+    silently downgraded V1 to the V2 profile when it did.
+
+    model_key is the authoritative identifier -- it is the registry key -- so it
+    is now consulted alone first. family is only a fallback for keys that carry
+    no level token, and the fast_* keys keep their explicit mapping.
+    """
+    key = (model_key or "").strip().lower()
+    fam = (family or "").strip().lower()
+
+    match = _LEVEL_TOKEN_RE.search(key)
+    if match:
+        return int(match.group(1))
     if key == "fast_idn":
         return 2
     if key.startswith("fast"):
         return 1 if key.endswith("v1") else 2
+
+    match = _LEVEL_TOKEN_RE.search(fam)
+    if match:
+        return int(match.group(1))
     return 2
 
 

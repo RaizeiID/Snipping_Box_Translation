@@ -73,3 +73,16 @@ desktop.ini
 *.log
 *.tmp
 .env
+
+# Local cleanup archives and active user/session state
+/_Arsip_Perapihan/
+/logs/
+/status/
+/cache/
+/ORT_App/ORT/
+/ORT_App/configs/app_state.json
+/ORT_App/configs/model_user_presets.json
+/ORT_App/npc_database.json
+/ORT_App/punctuation_stats.json
+/ORT_App/speaker_registry_v2.json
+/ORT_App/unique_terms.json

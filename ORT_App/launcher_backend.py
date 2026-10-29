@@ -25,7 +25,13 @@ from app.runtime.app_state import save_state, load_state
 from app.strategies.profile_resolver import resolve_profile_text
 from app.diagnostics.conflict_detector import detect_conflicts_text
 from app.diagnostics.gpu_cuda_diagnostic import gpu_cuda_diagnostic_text
-from app.runtime.lite_gpu_guard import apply_lite_gpu_env, write_lite_gpu_status, lite_gpu_status_text
+from app.runtime.lite_gpu_guard import (
+    apply_lite_gpu_env,
+    apply_vram_safety_env,
+    is_lite_like,
+    lite_gpu_status_text,
+    write_lite_gpu_status,
+)
 from app.diagnostics.diagnose_repair_center import diagnose_text as diagnose_repair_center_text
 from build_info import APP_DISPLAY_NAME, APP_VERSION_TAG, RELEASE_NAME
 from audio_runtime_backend import (
@@ -71,6 +77,10 @@ def project_root_path() -> Path:
 PROJECT_ROOT = project_root_path()
 RUNTIME_CFG = BASE_DIR / "runtime_paths.json"
 PREFS_PATH = BASE_DIR / "webui_prefs.json"
+# ORT_V9_0_7_R2: lowest OCR resolution the resource ladder may request. Below
+# this, GFL2 story text stops being reliably readable (see model_registry
+# notes for Lite V1/V3), which matters most when the overlay is being streamed.
+OCR_READABILITY_FLOOR = 40
 try:
     cleanup_legacy_status_files(BASE_DIR)
 except Exception:
@@ -349,10 +359,9 @@ def reset_settings_text(scope="all"):
 
 def reset_live_log_text():
     try:
-        MANAGER.clear_log()
-        return ""
+        return MANAGER.clear_log()
     except Exception:
-        return ""
+        return MANAGER.get_log()
 
 
 def profile_resolver_text(game="GFL2_EXILIUM", model_key="", group="normal", settings_mode="recommended", engine="hybrid"):
@@ -414,7 +423,7 @@ def load_prefs():
         "performance_policy": "auto",
         "normal_override": False,
         "settings_mode": "recommended",
-        "ui_mode": "recommended",
+        "ui_mode": "basic",
         "translation_source": "ocr",
         "audio_input_mode": "loopback",
         "audio_device_index": "-1",
@@ -738,6 +747,30 @@ def _dialog_scheduler_env(mode: str, preset_key: str = "", game: str = "", respo
             "ORT_STABLE_COMMIT_REPEATS": "1",
             "TITAN_AUTO_SNAPSHOT_MIN_MS": "45" if key == "fast_v1" else ("60" if key == "fast_v2" else ("75" if key == "fast_idn" else "90")),
         })
+        # ORT_V9_0_7_R13: realtime story pacing for Auto.
+        # Auto is meant to follow dialogue as the game types it, but the accuracy
+        # profile set above (ORT_FINAL_ONLY_SAFE_COMMIT is on for every non-lite,
+        # non-fast key -- which includes plain `normal`) holds each progressive
+        # source until it stabilises. Field session 10:51 shows the cost: turn
+        # t000001 was translated at generations 1,2,3,5,7 and every one was
+        # dropped `stale_result_dropped stage=after_translate`, so that line only
+        # surfaced after the player had already read it.
+        #
+        # Only the waits are shortened here. Every correctness gate -- strict
+        # CT2, entity/prediction guards, faithfulness, the single-final lock --
+        # is untouched. Set ORT_REALTIME_STORY=0 to restore accuracy-first pacing.
+        if os.environ.get("ORT_REALTIME_STORY", "1") != "0":
+            env.update({
+                "ORT_FINAL_ONLY_SAFE_COMMIT": "0",
+                "ORT_DIALOG_MAX_WAIT_MS": "200",
+                "ORT_DIALOG_PROGRESSIVE_MIN_MS": "120",
+                "ORT_DIALOG_PROGRESSIVE_MIN_DELTA": "4",
+                "ORT_AUTO_SMOOTH_MIN_MS": "140",
+                "ORT_AUTO_SMOOTH_MIN_TOKEN_GAIN": "2",
+                "ORT_AUTO_SMOOTH_MIN_CHAR_DELTA": "6",
+                "ORT_OVERLAY_MIN_VISIBLE_MS": "260",
+                "ORT_OVERLAY_MIN_TOKEN_GAIN": "2",
+            })
     else:
         env.update({
             "ORT_DIALOG_SCHEDULER_PROFILE": "interval_auto",
@@ -809,6 +842,7 @@ class ProcessManager:
     def __init__(self):
         self.proc: Optional[subprocess.Popen] = None
         self.lines = []
+        self._log_cache = None
         self.status = "IDLE"
         self.last_error = ""
         self.lock = threading.Lock()
@@ -823,11 +857,9 @@ class ProcessManager:
     def _push(self, text: str):
         clean = text.rstrip("\n")
         with self.lock:
-            # v8.1: full log is preserved on disk; UI keeps a safe in-memory copy/tail.
+            # Keep every line until a new session starts, including long OCR runs.
             self.lines.append(clean)
-            max_lines = int(os.environ.get("ORT_WEBUI_LOG_TAIL_LINES", "3000"))
-            if max_lines > 0 and len(self.lines) > max_lines:
-                self.lines = self.lines[-max_lines:]
+            self._log_cache = None
         try:
             if self.session:
                 self.session.append_line(clean)
@@ -840,13 +872,20 @@ class ProcessManager:
 
     def get_log(self):
         with self.lock:
-            return "\n".join(self.lines)
+            # Polling an unchanged session need not join its entire history again.
+            if self._log_cache is None:
+                self._log_cache = "\n".join(self.lines)
+            return self._log_cache
 
-    def clear_log(self):
-        """Clear only the WebUI live-log buffer. Session files remain intact for Analyze Last Session."""
+    def _reset_session_log(self):
+        """Called only when starting a new OCR/audio session, never on Stop."""
         with self.lock:
             self.lines = []
-        self._push(f"[WEBUI {APP_VERSION_TAG}] Live Log tampilan direset; file session tetap disimpan untuk Analyze Last Session.")
+            self._log_cache = None
+
+    def clear_log(self):
+        """Compatibility callback: session history is reset only by a new start."""
+        return self.get_log()
 
     def get_status_text(self):
         err = f"\nLAST_ERROR: {self.last_error}" if self.last_error else ""
@@ -911,7 +950,7 @@ class ProcessManager:
     def candidate_notice(self):
         return self.pending_candidate_notice
 
-    def start(self, model, game, mode, engine, interval_ms, ocr_resolution=65, performance_policy="auto", normal_override=False, settings_mode=None, responsive_story_mode=False, diagnostic_profile="baseline", mode_buffer_enabled=False):
+    def start(self, model, game, mode, engine, interval_ms, ocr_resolution=65, performance_policy="auto", normal_override=False, settings_mode=None, responsive_story_mode=False, diagnostic_profile="baseline", mode_buffer_enabled=False, ocr_options=None):
         if self.source_switching:
             return self.get_status_text(), self.get_log(), "Pergantian sumber masih menghentikan runtime sebelumnya. Tunggu status Stop, lalu mulai kembali.", self.pending_candidate_notice
         if self.proc and self.proc.poll() is None:
@@ -920,7 +959,32 @@ class ProcessManager:
         settings_mode = (settings_mode or ("manual" if normal_override else "recommended")).lower()
         normal_override = settings_mode in {"manual", "normal"}
         performance_policy = "normal" if normal_override else "auto"
-        save_prefs(model, game, mode, engine, interval_ms, ocr_resolution=ocr_resolution, performance_policy=performance_policy, normal_override=normal_override, settings_mode=settings_mode, responsive_story_mode=responsive_story_mode, diagnostic_profile=diagnostic_profile, mode_buffer_enabled=mode_buffer_enabled, translation_source="ocr")
+        # ORT_V9_0_7: RESOURCE_LADDER for OCR. In Otomatis the ladder scales the
+        # capture interval and OCR resolution around the model preset; Manual
+        # keeps the user's exact numbers and the ladder only sets beam/threads.
+        from app.runtime.resource_levels import resolve_resource_plan, scaled_threads
+        _prefs_snapshot = dict(load_prefs())
+        # Explicit session values win over preferences from another workspace.
+        _prefs_snapshot.update(ocr_options or {})
+        is_lab = _prefs_snapshot.get("workspace") == "lab"
+        ocr_resource_plan = resolve_resource_plan(
+            _prefs_snapshot.get("audio_resource_mode", "stable"),
+            _prefs_snapshot.get("audio_resource_level", 3),
+            _prefs_snapshot.get("device_resource", "adaptive"),
+        )
+        if not normal_override:
+            interval_ms = max(45, min(1200, int(round(int(interval_ms) * ocr_resource_plan.ocr_interval_scale))))
+            # OCR_READABILITY_FLOOR: the shipped presets document 40% as the
+            # lowest resolution GFL2 story text stays readable at (Lite V1
+            # ships 40% for ultra-speed, Lite V3 50% as the audited story
+            # baseline). Letting the ladder push below that produced fast but
+            # unusable subtitles -- unacceptable when the output is on stream.
+            ocr_resolution = max(
+                OCR_READABILITY_FLOOR,
+                min(100, int(ocr_resolution) + ocr_resource_plan.ocr_resolution_delta),
+            )
+        if not is_lab and not _prefs_snapshot.get("basic", False):
+            save_prefs(model, game, mode, engine, interval_ms, ocr_resolution=ocr_resolution, performance_policy=performance_policy, normal_override=normal_override, settings_mode=settings_mode, responsive_story_mode=responsive_story_mode, diagnostic_profile=diagnostic_profile, mode_buffer_enabled=mode_buffer_enabled, translation_source="ocr")
         if load_settings().get("auto_reset_candidates", False):
             try:
                 clear_candidates(game)
@@ -936,7 +1000,8 @@ class ProcessManager:
 
         preset = _resolve_model(model)
         try:
-            save_prefs(model, game, mode, engine, interval_ms, model_group=preset.tier, ocr_resolution=ocr_resolution, performance_policy=performance_policy, normal_override=normal_override, settings_mode=settings_mode, mode_buffer_enabled=mode_buffer_enabled, translation_source="ocr")
+            if not is_lab and not _prefs_snapshot.get("basic", False):
+                save_prefs(model, game, mode, engine, interval_ms, model_group=preset.tier, ocr_resolution=ocr_resolution, performance_policy=performance_policy, normal_override=normal_override, settings_mode=settings_mode, mode_buffer_enabled=mode_buffer_enabled, translation_source="ocr")
         except Exception:
             pass
         script_name = preset.script
@@ -952,6 +1017,54 @@ class ProcessManager:
         env["ORT_BOOT_ENGINE"] = str(engine).lower()
         env["ORT_BOOT_INTERVAL_MS"] = str(int(interval_ms))
         env["ORT_GAME_OVERRIDE"] = str(game)
+        # ORT_V9_0_7: expose the ladder to the OCR runtime as well.
+        env["ORT_RESOURCE_MODE"] = ocr_resource_plan.mode
+        env["ORT_RESOURCE_LEVEL"] = str(ocr_resource_plan.level)
+        env["ORT_DEVICE_RESOURCE"] = ocr_resource_plan.device_resource
+        # Detector working-resolution cap: bounds CRAFT's activation VRAM and
+        # its time together, which is what keeps GPU/Hybrid viable on a card
+        # with little headroom instead of dropping to CPU.
+        env["ORT_OCR_DETECTOR_CANVAS"] = str(ocr_resource_plan.detector_canvas)
+        # ORT_V9_0_7_R5: which open-source OCR engine the runtime should use.
+        # NOTE: this scope's prefs are in `_prefs_snapshot`, not `prefs`. The
+        # first version referenced `prefs` inside a bare try/except, so the
+        # NameError was swallowed and the engine picker silently did nothing
+        # while appearing to work.
+        try:
+            from app.ocr.ocr_provider_registry import normalize_ocr_provider
+
+            env["ORT_OCR_PROVIDER"] = normalize_ocr_provider(_prefs_snapshot.get("ocr_provider", "easyocr_craft"))
+        except Exception as exc:
+            env["ORT_OCR_PROVIDER"] = "easyocr_craft"
+            self._push(f"[WEBUI {APP_VERSION_TAG}] OCR provider resolve failed -> easyocr_craft | {exc}")
+        # Language packs matter enormously: reading Japanese with the default
+        # Simplified-Chinese pack measured 452 ms / 91% against 68 ms / 100%
+        # with ja+en. Empty means "leave the runtime default alone".
+        _ocr_langs = str(_prefs_snapshot.get("ocr_languages", "") or "").strip()
+        env["ORT_OCR_LANGUAGES"] = _ocr_langs or "en"
+        env["ORT_OCR_WORKSPACE"] = "lab" if is_lab else "tools"
+        # ORT_V9_0_7_R9: the dual-device hybrid is no longer selectable for OCR.
+        # Measured 520 ms against 148 ms for GPU alone, with identical output on
+        # 3 of 5 resolutions, so it cost latency and returned nothing. The
+        # engine class remains in the registry; this env stays available for
+        # deliberate experiments but the UI never sets it.
+        # ORT_V9_0_7_R10: Hybrid is the ADAPTIVE device mode, not a dual-worker.
+        #   CPU    -> FORCE_CPU  : locked, never switches
+        #   GPU    -> FORCE_GPU  : locked, never switches, even under VRAM pressure
+        #   Hybrid -> AUTO_GPU   : runs on GPU, drops to CPU only when VRAM goes
+        #                          critical, and returns to GPU once it recovers
+        # The dual-worker experiment stays off: it measured 520 ms against
+        # 148 ms for GPU alone with identical output, so it was never a rescue.
+        env["ORT_OCR_HYBRID_DUAL"] = "0"
+        # Switch thresholds come from the resource ladder, so Hemat/Efisien
+        # cling to the GPU (small footprint, little to lose) while Intensive
+        # bails earlier because it needs headroom to stay accurate.
+        env["TITAN_VRAM_CRITICAL_GB"] = f"{ocr_resource_plan.hybrid_critical_gb:.2f}"
+        env["TITAN_VRAM_RECOVER_GB"] = f"{ocr_resource_plan.hybrid_recover_gb:.2f}"
+        env["TITAN_CT2_BEAM"] = str(ocr_resource_plan.ct2_beam)
+        # NOTE: the OCR thread budget is applied further down, right after
+        # strategy.to_env(), because the strategy sets TITAN_CPU_THREADS itself
+        # and would otherwise overwrite anything written here.
         env["ORT_BOOT_OCR_RESOLUTION"] = str(int(ocr_resolution))
         env["ORT_V71_CORE_PIPELINE"] = "1"
         env["ORT_RUNTIME_STRATEGY"] = "1"
@@ -979,6 +1092,60 @@ class ProcessManager:
             normal_override=bool(normal_override),
         )
         env.update(strategy.to_env())
+        # ORT_V9_0_7_R19: read the user's GOAL from the whole combination, and
+        # let it decide what the strict-CT2 story guard does with an unfinished
+        # fragment. On Fast + Efisien Maks that guard was holding 97 frames a
+        # session (80 mid-sentence) even though the player picked the speed core
+        # precisely to see words early; on V3 + Intensive holding is correct.
+        # Same guard, opposite verdicts -- the goal decides, not the hardware.
+        try:
+            from app.runtime.user_intent import resolve_intent
+
+            env["ORT_MODEL_LEVEL"] = str(strategy.level)
+            _intent = resolve_intent(
+                group=preset.tier,
+                model_key=preset.key,
+                level=strategy.level,
+                resource_mode=ocr_resource_plan.mode,
+                resource_level=ocr_resource_plan.level,
+                device_resource=ocr_resource_plan.device_resource,
+            )
+            for _k, _v in _intent.as_dict().items():
+                env["ORT_" + _k.upper()] = "1" if _v is True else ("0" if _v is False else str(_v))
+            env["ORT_STRICT_CT2_RELEASE_FRAGMENTS"] = "1" if _intent.release_fragments else "0"
+            env["ORT_STRICT_CT2_FRAGMENT_MIN_WORDS"] = str(_intent.fragment_min_words)
+        except Exception:
+            pass
+        # ORT_V9_0_7: OCR thread budget from the resource ladder.
+        # TITAN_CPU_THREADS is the single real lever: TITANMAIN reads it and
+        # derives OMP/OPENBLAS/MKL/VECLIB/NUMEXPR plus cv2.setNumThreads and
+        # torch.set_num_threads from it. Order matters and is deliberate --
+        # strategy.to_env() above provides the per-game baseline, the ladder
+        # scales it here, and apply_lite_gpu_env() below still clamps it with
+        # min(), so the hardware safety cap always wins over user preference.
+        try:
+            _strategy_threads = int(env.get("TITAN_CPU_THREADS", str(os.cpu_count() or 4)))
+        except ValueError:
+            _strategy_threads = int(os.cpu_count() or 4)
+        env["TITAN_CPU_THREADS"] = str(scaled_threads(_strategy_threads, ocr_resource_plan))
+        # ORT_V9_0_7_R2: scan sleep and queue depth are the two OCR levers that
+        # buy latency without costing any accuracy, so they are what makes
+        # Efisien feel instant and lets Stabil tighten up for free. Same
+        # ordering rule as threads: strategy provides the per-game baseline
+        # above, the ladder scales it here.
+        for _sleep_key, _floor in (("TITAN_SCAN_SLEEP_GPU_MS", 4), ("TITAN_SCAN_SLEEP_CPU_MS", 8)):
+            try:
+                _base_sleep = int(env.get(_sleep_key, "0") or 0)
+            except ValueError:
+                _base_sleep = 0
+            if _base_sleep > 0:
+                env[_sleep_key] = str(max(_floor, int(round(_base_sleep * ocr_resource_plan.scan_sleep_scale))))
+        try:
+            _base_queue = int(env.get("TITAN_QUEUE_MAX", "0") or 0)
+        except ValueError:
+            _base_queue = 0
+        if _base_queue > 0:
+            env["TITAN_QUEUE_MAX"] = str(max(8, int(round(_base_queue * ocr_resource_plan.queue_scale))))
         # v8.4: strategy recommendations must not overwrite the user-selected WebUI mode.
         # Auto / Freeze / Interval have different UI semantics, while the strategy only provides safe defaults.
         requested_mode = str(mode or "auto").lower()
@@ -1001,8 +1168,16 @@ class ProcessManager:
             env["ORT_GFL2_SPEAKER_ROI"] = "0"
             env["ORT_DIAGNOSTIC_WARNING"] = "Name ROI disabled for A/B measurement; speaker labels may be inaccurate."
         # v8.4: Lite/Lite IDN can use GPU Efficient with VRAM budget guard.
+        # ORT_V9_0_7_R14: every other family now gets the VRAM ladder too, via a
+        # separate guard. Same shared path, so this covers Mulai and the Lab
+        # alike. It stays separate from apply_lite_gpu_env on purpose -- that one
+        # also installs the Lite pipeline package, which would turn `normal` into
+        # Lite instead of merely protecting its VRAM.
         try:
-            lite_decision = apply_lite_gpu_env(env, model_key=preset.key, group=preset.tier, game=game, requested_engine=requested_engine, requested_ocr=int(ocr_resolution), base_dir=BASE_DIR)
+            if is_lite_like(preset.key, preset.tier):
+                lite_decision = apply_lite_gpu_env(env, model_key=preset.key, group=preset.tier, game=game, requested_engine=requested_engine, requested_ocr=int(ocr_resolution), base_dir=BASE_DIR)
+            else:
+                lite_decision = apply_vram_safety_env(env, model_key=preset.key, group=preset.tier, game=game, requested_engine=requested_engine)
             write_lite_gpu_status(BASE_DIR, lite_decision)
         except Exception:
             lite_decision = None
@@ -1068,6 +1243,9 @@ class ProcessManager:
                 "version": APP_VERSION_TAG,
                 "status": "RUNNING",
                 "translation_source": "ocr",
+                "ocr_workspace": env["ORT_OCR_WORKSPACE"],
+                "ocr_provider": env["ORT_OCR_PROVIDER"],
+                "ocr_languages": env["ORT_OCR_LANGUAGES"],
                 "model": model,
                 "game": game,
                 "settings_mode": settings_mode,
@@ -1101,7 +1279,7 @@ class ProcessManager:
         except Exception:
             pass
 
-        self.lines = []
+        self._reset_session_log()
         self.last_error = ""
         self.pending_candidate_notice = ""
         self.current_game = str(game)
@@ -1161,6 +1339,7 @@ class ProcessManager:
         if strategy.fast_path and not bool(fast_state.get("active")):
             self._push(f"[WEBUI {APP_VERSION_TAG}][WARN] Fast CT2 belum aktif ({fast_state.get('state')}). Model Fast akan fallback Argos sehingga masih terasa lamban. model_dir={fast_state.get('model_dir', '-')}")
         self._push(f"[WEBUI {APP_VERSION_TAG}] performance_reason={perf_reason}")
+        self._push(f"[WEBUI] OCR workspace={env['ORT_OCR_WORKSPACE']} | provider={env['ORT_OCR_PROVIDER']} | languages={env['ORT_OCR_LANGUAGES']} | requested_device={requested_engine}")
         self._push(f"[WEBUI] runtime_python={runtime_python}")
         self._push(f"[WEBUI] script={script_name}")
 
@@ -1186,7 +1365,7 @@ class ProcessManager:
         threading.Thread(target=self._reader, daemon=True).start()
         return self.get_status_text(), self.get_log(), f"Menjalankan {model}...", self.pending_candidate_notice
 
-    def start_audio(self, model, game, input_mode="loopback", device_index="-1", language="auto", processing="vad", profile_key="normal", test_file="", audio_mode="hybrid", audio_usage="live_media", audio_engine="azure_fallback", language_correction="balanced", language_lock=False):
+    def start_audio(self, model, game, input_mode="loopback", device_index="-1", language="auto", processing="vad", profile_key="normal", test_file="", audio_mode="hybrid", audio_usage="live_media", audio_engine="azure_fallback", language_correction="balanced", language_lock=False, vad_backend="auto", overlay_stream_mode="default", resource_mode="stable", resource_level=3, device_resource="adaptive"):
         if self.source_switching:
             return self.get_status_text(), self.get_log(), "Pergantian sumber masih menghentikan runtime sebelumnya. Tunggu status Stop, lalu mulai Audio.", self.pending_candidate_notice
         if self.proc and self.proc.poll() is None:
@@ -1211,6 +1390,15 @@ class ProcessManager:
         if language_correction not in {"off", "conservative", "balanced", "aggressive"}:
             language_correction = "balanced"
         language_lock = bool(language_lock)
+        # ORT_V9_0_6_STAGE4 / ORT_V9_0_7
+        vad_backend = str(vad_backend or "auto").strip().lower()
+        if vad_backend not in {"auto", "heuristic", "silero", "hybrid"}:
+            vad_backend = "auto"
+        from app.runtime.resource_levels import resolve_resource_plan, scaled_threads
+        resource_plan = resolve_resource_plan(resource_mode, resource_level, device_resource)
+        overlay_stream_mode = str(overlay_stream_mode or "default").strip().lower()
+        if overlay_stream_mode not in {"default", "typewriter"}:
+            overlay_stream_mode = "default"
         requested_audio_mode = normalize_audio_mode(audio_mode)
         requested_audio_usage = normalize_audio_usage(audio_usage)
         requested_audio_engine = normalize_audio_engine(audio_engine)
@@ -1417,6 +1605,31 @@ class ProcessManager:
         env["ORT_AUDIO_LANGUAGE_GUARD"] = language_guard
         env["ORT_AUDIO_LANGUAGE_AUTOCORRECT"] = language_correction
         env["ORT_AUDIO_LANGUAGE_LOCK"] = "1" if language_lock else "0"
+        # ORT_V9_0_6_STAGE4
+        env["ORT_AUDIO_VAD_BACKEND"] = "" if vad_backend == "auto" else vad_backend
+        env["ORT_AUDIO_OVERLAY_STREAM_MODE"] = overlay_stream_mode
+        # ORT_V9_0_7: RESOURCE_LADDER -- one plan feeds ASR policy scaling,
+        # VRAM guard, context memory, CT2 beam, and the thread budget.
+        env["ORT_AUDIO_RESOURCE_MODE"] = resource_plan.mode
+        env["ORT_AUDIO_RESOURCE_LEVEL"] = str(resource_plan.level)
+        env["ORT_DEVICE_RESOURCE"] = resource_plan.device_resource
+        env["ORT_AUDIO_RESOURCE_POLICY"] = {"efficient": "efficient", "stable": "normal", "intensive": "optimal"}[resource_plan.mode]
+        env["ORT_AUDIO_CONTEXT_WORDS"] = str(resource_plan.context_words)
+        env["ORT_AUDIO_VRAM_MIN_FREE_MB"] = str(resource_plan.vram_min_free_mb)
+        env["ORT_AUDIO_PREFLIGHT_MAX_STEADY_MS"] = str(resource_plan.preflight_max_steady_ms)
+        env["ORT_AUDIO_BACKGROUND_SPECIALIST_CORRECTION"] = "1" if resource_plan.specialist_correction else "0"
+        # Overlay shape/effect settings maintained on the Pengaturan UI page.
+        overlay_mode_pref = str(prefs.get("audio_overlay_mode", "adaptive") or "adaptive").lower()
+        if overlay_mode_pref not in {"adaptive", "fixed", "custom"}:
+            overlay_mode_pref = "adaptive"
+        env["ORT_AUDIO_OVERLAY_MODE"] = overlay_mode_pref
+        env["ORT_AUDIO_OVERLAY_WIDTH_PERCENT"] = str(max(40, min(100, int(prefs.get("audio_overlay_width_percent", 92) or 92))))
+        env["ORT_AUDIO_OVERLAY_HEIGHT_PX"] = str(max(100, min(720, int(prefs.get("audio_overlay_height_px", 190) or 190))))
+        env["ORT_AUDIO_OVERLAY_FONT_SIZE"] = str(max(10, min(30, int(prefs.get("audio_overlay_font_size", 15) or 15))))
+        env["ORT_AUDIO_OVERLAY_OPACITY_PERCENT"] = str(max(45, min(100, int(prefs.get("audio_overlay_opacity_percent", 91) or 91))))
+        overlay_alignment_pref = str(prefs.get("audio_overlay_alignment", "left") or "left").lower()
+        env["ORT_AUDIO_OVERLAY_ALIGNMENT"] = overlay_alignment_pref if overlay_alignment_pref in {"left", "center"} else "left"
+        env["ORT_AUDIO_OVERLAY_SHOW_SOURCE"] = "1" if bool(prefs.get("audio_overlay_show_source", True)) else "0"
         env["ORT_AUDIO_SHOW_SOURCE"] = "1"
         env["ORT_AUDIO_JA_SPECIALIST"] = "1" if japanese_specialist_enabled else "0"
         env["ORT_AUDIO_ASR_BRIDGE_LANGUAGE"] = "en"
@@ -1461,9 +1674,13 @@ class ProcessManager:
         env["ORT_IDN_OVER_CT2"] = "1"
         env["TITAN_CT2_DEVICE"] = "cpu"
         env["TITAN_CT2_COMPUTE_TYPE"] = "int8"
-        env["TITAN_CT2_BEAM"] = str(1 if profile.key == "speed" else (2 if profile.key == "normal" else 4))
-        env["OMP_NUM_THREADS"] = str(active_spec.cpu_threads)
-        env["ORT_CPU_THREADS"] = str(active_spec.cpu_threads)
+        # ORT_V9_0_7: beam and thread budget come from the resource ladder so
+        # Efisien-maks genuinely runs beam-1 half-threads and Intensive-maks
+        # runs beam-5 full-threads -- not just a different label.
+        env["TITAN_CT2_BEAM"] = str(resource_plan.ct2_beam)
+        effective_threads = scaled_threads(active_spec.cpu_threads, resource_plan)
+        env["OMP_NUM_THREADS"] = str(effective_threads)
+        env["ORT_CPU_THREADS"] = str(effective_threads)
         stop_path = BASE_DIR / "runtime_stop_request.json"
         env["ORT_STOP_REQUEST_FILE"] = str(stop_path)
         clear_stop_request(BASE_DIR)
@@ -1484,6 +1701,8 @@ class ProcessManager:
             "ORT_AUDIO_LANGUAGE_GUARD": language_guard,
             "ORT_AUDIO_LANGUAGE_AUTOCORRECT": language_correction,
             "ORT_AUDIO_LANGUAGE_LOCK": "1" if language_lock else "0",
+            "ORT_AUDIO_VAD_BACKEND": vad_backend,
+            "ORT_AUDIO_OVERLAY_STREAM_MODE": overlay_stream_mode,
             "ORT_AUDIO_SHOW_SOURCE": "1",
             "ORT_AUDIO_JA_SPECIALIST": "1" if japanese_specialist_enabled else "0",
             "ORT_AUDIO_ASR_BRIDGE_LANGUAGE": "en",
@@ -1522,9 +1741,17 @@ class ProcessManager:
             "ORT_IDN_OVER_CT2": "1",
             "TITAN_CT2_DEVICE": "cpu",
             "TITAN_CT2_COMPUTE_TYPE": "int8",
-            "TITAN_CT2_BEAM": str(1 if profile.key == "speed" else (2 if profile.key == "normal" else 4)),
-            "OMP_NUM_THREADS": str(active_spec.cpu_threads),
-            "ORT_CPU_THREADS": str(active_spec.cpu_threads),
+            "TITAN_CT2_BEAM": str(resource_plan.ct2_beam),
+            "OMP_NUM_THREADS": str(effective_threads),
+            "ORT_CPU_THREADS": str(effective_threads),
+            "ORT_AUDIO_RESOURCE_MODE": resource_plan.mode,
+            "ORT_AUDIO_RESOURCE_LEVEL": str(resource_plan.level),
+            "ORT_DEVICE_RESOURCE": resource_plan.device_resource,
+            "ORT_AUDIO_RESOURCE_POLICY": {"efficient": "efficient", "stable": "normal", "intensive": "optimal"}[resource_plan.mode],
+            "ORT_AUDIO_CONTEXT_WORDS": str(resource_plan.context_words),
+            "ORT_AUDIO_VRAM_MIN_FREE_MB": str(resource_plan.vram_min_free_mb),
+            "ORT_AUDIO_PREFLIGHT_MAX_STEADY_MS": str(resource_plan.preflight_max_steady_ms),
+            "ORT_AUDIO_BACKGROUND_SPECIALIST_CORRECTION": "1" if resource_plan.specialist_correction else "0",
         })
         try:
             fast_manager = FastModelManager(BASE_DIR)
@@ -1540,7 +1767,7 @@ class ProcessManager:
         except Exception:
             fast_state = {"state": "UNKNOWN", "active": False}
 
-        self.lines = []
+        self._reset_session_log()
         self.last_error = ""
         self.pending_candidate_notice = ""
         self.current_game = selected_game
@@ -1746,12 +1973,12 @@ class ProcessManager:
 MANAGER = ProcessManager()
 
 
-def start_model(model, game, mode, engine, interval_ms, ocr_resolution=65, performance_policy="auto", normal_override=False, settings_mode=None, responsive_story_mode=False, diagnostic_profile="baseline", mode_buffer_enabled=False):
-    return MANAGER.start(model, game, mode, engine, interval_ms, ocr_resolution, performance_policy, normal_override, settings_mode, responsive_story_mode, diagnostic_profile, mode_buffer_enabled)
+def start_model(model, game, mode, engine, interval_ms, ocr_resolution=65, performance_policy="auto", normal_override=False, settings_mode=None, responsive_story_mode=False, diagnostic_profile="baseline", mode_buffer_enabled=False, ocr_options=None):
+    return MANAGER.start(model, game, mode, engine, interval_ms, ocr_resolution, performance_policy, normal_override, settings_mode, responsive_story_mode, diagnostic_profile, mode_buffer_enabled, ocr_options)
 
 
-def start_audio_model(model, game, input_mode="loopback", device_index="-1", language="auto", processing="vad", profile_key="normal", test_file="", audio_mode="hybrid", audio_usage="live_media", audio_engine="azure_fallback", language_correction="balanced", language_lock=False):
-    return MANAGER.start_audio(model, game, input_mode, device_index, language, processing, profile_key, test_file, audio_mode, audio_usage, audio_engine, language_correction, language_lock)
+def start_audio_model(model, game, input_mode="loopback", device_index="-1", language="auto", processing="vad", profile_key="normal", test_file="", audio_mode="hybrid", audio_usage="live_media", audio_engine="azure_fallback", language_correction="balanced", language_lock=False, vad_backend="auto", overlay_stream_mode="default", resource_mode="stable", resource_level=3, device_resource="adaptive"):
+    return MANAGER.start_audio(model, game, input_mode, device_index, language, processing, profile_key, test_file, audio_mode, audio_usage, audio_engine, language_correction, language_lock, vad_backend, overlay_stream_mode, resource_mode, resource_level, device_resource)
 
 
 def setup_audio_runtime_text(profile_key="normal", audio_mode="hybrid"):

@@ -218,7 +218,7 @@ def _organize_root_files(project_root: Path, support_root: Path, report: Migrati
 
     protected = {
         "START_HERE.bat", "Start WebUI.bat", "Start OCR.bat", "Runtime.bat",
-        "ORT v9 Setup.bat", "VERSION.txt", ".gitignore", "LICENSE", "LICENSE.txt",
+        "Repair Struktur ORT.bat", "Instalation First.bat", "README.md", "VERSION.txt", ".gitignore", "LICENSE", "LICENSE.txt",
     }
     for item in list(project_root.iterdir()):
         if item.name in protected or item.is_dir():

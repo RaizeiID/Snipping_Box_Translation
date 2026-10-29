@@ -13,6 +13,44 @@ import sentencepiece as spm
 
 _CJK_RE = re.compile(r"[\u4e00-\u9fff]")
 
+# ORT v9.0.7 R22: CT2 gets its own thread budget instead of inheriting
+# OMP_NUM_THREADS. The translator used to be built with no thread argument at
+# all, so it followed OMP -- which the resource ladder scales by thread_frac
+# (0.30-1.00) for the benefit of OCR and torch. On the Efisien end that landed
+# CT2 on one or two threads, and the measured cost is severe. Median over 60
+# real lines from the field logs, 24-core machine:
+#
+#     1 thread 163 ms | 2: 105 | 3: 81 | 4: 77 | 6: 58 | 8: 49 | 12: 57
+#
+# So one thread is 3.3x slower than eight, and past eight it regresses -- an
+# en->id OPUS-MT model at beam 1 is too small to keep more cores busy, and the
+# synchronisation cost starts to dominate. The band below is that curve: never
+# below the floor where latency falls off a cliff, never above the point where
+# more cores stop paying. The ladder still moves CT2 inside the band, it just
+# can no longer push it off either end.
+_CT2_THREAD_FLOOR = 4
+_CT2_THREAD_CEILING = 8
+
+
+def resolve_ct2_threads(requested: int = 0) -> int:
+    """Clamp a requested CT2 thread count into the measured useful band."""
+    floor = max(1, int(os.environ.get("ORT_CT2_THREAD_FLOOR", _CT2_THREAD_FLOOR)))
+    ceiling = max(floor, int(os.environ.get("ORT_CT2_THREAD_CEILING", _CT2_THREAD_CEILING)))
+    if requested <= 0:
+        for key in ("ORT_CT2_THREADS", "ORT_CPU_THREADS", "OMP_NUM_THREADS"):
+            try:
+                requested = int(os.environ.get(key, "0") or 0)
+            except ValueError:
+                requested = 0
+            if requested > 0:
+                break
+    if requested <= 0:
+        requested = ceiling
+    # Never promise more threads than the machine has; a 4-core box would
+    # otherwise be handed the 8-thread ceiling and thrash.
+    cores = os.cpu_count() or requested
+    return max(1, min(ceiling, max(floor, requested), cores))
+
 
 def looks_like_cjk(text: str) -> bool:
     return bool(text and _CJK_RE.search(text))
@@ -41,6 +79,9 @@ class CT2Config:
     # Compute type (simple, stable defaults)
     # For GPU speed you can try "int8_float16" later.
     compute_type: str = "int8"
+
+    # 0 = derive from the environment, then clamp to the measured band.
+    intra_threads: int = 0
 
 
 class FastCT2Translator:
@@ -84,11 +125,16 @@ class FastCT2Translator:
         self.tgt_sp.load(tgt_spm)
 
         # Load CT2 translator
+        self.ct2_threads = resolve_ct2_threads(cfg.intra_threads)
+        # Reported so the runtime log shows the real budget, not the OMP value.
+        os.environ["ORT_CT2_THREADS_USED"] = str(self.ct2_threads)
         self.tr_en_id = ctranslate2.Translator(
             cfg.model_dir_en_id,
             device=cfg.device,
             device_index=cfg.device_index,
             compute_type=cfg.compute_type,
+            inter_threads=1,
+            intra_threads=self.ct2_threads,
         )
 
         # Optional pivot init (not required for EN->ID usage)
@@ -117,6 +163,8 @@ class FastCT2Translator:
                         device=cfg.device,
                         device_index=cfg.device_index,
                         compute_type=cfg.compute_type,
+                        inter_threads=1,
+                        intra_threads=self.ct2_threads,
                     )
 
     def warmup(self):

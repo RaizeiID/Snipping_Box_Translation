@@ -15,8 +15,8 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from PyQt5.QtCore import QObject, QPoint, Qt, QTimer, pyqtSignal
-from PyQt5.QtGui import QCursor, QFont
-from PyQt5.QtWidgets import QApplication, QFrame, QHBoxLayout, QLabel, QSizeGrip, QVBoxLayout, QWidget
+from PyQt5.QtGui import QCursor, QFont, QKeySequence
+from PyQt5.QtWidgets import QApplication, QFrame, QHBoxLayout, QLabel, QShortcut, QSizeGrip, QVBoxLayout, QWidget
 
 from app.audio.cloud_streaming import (
     CloudFallbackLatch,
@@ -144,6 +144,24 @@ class AudioOverlay(QWidget):
         self.opacity_percent = max(45, min(100, int(os.environ.get("ORT_AUDIO_OVERLAY_OPACITY_PERCENT", "91") or 91)))
         self.show_source_text = str(os.environ.get("ORT_AUDIO_OVERLAY_SHOW_SOURCE", os.environ.get("ORT_AUDIO_SHOW_SOURCE", "1"))).lower() in {"1", "true", "yes", "on"}
         self.text_alignment = str(os.environ.get("ORT_AUDIO_OVERLAY_ALIGNMENT", "left") or "left").lower()
+        # ORT_V9_0_6_STAGE4: OVERLAY_STREAM_MODE
+        # "default" writes each ASR revision straight to the label. "typewriter"
+        # reveals it character by character, which reads as flowing speech
+        # instead of text snapping between hypotheses.
+        self.stream_mode = str(
+            os.environ.get("ORT_AUDIO_OVERLAY_STREAM_MODE", "default") or "default"
+        ).strip().lower()
+        if self.stream_mode not in {"default", "typewriter"}:
+            self.stream_mode = "default"
+        self.developer_mode = str(
+            os.environ.get("ORT_OPEN_ARCHITECTURE_LAB", "0")
+        ).lower() in {"1", "true", "yes", "on"}
+        self._typewriter_target = ""
+        self._typewriter_revealed = 0
+        self._typewriter_step = 1
+        self._typewriter_timer = QTimer(self)
+        self._typewriter_timer.setInterval(28)
+        self._typewriter_timer.timeout.connect(self._typewriter_tick)
         self.setWindowTitle(f"ORT Audio · {APP_VERSION_TAG}")
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
         self.setAttribute(Qt.WA_TranslucentBackground, True)
@@ -218,6 +236,13 @@ class AudioOverlay(QWidget):
             self.adjustSize()
         else:
             self.setMinimumSize(420, 100)
+        # ORT_V9_0_6_STAGE4: OVERLAY_STREAM_MODE
+        # Live A/B switching is only exposed in developer mode: during a real
+        # session an accidental keypress must not change how subtitles render.
+        if self.developer_mode:
+            self._stream_mode_shortcut = QShortcut(QKeySequence("Ctrl+Alt+T"), self)
+            self._stream_mode_shortcut.setContext(Qt.ApplicationShortcut)
+            self._stream_mode_shortcut.activated.connect(self.toggle_stream_mode)
 
     def _active_screen(self):
         return QApplication.screenAt(QCursor.pos()) or QApplication.primaryScreen()
@@ -263,6 +288,72 @@ class AudioOverlay(QWidget):
         self.show()
         self.raise_()
 
+    # ORT_V9_0_6_STAGE4: OVERLAY_STREAM_MODE
+    @staticmethod
+    def _shared_prefix_length(left: str, right: str) -> int:
+        limit = min(len(left), len(right))
+        index = 0
+        while index < limit and left[index] == right[index]:
+            index += 1
+        return index
+
+    def _set_dialog_text(self, text: str) -> None:
+        """Route subtitle text through the active stream mode."""
+        clean = " ".join(str(text or "").split())
+        if self.stream_mode != "typewriter":
+            self._typewriter_timer.stop()
+            self._typewriter_target = clean
+            self._typewriter_revealed = len(clean)
+            self.translation_label.setText(clean)
+            return
+        if clean == self._typewriter_target:
+            return
+        # An ASR revision replaces text rather than appending to it. Keeping the
+        # characters both hypotheses agree on means a correction never restarts
+        # the animation from zero, which is what would look like flicker.
+        keep = self._shared_prefix_length(self._typewriter_target, clean)
+        self._typewriter_target = clean
+        self._typewriter_revealed = min(self._typewriter_revealed, keep, len(clean))
+        # Size the box for the finished line before revealing, so the overlay
+        # does not grow one character at a time.
+        self.translation_label.setText(clean)
+        self._apply_text_font(clean)
+        self._refresh_geometry()
+        self.translation_label.setText(clean[: self._typewriter_revealed])
+        # Fix the step now, from the distance still to cover, so the reveal
+        # finishes in a bounded ~12 ticks (~340 ms). Recomputing it every tick
+        # would shrink the step as the gap closes and never actually arrive.
+        pending = len(clean) - self._typewriter_revealed
+        self._typewriter_step = max(1, -(-pending // 12))
+        if pending > 0:
+            self._typewriter_timer.start()
+        else:
+            self._typewriter_timer.stop()
+
+    def _typewriter_tick(self) -> None:
+        target = self._typewriter_target
+        if self._typewriter_revealed >= len(target):
+            self._typewriter_timer.stop()
+            self.translation_label.setText(target)
+            return
+        self._typewriter_revealed = min(
+            len(target), self._typewriter_revealed + self._typewriter_step
+        )
+        self.translation_label.setText(target[: self._typewriter_revealed])
+        if self._typewriter_revealed >= len(target):
+            self._typewriter_timer.stop()
+
+    def toggle_stream_mode(self) -> str:
+        """Developer-mode live switch between default and typewriter."""
+        self.stream_mode = "typewriter" if self.stream_mode == "default" else "default"
+        pending = self._typewriter_target
+        self._typewriter_timer.stop()
+        self._typewriter_revealed = len(pending)
+        if pending:
+            self.translation_label.setText(pending)
+        self.status_label.setText(f"Overlay stream · {self.stream_mode}")
+        return self.stream_mode
+
     def set_state(self, text: str) -> None:
         self.status_label.setText(str(text or ""))
 
@@ -281,11 +372,11 @@ class AudioOverlay(QWidget):
         self.source_label.setText("Preview EN: " + clean_source)
         self.source_label.setToolTip(clean_source)
         self.source_label.setVisible(self.show_source_text)
-        self.translation_label.setText(clean_translation)
         self._apply_text_font(clean_translation)
         self.translation_label.setStyleSheet("color:#f8fafc;")
         self.status_label.setText(status)
         self._refresh_geometry()
+        self._set_dialog_text(clean_translation)
 
     def set_cloud_source(self, source: str, latency_ms: int = 0) -> None:
         clean_source = " ".join(str(source or "").split())
@@ -302,7 +393,6 @@ class AudioOverlay(QWidget):
         self.source_label.setText("Preview EN: " + clean_source)
         self.source_label.setToolTip(clean_source)
         self.source_label.setVisible(self.show_source_text)
-        self.translation_label.setText(clean_translation)
         self._apply_text_font(clean_translation)
         if stable:
             self.translation_label.setStyleSheet("color:#f8fafc;")
@@ -311,6 +401,7 @@ class AudioOverlay(QWidget):
             self.translation_label.setStyleSheet("color:#bae6fd;")
             self.status_label.setText(f"Azure · live · {max(0, int(latency_ms))} ms")
         self._refresh_geometry()
+        self._set_dialog_text(clean_translation)
 
     def set_error(self, message: str) -> None:
         self.status_label.setText("Audio berhenti")
@@ -628,6 +719,11 @@ class RealtimeLocalBridge(QObject):
             "--game", os.environ.get("ORT_GAME_PROFILE", "GFL2_EXILIUM"),
             "--language-correction", os.environ.get("ORT_AUDIO_LANGUAGE_AUTOCORRECT", "balanced"),
             "--start-gate-file", os.environ.get("ORT_AUDIO_START_GATE_FILE", ""),
+            # ORT_V9_0_6_STAGE4: VAD_BACKEND ("auto" = follow the resource
+            # ladder). An empty env value also means auto -- passing "" as a
+            # CLI argument would be rejected by argparse choices.
+            "--vad-backend", (os.environ.get("ORT_AUDIO_VAD_BACKEND", "").strip() or "auto"),
+            "--vad-threshold", os.environ.get("ORT_AUDIO_VAD_THRESHOLD", "0.5"),
         ]
         if str(os.environ.get("ORT_AUDIO_LANGUAGE_LOCK", "0")).lower() in {"1", "true", "yes", "on"}:
             command.append("--language-lock")

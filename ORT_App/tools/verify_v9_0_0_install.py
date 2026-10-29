@@ -27,7 +27,7 @@ from pathlib import Path
 
 
 REQUIRED_ROOT = (
-    "START_HERE.bat", "Start WebUI.bat", "Start OCR.bat", "Runtime.bat", "ORT v9 Setup.bat", "VERSION.txt",
+    "Instalation First.bat", "Start WebUI.bat", "Repair Struktur ORT.bat", "VERSION.txt",
 )
 REQUIRED_APP = (
     "webui.py", "build_info.py", "launcher_backend.py", "audio_main.py", "audio_realtime_local_sidecar.py", "audio_translation_sidecar.py",
@@ -280,11 +280,11 @@ def verify(project_root: Path) -> dict:
 
     migrated = app.name == "ORT_App"
     if not migrated:
-        warnings.append("Struktur masih kompatibilitas ORT/runtime_app. Jalankan ORT v9 Setup.bat untuk memindahkannya ke ORT_App.")
+        warnings.append("Struktur masih kompatibilitas ORT/runtime_app. Jalankan Repair Struktur ORT.bat untuk memindahkannya ke ORT_App.")
     else:
         layout = root / "ORT" / "config" / "project_layout.json"
         if not layout.is_file():
-            warnings.append("project_layout.json belum tersedia; jalankan ORT v9 Setup.bat sekali lagi.")
+            warnings.append("project_layout.json belum tersedia; jalankan Repair Struktur ORT.bat sekali lagi.")
 
     return {
         "passed": not errors,

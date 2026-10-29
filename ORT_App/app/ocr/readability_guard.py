@@ -49,9 +49,31 @@ def score_text(text: str, applied_percent: int = 100, min_story_percent: int = 5
     score = max(0.0, min(1.0, (signal * 0.62) + ((1.0 - corruption) * 0.38)))
     low_profile = int(applied_percent) < int(min_story_percent)
     long_enough = len(raw) >= 12 and len(words) >= 2
-    degraded = corruption >= 0.16 or score < 0.72
-    needs = bool(long_enough and (degraded or low_profile))
-    reason = "low_story_profile" if low_profile and not degraded else ("corruption_detected" if degraded else "readable")
+    # ORT v9.0.7 R29: a resolution below the story floor used to force a rescue
+    # by itself, regardless of how the text actually read. Measured over two
+    # field sessions at OCR 47% (floor 50), that fired 264 times and cost 21.0 of
+    # the 22.9 rescue-seconds in the whole run -- and it did not help:
+    #
+    #     identical text   232 (88%)   18.3 s spent for nothing
+    #     shorter text      26 (10%)   actively worse
+    #     recovered words    6 ( 2%)   one or two words, on frames the next
+    #                                  frame would have covered anyway
+    #
+    # Average score across those rescues went DOWN, 0.878 -> 0.875. Meanwhile
+    # corruption_detected -- the trigger that reads the text rather than the
+    # setting -- fired 23 times, cost 1.2 s, and improved 39% of the time.
+    #
+    # So low resolution now raises the suspicion bar instead of bypassing it: a
+    # weak read at 47% is still rescued, a clean one is left alone. The player
+    # chose a low resolution for speed; guaranteeing a second EasyOCR pass on
+    # every line is the opposite of what they asked for.
+    score_floor = 0.78 if low_profile else 0.72
+    degraded = corruption >= 0.16 or score < score_floor
+    needs = bool(long_enough and degraded)
+    reason = (
+        "low_profile_degraded" if (low_profile and degraded)
+        else ("corruption_detected" if degraded else "readable")
+    )
     return ReadabilityAssessment(round(score, 4), round(corruption, 4), len(words), needs, reason)
 
 

@@ -95,6 +95,10 @@ class StoryDialogueScheduler:
         self.classic_interval = bool(classic_interval)
         self.progressive_min_ms = int(progressive_min_ms)
         self.progressive_min_delta = int(progressive_min_delta)
+        # ORT_V9_0_7_R17: smoothed backend latency, fed by the pipeline via
+        # note_backend_latency(). 0 means "no measurement yet" -> behave exactly
+        # as before, so a run with no feedback is unchanged.
+        self.backend_pace_ms = 0.0
         self._last_seen = ""
         self._last_seen_ts = 0.0
         self._candidate_start_ts = 0.0
@@ -127,6 +131,28 @@ class StoryDialogueScheduler:
         progressive_min_ms = int(os.environ.get("ORT_DIALOG_PROGRESSIVE_MIN_MS", "140"))
         progressive_min_delta = int(os.environ.get("ORT_DIALOG_PROGRESSIVE_MIN_DELTA", "4"))
         return cls(profile=profile, enabled=enabled, min_age_ms=min_age, min_repeats=repeats, duplicate_hold_ms=dup_hold, max_wait_ms=max_wait, voice_hold_ms=voice_hold, quick_punct_commit=quick_punct, progressive_commit=progressive, classic_interval=classic_interval, progressive_min_ms=progressive_min_ms, progressive_min_delta=progressive_min_delta)
+
+    def note_backend_latency(self, ms) -> None:
+        """Feed the measured translation latency back into the pacing.
+
+        ORT_V9_0_7_R17. Exponential moving average, so one slow frame does not
+        clamp pacing for the rest of the scene, but a sustained slowdown (a long
+        narration block, or the GPU contended by the game) is followed within a
+        few frames. Weighted toward history to keep the pacing steady.
+        """
+        try:
+            value = float(ms)
+        except (TypeError, ValueError):
+            return
+        # NaN fails every comparison, so `value <= 0` would let it through and
+        # poison the average permanently. Test it explicitly.
+        if not (value > 0) or value != value or value in (float("inf"), float("-inf")):
+            return
+        value = min(value, 3000.0)
+        if self.backend_pace_ms <= 0:
+            self.backend_pace_ms = value
+        else:
+            self.backend_pace_ms = (self.backend_pace_ms * 0.7) + (value * 0.3)
 
     def decide(self, text: str, *, mode: str = "", meta: Optional[Dict[str, Any]] = None) -> SchedulerDecision:
         meta = meta or {}
@@ -167,6 +193,25 @@ class StoryDialogueScheduler:
             if self.profile == "auto_story" and os.environ.get("ORT_AUTO_SMOOTH_MODE", "1") == "1":
                 min_delta = max(min_delta, int(os.environ.get("ORT_AUTO_SMOOTH_MIN_CHAR_DELTA", "10")))
                 min_ms = max(min_ms, int(os.environ.get("ORT_AUTO_SMOOTH_MIN_MS", "220")))
+            # ORT_V9_0_7_R17: BACKEND_BACKPRESSURE.
+            # Every knob above is a fixed constant, so the commit rate is set
+            # without any regard for how long a translation actually takes. On
+            # this machine the backend runs 55 ms on a short line but 400-500 ms
+            # on a long one (GPU shared with EasyOCR and the game), while the
+            # pacing stayed at 140 ms -- so long lines queued faster than they
+            # could drain and the subtitle fell behind by seconds. Field log
+            # 15:19:52 shows the result: backend=428ms with the queue still
+            # filling, then 479, then a 1184 ms round trip.
+            #
+            # `backend_pace_ms` is the recent observed backend latency, pushed in
+            # by the pipeline. Pacing never commits faster than the backend can
+            # drain, so the system self-limits instead of building a backlog.
+            # Short lines are unaffected: their backend time is small, so the
+            # floor stays at the configured value and Auto keeps its snappiness.
+            if self.backend_pace_ms > 0:
+                headroom = float(os.environ.get("ORT_BACKPRESSURE_HEADROOM", "1.15"))
+                ceiling = int(os.environ.get("ORT_BACKPRESSURE_MAX_MS", "900"))
+                min_ms = max(min_ms, min(ceiling, int(self.backend_pace_ms * headroom)))
             if self.profile != "auto_story" and os.environ.get("ORT_INTERVAL_STABLE_MODE", "1") == "1":
                 min_delta = max(min_delta, int(os.environ.get("ORT_INTERVAL_MIN_CHAR_DELTA", "14")))
                 min_ms = max(min_ms, int(os.environ.get("ORT_INTERVAL_PROGRESSIVE_MIN_MS", "360")))

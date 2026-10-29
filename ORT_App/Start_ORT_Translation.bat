@@ -63,6 +63,7 @@ if not exist "%RUNTIME_PY%" (
 )
 
 "%RUNTIME_PY%" -m pip install --upgrade pip
+if errorlevel 1 goto setup_failed
 nvidia-smi >nul 2>nul
 if "%ERRORLEVEL%"=="0" (
   set "TORCH_REQ=requirements_torch_cu121.txt"
@@ -71,12 +72,27 @@ if "%ERRORLEVEL%"=="0" (
   set "TORCH_REQ=requirements_torch_cpu.txt"
   set "TORCH_CONSTRAINT=constraints_runtime_cpu.txt"
 )
-if exist "%APP_ROOT%\%TORCH_REQ%" "%RUNTIME_PY%" -m pip install -r "%APP_ROOT%\%TORCH_REQ%"
-if exist "%APP_ROOT%\requirements_base.txt" "%RUNTIME_PY%" -m pip install -r "%APP_ROOT%\requirements_base.txt" -c "%APP_ROOT%\%TORCH_CONSTRAINT%"
+if not exist "%APP_ROOT%\%TORCH_REQ%" goto setup_failed
+if not exist "%APP_ROOT%\requirements_base.txt" goto setup_failed
+if not exist "%APP_ROOT%\%TORCH_CONSTRAINT%" goto setup_failed
+"%RUNTIME_PY%" -m pip install -r "%APP_ROOT%\%TORCH_REQ%"
+if errorlevel 1 goto setup_failed
+"%RUNTIME_PY%" -m pip install -r "%APP_ROOT%\requirements_base.txt" -c "%APP_ROOT%\%TORCH_CONSTRAINT%"
+if errorlevel 1 goto setup_failed
 
 set "ORT_RUNTIME_ROOT=%RUNTIME_ROOT%"
 echo [ORT v9.0.5] Menjalankan WebUI.
 "%RUNTIME_PY%" "%APP_ROOT%\webui.py"
+set "ORT_SETUP_RC=%ERRORLEVEL%"
+endlocal & exit /b %ORT_SETUP_RC%
+
+:setup_failed
+echo.
+echo [ORT] Instalasi dependensi belum selesai. WebUI belum dijalankan.
+echo Periksa koneksi, ruang penyimpanan, dan pesan error di atas.
+echo Jalankan kembali "Instalation First.bat" lalu pilih [1] ORT_Runtime.
+pause
+endlocal & exit /b 4
 
 :end
-endlocal
+endlocal & exit /b 0
